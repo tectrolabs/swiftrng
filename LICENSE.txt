@@ -1,0 +1,12 @@
+Copyright (C) 2014-2018 TectroLabs, https://tectrolabs.com
+
+THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
+
+This software is used for interacting with the hardware random data generator device SwiftRNG for the purpose of downloading true random bytes.
+
+This software requires the libusb-1.0 library when communicating with the SwiftRNG device. Please read the provided documentation for libusb-1.0 installation details.
+
+This software uses libusb-1.0 (directly or indirectly) which is distributed under the terms of the GNU Lesser General Public License as published by the Free Software Foundation. For more information, please visit: http://libusb.info
+
+This software may only be used in conjunction with a SwiftRNG device.
