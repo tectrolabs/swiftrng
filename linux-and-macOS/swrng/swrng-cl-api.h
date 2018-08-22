@@ -1,6 +1,6 @@
 /*
  * swrng-cl-api.h
- * Ver. 1.9
+ * Ver. 1.10
  *
  */
 
@@ -195,7 +195,7 @@ int swrngDisableCLPostProcessing(SwrngCLContext *ctxt);
 * Enable post processing method.
 *
 * @param ctxt - pointer to SwrngContext structure
-* @param postProcessingMethodId - 0 for SHA256 (default), 1 - xorshift64 (devices with versions 1.2 and up)
+* @param postProcessingMethodId - 0 for SHA256 (default), 1 - xorshift64 (devices with versions 1.2 and up), 2 - for SHA512
 *
 * @return int - 0 when post processing successfully enabled, otherwise the error code
 *

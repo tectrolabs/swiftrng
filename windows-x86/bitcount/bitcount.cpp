@@ -1,9 +1,9 @@
 #include "stdafx.h"
 /*
  * bitcount.c
- * Ver. 1.7
+ * Ver. 1.8
  *
- * A C program for downloading random bytes from SwiftRNG and counting '1' and '0' bits
+ * A C program for counting '1' and '0' bits downloaded from SwiftRNG device
  *
  */
 
@@ -28,6 +28,8 @@ int main(int argc, char **argv) {
 	SwrngContext ctxt;
 	long long totalOnes;
 	long long totalZeros;
+	long long totalBits;
+	double arithmeticZeroMean;
 	int postProcessingMethod = -1;
 	char postProcessingMethodStr[256];
 	int actualPostProcessingMethodId;
@@ -35,9 +37,9 @@ int main(int argc, char **argv) {
 
 	strcpy_s(postProcessingMethodStr, "SHA256");
 
-	printf("-------------------------------------------------------------------------------\n");
-	printf("--- A program for counting '1' and '0' bits downloaded from SwiftRNG device ---\n");
-	printf("-------------------------------------------------------------------------------\n");
+	printf("------------------------------------------------------------------------------\n");
+	printf("--- A program for counting 1's and 0's bits retrieved from SwiftRNG device ---\n");
+	printf("------------------------------------------------------------------------------\n");
 
 	setbuf(stdout, NULL);
 
@@ -62,6 +64,7 @@ int main(int argc, char **argv) {
 		deviceNum = 0;
 	} else {
 		printf("Usage: bitcount <number of blocks> <device number> [SHA256, SHA512 or xorshift64]\n");
+		printf("Note: One block equals to 16000 bytes\n");
 		return(1);
 	}
 
@@ -134,8 +137,11 @@ int main(int argc, char **argv) {
 			totalZeros += (8 - oneCounter);
 		}
 	}
-	printf("total bytes downloaded %lld, 0 bit count: %lld, 1 bit count: %lld, diff: %lld\n",
-		(long long)((long long)totalBlocks * (long long)BLOCK_SIZE), totalZeros, totalOnes, totalZeros - totalOnes);
+	totalBits = (long long)totalBlocks * BLOCK_SIZE * 8;
+	arithmeticZeroMean = (double)totalZeros / (double)totalBits;
+	printf("retrieved %lld total bits, 0's bit count: %lld, 1's bit count: %lld, 0's arithmetic mean: %.10g\n",
+			totalBits, totalZeros, totalOnes, arithmeticZeroMean);
+
 	printf("\n");
 	swrngClose(&ctxt);
 	return (0);

@@ -1,13 +1,14 @@
 #include "stdafx.h"
 /*
- * bitcount.c
- * Ver. 1.8
+ * bitcount-cl.c
+ * Ver. 1.0
  *
- * A C program for counting '1' and '0' bits downloaded from SwiftRNG device
+ * A C program for counting '1' and '0' bits downloaded from a SwiftRNG cluster
+ * using default configuration.
  *
  */
 
-#include "swrngapi.h"
+#include "swrng-cl-api.h"
 
 #define BLOCK_SIZE (16000)
 
@@ -23,29 +24,27 @@ static void initializeStatData(void);
  * @return int 0 - successful or error code
  */
 int main(int argc, char **argv) {
-	int i, deviceNum;
+	int i;
+	int clusterSize;
 	long totalBlocks, l;
-	SwrngContext ctxt;
+	SwrngCLContext ctxt;
 	long long totalOnes;
 	long long totalZeros;
 	long long totalBits;
 	double arithmeticZeroMean;
 	int postProcessingMethod = -1;
 	char postProcessingMethodStr[256];
-	int actualPostProcessingMethodId;
-	int postProcessingStatus;
 
-	strcpy(postProcessingMethodStr, "SHA256");
-
-	printf("------------------------------------------------------------------------------\n");
-	printf("--- A program for counting 1's and 0's bits retrieved from SwiftRNG device ---\n");
-	printf("------------------------------------------------------------------------------\n");
+	printf("---------------------------------------------------------------------------------\n");
+	printf("--- A program for counting 1's and 0's bits retrieved from a SwiftRNG cluster ---\n");
+	printf("---------------------------------------------------------------------------------\n");
 
 	setbuf(stdout, NULL);
+	strcpy(postProcessingMethodStr, "'default'");
 
 	if (argc > 2) {
 		totalBlocks = atol(argv[1]);
-		deviceNum = atol(argv[2]);
+		clusterSize = atol(argv[2]);
 		if (argc > 3) {
 			strcpy(postProcessingMethodStr, argv[3]);
 			if (!strcmp("SHA256", postProcessingMethodStr)) {
@@ -61,73 +60,44 @@ int main(int argc, char **argv) {
 		}
 	} else if (argc > 1) {
 		totalBlocks = atol(argv[1]);
-		deviceNum = 0;
+		clusterSize = 0;
 	} else {
-		printf("Usage: bitcount <number of blocks> <device number> [SHA256, SHA512 or xorshift64]\n");
+		printf("Usage: bitcount-cl <number of blocks> <cluster size> [SHA256, SHA512 or xorshift64]\n");
 		printf("Note: One block equals to 16000 bytes\n");
 		return(1);
 	}
 
-
 	// Initialize the context
-	if (swrngInitializeContext(&ctxt) != SWRNG_SUCCESS) {
+	if (swrngInitializeCLContext(&ctxt) != SWRNG_SUCCESS) {
 		printf("Could not initialize context\n");
 		return(1);
 	}
 
 	initializeStatData();
 
-	// Open SwiftRNG device if available
-	if (swrngOpen(&ctxt, deviceNum) != SWRNG_SUCCESS) {
-		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+	// Open the cluster if any SwiftRNG device if available
+	if (swrngCLOpen(&ctxt, clusterSize) != SWRNG_SUCCESS) {
+		printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
 		return(1);
 	}
 
 	// Set post processing method if provided
 	if (postProcessingMethod != -1) {
-		if (swrngEnablePostProcessing(&ctxt, postProcessingMethod) != SWRNG_SUCCESS) {
-			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		if (swrngEnableCLPostProcessing(&ctxt, postProcessingMethod) != SWRNG_SUCCESS) {
+			printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
 			return(1);
 		}
 	}
-	printf("\nSwiftRNG device number %d open successfully\n\n", deviceNum);
 
-	if (swrngGetPostProcessingStatus(&ctxt, &postProcessingStatus) != SWRNG_SUCCESS) {
-		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
-		return(1);
-	}
-
-	if (postProcessingStatus == 0) {
-		strcpy(postProcessingMethodStr, "'no'");
-	} else {
-		if (swrngGetPostProcessingMethod(&ctxt, &actualPostProcessingMethodId) != SWRNG_SUCCESS) {
-			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
-			return(1);
-		}
-		switch (actualPostProcessingMethodId) {
-		case 0:
-			strcpy(postProcessingMethodStr, "SHA256");
-			break;
-		case 1:
-			strcpy(postProcessingMethodStr, "xorshift64");
-			break;
-		case 2:
-			strcpy(postProcessingMethodStr, "SHA512");
-			break;
-		default:
-			strcpy(postProcessingMethodStr, "*unknown*");
-			break;
-		}
-
-	}
+	printf("\nSwiftRNG cluster of %d devices open successfully\n\n", swrngGetCLSize(&ctxt));
 
 	printf("*** downloading random bytes and counting bits using %s post processing method ***\n", postProcessingMethodStr);
 	totalOnes = 0;
 	totalZeros = 0;
 	for (l = 0; l < totalBlocks; l++) {
-		if (swrngGetEntropy(&ctxt, buffer, BLOCK_SIZE) != SWRNG_SUCCESS) {
-			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
-			swrngClose(&ctxt);
+		if (swrngGetCLEntropy(&ctxt, buffer, BLOCK_SIZE) != SWRNG_SUCCESS) {
+			printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
+			swrngCLClose(&ctxt);
 			return (1);
 		}
 		for(i = 0; i < BLOCK_SIZE; i++) {
@@ -143,7 +113,7 @@ int main(int argc, char **argv) {
 			totalBits, totalZeros, totalOnes, arithmeticZeroMean);
 
 	printf("\n");
-	swrngClose(&ctxt);
+	swrngCLClose(&ctxt);
 	return (0);
 
 }

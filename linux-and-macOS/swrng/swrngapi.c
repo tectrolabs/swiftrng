@@ -2,7 +2,7 @@
 
 /*
  * swrngapi.c
- * ver. 3.2
+ * ver. 3.3
  *
  */
 
@@ -1053,7 +1053,7 @@ int swrngSetPowerProfile(SwrngContext *ctxt, int ppNum) {
 * Enable post processing method.
 *
 * @param ctxt - pointer to SwrngContext structure
-* @param postProcessingMethodId - 0 for SHA256 (default), 2 - SHA512, 1 - xorshift64 (devices with versions 1.2 and up)
+* @param postProcessingMethodId - 0 for SHA256 (default), 1 - xorshift64 (devices with versions 1.2 and up), 2 - for SHA512
 *
 * @return int - 0 when post processing successfully enabled, otherwise the error code
 *
