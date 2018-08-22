@@ -21,10 +21,11 @@ SWDIAG_CL = swdiag-cl
 SWPERFTEST = swperftest
 SWPERF_CL_TEST = swperf-cl-test
 BITCOUNT = bitcount
+BITCOUNT_CL = bitcount-cl
 SWRNGSEQGEN = swrngseqgen
 SWRNG_PSERVER = run-swrng-pserver.sh
 
-all: $(SWRNG) $(SWRNG_CL) $(SAMPLE_PROGR) $(SWDIAG) $(SWDIAG_CL) $(SWPERFTEST) $(SAMPLE_CL_PROGR) $(SWPERF_CL_TEST) $(BITCOUNT) $(SWRNGSEQGEN)
+all: $(SWRNG) $(SWRNG_CL) $(SAMPLE_PROGR) $(SWDIAG) $(SWDIAG_CL) $(SWPERFTEST) $(SAMPLE_CL_PROGR) $(SWPERF_CL_TEST) $(BITCOUNT) $(BITCOUNT_CL) $(SWRNGSEQGEN)
 
 $(SWRNG): swrng.c
 	$(CC) swrng.c swrngapi.c -o $(SWRNG) $(CFLAGS)
@@ -53,11 +54,14 @@ $(SWDIAG_CL): swdiag-cl.c
 $(BITCOUNT): bitcount.c
 	$(CC) bitcount.c swrngapi.c -o $(BITCOUNT) $(CFLAGS)
 
+$(BITCOUNT_CL): bitcount-cl.c
+	$(CC) bitcount-cl.c swrngapi.c swrng-cl-api.c -o $(BITCOUNT_CL) $(CFLAGS) $(CFLAGS_THREAD)
+
 $(SWRNGSEQGEN): swrngseqgen.cpp
 	$(CC) swrngseqgen.cpp swrngapi.c SWRNGRandomSeqGenerator.cpp -o $(SWRNGSEQGEN) $(CFLAGS) $(CPPFLAGS)
 
 clean:
-	rm -f *.o ; rm $(SWRNG) $(SWRNG_CL) $(SAMPLE_PROGR) $(SWDIAG) $(SWDIAG_CL) $(SWPERFTEST) $(SAMPLE_CL_PROGR) $(SWPERF_CL_TEST) $(BITCOUNT) $(SWRNGSEQGEN)
+	rm -f *.o ; rm $(SWRNG) $(SWRNG_CL) $(SAMPLE_PROGR) $(SWDIAG) $(SWDIAG_CL) $(SWPERFTEST) $(SAMPLE_CL_PROGR) $(SWPERF_CL_TEST) $(BITCOUNT) $(BITCOUNT_CL) $(SWRNGSEQGEN)
 
 install:
 	install $(SWRNG) $(BINDIR)/$(SWRNG)
@@ -67,6 +71,8 @@ install:
 	install $(SWPERFTEST) $(BINDIR)/$(SWPERFTEST)
 	install $(SWPERF_CL_TEST) $(BINDIR)/$(SWPERF_CL_TEST)
 	install $(SWRNGSEQGEN) $(BINDIR)/$(SWRNGSEQGEN)
+	install $(BITCOUNT) $(BINDIR)/$(BITCOUNT)
+	install $(BITCOUNT_CL) $(BINDIR)/$(BITCOUNT_CL)
 	cp $(SWRNG_PSERVER) $(BINDIR)/$(SWRNG_PSERVER)
 	chmod a+x $(BINDIR)/$(SWRNG_PSERVER)
 
