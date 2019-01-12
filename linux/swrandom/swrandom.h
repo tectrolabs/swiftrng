@@ -262,6 +262,12 @@ static short int powerProfile = 9;
 // A flag to indicate if the post processing of raw data should be disabled
 static bool disablePostProcessing;
 
+// True when collecting random samples for Global Consciousness Project (GCP)
+static bool enableForGCP;
+
+// How many bytes to download per sample.
+static int bytesPerSample = TRND_OUT_BUFFSIZE;
+
 // Post processing method used
 static char *postProcessingMethod = "";
 

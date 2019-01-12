@@ -73,6 +73,12 @@ MODULE_PARM_DESC(disablePostProcessing, "A flag to indicate if the post processi
 module_param(postProcessingMethod, charp, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
 MODULE_PARM_DESC(postProcessingMethod, "Post processing method to use. Valid options are: SHA256, SHA512 or xorshift64");
 
+module_param(enableForGCP, bool, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+MODULE_PARM_DESC(enableForGCP, "Use this flag when collecting random samples for Global Consciousness Project (GCP).");
+
+module_param(bytesPerSample, int, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP);
+MODULE_PARM_DESC(bytesPerSample, "How many bytes to download per sample. Valid value must be between 1 and 16000. Providing this parameter may reduce performance.");
+
 /**
  * A function to handle the event when the expected USB device is plugged in or connected
  *
@@ -541,7 +547,7 @@ static int rcv_rnd_bytes(void) {
     		} else {
     			memcpy(buffTRndOut, buffRndIn, TRND_OUT_BUFFSIZE);
     		}
-			curTrngOutIdx = 0;
+		curTrngOutIdx = TRND_OUT_BUFFSIZE - bytesPerSample;
     		if (rct.statusByte != SUCCESS) {
     			printk(KERN_ALERT "Repetition Count Test failure\n");
     			retval = -EPERM;
@@ -705,9 +711,16 @@ static int __init init_swrandom(void)
 	rct_initialize();
 	apt_initialize();
 
+	if (enableForGCP) {
+		bytesPerSample = 256;
+	} else if (bytesPerSample <= 0 || bytesPerSample > TRND_OUT_BUFFSIZE) {
+		printk(KERN_ALERT "Bytes per second parameter %d is not valid, it must be between 1 and 16000\n", bytesPerSample);
+		return -EINVAL;
+	}
+
 	if (powerProfile < 0 || powerProfile > 9)
 	{
-		printk(KERN_ALERT "Power profile number %d is not valid, it must be between 0 and 9\n", (int)powerProfile);
+		printk(KERN_ALERT "Power profile parameter %d is not valid, it must be between 0 and 9\n", (int)powerProfile);
 		return -EINVAL;
 	}
 
