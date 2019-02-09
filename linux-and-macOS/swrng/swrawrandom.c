@@ -27,7 +27,7 @@ int main(int argc, char **argv) {
 
 	printf("------------------------------------------------------------------------------\n");
 	printf("--- A program for retrieving raw random bytes from SwiftRNG noise sources. ---\n");
-	printf("-----No data alteration, verification or quality tests will be performed. ----\n");
+	printf("---- No data alteration, verification or quality tests will be performed. ----\n");
 	printf("------------------------------------------------------------------------------\n");
 
 	setbuf(stdout, NULL);
