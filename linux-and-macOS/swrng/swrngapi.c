@@ -792,59 +792,6 @@ int swrngGetEntropyEx(SwrngContext *ctxt, unsigned char *buffer, long length) {
 }
 
 /**
-* A function to retrieve up to 100000 of RAW random bytes from a noise source
-* No data alteration, verification or quality tests will be performed when calling this function.
-* It can be used for inspecting the quality of the noise sources and data acquisition components.
-*
-* @param ctxt - pointer to SwrngContext structure
-* @param unsigned char *buffer - a pointer to the data receive buffer
-* @param long length - how many bytes expected to receive, max value is 100000
-* @param int noiseSourceNum - noise source number (0 - first noise source, 1 - second one)
-* @return 0 - successful operation, otherwise the error code
-*
-*/
-int swrngGetEntropy(SwrngContext *ctxt, unsigned char *buffer, long length, int noiseSourceNum) {
-	int retval = SWRNG_SUCCESS;
-	long act;
-	long total;
-
-	if (isContextInitialized(ctxt) == SWRNG_FALSE) {
-		return -1;
-	}
-
-	if (length > SWRNG_MAX_REQUEST_SIZE_BYTES || length < 0) {
-		retval = -EPERM;
-	} else if (!ctxt->deviceOpen) {
-		retval = -ENODATA;
-	} else {
-		total = 0;
-		do {
-			if (ctxt->curTrngOutIdx >= SWRNG_TRND_OUT_BUFFSIZE) {
-				retval = swrng_getEntropyBytes(ctxt);
-			}
-			if (retval == SWRNG_SUCCESS) {
-				act = SWRNG_TRND_OUT_BUFFSIZE - ctxt->curTrngOutIdx;
-				if (act > (length - total)) {
-					act = (length - total);
-				}
-				memcpy(buffer + total, ctxt->buffTRndOut + ctxt->curTrngOutIdx, act);
-				ctxt->curTrngOutIdx += act;
-				total += act;
-			} else {
-				break;
-			}
-		} while (total < length);
-#ifdef inDebugMode
-		if (total > length) {
-			fprintf(stderr, "Expected %d bytes to read and actually got %d \n", (int)length, (int)total);
-		}
-#endif
-
-	}
-	return retval;
-}
-
-/**
  * Retrieve a complete list of SwiftRNG devices currently plugged into USB ports
  *
  * @param ctxt - pointer to SwrngContext structure
