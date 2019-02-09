@@ -2,13 +2,13 @@
 
 /*
  * swrngapi.c
- * ver. 3.3
+ * ver. 3.4
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2018 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2019 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -629,6 +629,11 @@ static void test_samples(SwrngContext *ctxt) {
 							ctxt->rct.statusByte = ctxt->rct.signature;
 						}
 					}
+					#ifdef inDebugMode
+					if (ctxt->rct.failureCount >= 1) {
+						fprintf(stderr, "rct.failureCount: %d value: %d\n", ctxt->rct.failureCount, value);
+					}
+					#endif
 				}
 
 			} else {
@@ -657,6 +662,11 @@ static void test_samples(SwrngContext *ctxt) {
 							ctxt->apt.statusByte = ctxt->apt.signature;
 						}
 					}
+					#ifdef inDebugMode
+					if (ctxt->apt.cycleFailures >= 1) {
+						fprintf(stderr, "ctxt->apt.cycleFailures: %d value: %d\n", ctxt->apt.cycleFailures, value);
+                    }
+					#endif
 				} else {
 					// restart cycle
 					ctxt->apt.cycleFailures = 0;
