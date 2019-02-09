@@ -47,6 +47,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "swrngseqgen", "swrngseqgen\
 		{5B18A966-1200-4528-ABDB-FD8647A2327A} = {5B18A966-1200-4528-ABDB-FD8647A2327A}
 	EndProjectSection
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "swrawrandom", "swrawrandom\swrawrandom.vcxproj", "{01F1E35A-65C9-4440-AF35-5F8B39F6F5B7}"
+	ProjectSection(ProjectDependencies) = postProject
+		{5B18A966-1200-4528-ABDB-FD8647A2327A} = {5B18A966-1200-4528-ABDB-FD8647A2327A}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Win32 = Debug|Win32
@@ -101,6 +106,10 @@ Global
 		{2FC59071-C0A7-47D1-B5CE-41A04B5BD1EE}.Debug|Win32.Build.0 = Debug|Win32
 		{2FC59071-C0A7-47D1-B5CE-41A04B5BD1EE}.Release|Win32.ActiveCfg = Release|Win32
 		{2FC59071-C0A7-47D1-B5CE-41A04B5BD1EE}.Release|Win32.Build.0 = Release|Win32
+		{01F1E35A-65C9-4440-AF35-5F8B39F6F5B7}.Debug|Win32.ActiveCfg = Debug|Win32
+		{01F1E35A-65C9-4440-AF35-5F8B39F6F5B7}.Debug|Win32.Build.0 = Debug|Win32
+		{01F1E35A-65C9-4440-AF35-5F8B39F6F5B7}.Release|Win32.ActiveCfg = Release|Win32
+		{01F1E35A-65C9-4440-AF35-5F8B39F6F5B7}.Release|Win32.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
