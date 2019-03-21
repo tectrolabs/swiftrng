@@ -2,13 +2,13 @@
 
 /*
  * swrng.c
- * ver. 2.1
+ * Ver. 2.11
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2017 TectroLabs, http://tectrolabs.com
+ Copyright (C) 2014-2019 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -16,15 +16,15 @@
  This program is used for interacting with the hardware random data generator device SwiftRNG for the purpose of
  downloading true random bytes.
 
- This program requires the libusb-1.0 library when communicating with the SwiftRNG device. Please read the provided
+ This program requires the libusb-1.0 library when communicating with any SwiftRNG device. Please read the provided
  documentation for libusb-1.0 installation details.
 
  This program uses libusb-1.0 (directly or indirectly) which is distributed under the terms of the GNU Lesser General 
  Public License as published by the Free Software Foundation. For more information, please visit: http://libusb.info
 
- This program may only be used in conjunction with the SwiftRNG device.
+ This program may only be used in conjunction with TectroLabs devices.
 
- This program may require 'sudo' permissions when running on Linux or OSX operating systems.
+ This program may require 'sudo' permissions when running on Linux or macOS.
 
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -43,7 +43,7 @@ int displayDevices() {
 	DeviceInfoList dil;
 	int i;
 
-	int status = swrngGetDeviceList(&dil);
+	int status = swrngGetDeviceList(&ctxt, &dil);
 
 	if (status != 0) {
 		fprintf(stderr, "Could not generate device info list, status: %d\n",
@@ -73,7 +73,7 @@ int displayDevices() {
  */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   TectroLabs - swrng - download utility Ver 1.4  \n");
+	printf("                   TectroLabs - swrng - download utility Ver 2.5  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng  - True Random Number Generator SwiftRNG download \n");
@@ -135,21 +135,28 @@ void displayUsage() {
 	printf(
 			"           Device power profile NUMBER, 0 (lowest) to 9 (highest - default)\n");
 	printf("\n");
+	printf("     -ppm METHOD, --post-processing-method METHOD\n");
+	printf("           SwiftRNG post processing method: SHA256, SHA512 or xorshift64\n");
+
+	printf("\n");
+	printf("     -dpp, --disable-post-processing\n");
+	printf("           Disable post processing of random data for devices with version 1.2+\n");
+	printf("\n");
 	printf("EXAMPLES:\n");
 	printf(
 			"     It may require system admin permissions to run this utility on Linux or OSX.\n");
 	printf(
 			"     To list all available SwiftRNG (not currently in use) devices.\n");
-	printf("           ./swrng -ld\n");
+	printf("           swrng -ld\n");
 	printf("     To download 12 MB of true random bytes to 'rnd.bin' file\n");
-	printf("           ./swrng  -dd -fn rnd.bin -nb 12000000\n");
+	printf("           swrng  -dd -fn rnd.bin -nb 12000000\n");
 	printf(
 			"     To download 12 MB of true random bytes to 'rnd.bin' file using\n");
 	printf("           lowest power consumption and slowest download speed\n");
-	printf("           ./swrng  -dd -fn rnd.bin -nb 12000000 -ppn 0\n");
+	printf("           swrng  -dd -fn rnd.bin -nb 12000000 -ppn 0\n");
 #ifdef __linux__
 	printf("     To feed Kernel /dev/random entropy pool using the first device.\n");
-	printf("           ./swrng -fep\n");
+	printf("           swrng -fep\n");
 #endif
 	printf("\n");
 }
@@ -159,9 +166,9 @@ void displayUsage() {
  *
  * @param int curIdx
  * @param int actualArgumentCount
- * @return bool - true if run successfully
+ * @return swrngBool - true if run successfully
  */
-int validateArgumentCount(int curIdx, int actualArgumentCount) {
+swrngBool validateArgumentCount(int curIdx, int actualArgumentCount) {
 	if (curIdx >= actualArgumentCount) {
 		fprintf(stderr, "\nMissing command line arguments\n\n");
 		displayUsage();
@@ -175,6 +182,7 @@ int validateArgumentCount(int curIdx, int actualArgumentCount) {
  *
  * @param int idx - current parameter number
  * @param int argc - number of parameters
+ * @param char ** argv - parameters
  * @return int - 0 when successfully parsed
  */
 int parseDeviceNum(int idx, int argc, char **argv) {
@@ -199,6 +207,7 @@ int parseDeviceNum(int idx, int argc, char **argv) {
  *
  * @param int idx - current parameter number
  * @param int argc - number of parameters
+ * @param char ** argv - parameters
  * @return int - 0 when successfully parsed
  */
 int parsePowerProfileNum(int idx, int argc, char **argv) {
@@ -241,7 +250,11 @@ int processArguments(int argc, char **argv) {
 			return -1;
 		}
 		while (idx < argc) {
-			if (strcmp("-nb", argv[idx]) == 0 || strcmp("--number-bytes",
+			if (strcmp("-dpp", argv[idx]) == 0 || strcmp("--disable-post-processing",
+					argv[idx]) == 0) {
+				idx++;
+				postProcessingEnabled = SWRNG_FALSE;
+			} else if (strcmp("-nb", argv[idx]) == 0 || strcmp("--number-bytes",
 					argv[idx]) == 0) {
 				if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
 					return -1;
@@ -258,6 +271,22 @@ int processArguments(int argc, char **argv) {
 					return -1;
 				}
 				filePathName = argv[idx++];
+			} else if (strcmp("-ppm", argv[idx]) == 0 || strcmp("--post-processing-method",
+					argv[idx]) == 0) {
+				if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
+					return -1;
+				}
+				postProcessingMethod = argv[idx++];
+				if (strcmp("SHA256", postProcessingMethod) == 0) {
+					postProcessingMethodId = 0;
+				} else if (strcmp("SHA512", postProcessingMethod) == 0) {
+					postProcessingMethodId = 2;
+				} else if (strcmp("xorshift64", postProcessingMethod) == 0) {
+					postProcessingMethodId = 1;
+				} else {
+					fprintf(stderr, "Invalid post processing method: %s \n", postProcessingMethod);
+					return -1;
+				}
 			} else if (parseDeviceNum(idx, argc, argv) == -1) {
 				return -1;
 			} else if (parsePowerProfileNum(idx, argc, argv) == -1) {
@@ -300,33 +329,79 @@ void writeBytes(uint8_t *bytes, uint32_t numBytes) {
  */
 int handleDownloadRequest() {
 
-	uint8_t receiveByteBuffer[BUFF_FILE_SIZE_BYTES + 1]; // Add one extra byte of storage for the status byte
+	uint8_t receiveByteBuffer[SWRNG_BUFF_FILE_SIZE_BYTES + 1]; // Add one extra byte of storage for the status byte
+	swrngResetStatistics(&ctxt);
 
-	swrngResetStatistics();
-
-	int status = swrngOpen(deviceNum);
+	int status = swrngOpen(&ctxt, deviceNum);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, " Cannot open device, error code %d ... ", status);
-		swrngClose();
+		swrngClose(&ctxt);
 		return status;
 	}
 
-	status = swrngSetPowerProfile(ppNum);
+	if (postProcessingEnabled == SWRNG_FALSE) {
+		status = swrngDisablePostProcessing(&ctxt);
+		if (status != SWRNG_SUCCESS) {
+			fprintf(stderr, " Cannot disable post processing, error code %d ... ",
+					status);
+			swrngClose(&ctxt);
+			return status;
+		}
+	} else if (postProcessingMethod != NULL) {
+		status = swrngEnablePostProcessing(&ctxt, postProcessingMethodId);
+		if (status != SWRNG_SUCCESS) {
+			fprintf(stderr, " Cannot enable processing method, error code %d ... ",
+					status);
+			swrngClose(&ctxt);
+			return status;
+		}
+	}
+
+	if (swrngGetPostProcessingStatus(&ctxt, &postProcessingStatus) != SWRNG_SUCCESS) {
+		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		return(1);
+	}
+
+	if (postProcessingStatus == 0) {
+		strcpy_s(postProcessingMethodStr, "'no'");
+	} else {
+		if (swrngGetPostProcessingMethod(&ctxt, &actualPostProcessingMethodId) != SWRNG_SUCCESS) {
+			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+			return(1);
+		}
+		switch (actualPostProcessingMethodId) {
+		case 0:
+			strcpy(postProcessingMethodStr, "SHA256");
+			break;
+		case 1:
+			strcpy(postProcessingMethodStr, "xorshift64");
+			break;
+		case 2:
+			strcpy(postProcessingMethodStr, "SHA512");
+			break;
+		default:
+			strcpy(postProcessingMethodStr, "*unknown*");
+			break;
+		}
+	}
+
+	status = swrngSetPowerProfile(&ctxt, ppNum);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, " Cannot set device power profile, error code %d ... ",
 				status);
-		swrngClose();
+		swrngClose(&ctxt);
 		return status;
 	}
 
 	if (filePathName == NULL) {
 		fprintf(stderr, "No file name defined. ");
-		swrngClose();
+		swrngClose(&ctxt);
 		return -1;
 	}
 
 	if (isOutputToStandardOutput == SWRNG_TRUE) {
 #ifdef _WIN32
+		_setmode(_fileno(stdout), _O_BINARY);
 		pOutputFile = fdopen(_dup(fileno(stdout)), "wb");
 #else
 		pOutputFile = fdopen(dup(fileno(stdout)), "wb");
@@ -337,65 +412,65 @@ int handleDownloadRequest() {
 	}
 	if (pOutputFile == NULL) {
 		fprintf(stderr, "Cannot open file: %s in write mode\n", filePathName);
-		swrngClose();
+		swrngClose(&ctxt);
 		return -1;
 	}
 
 
-	swrngResetStatistics();
+	swrngResetStatistics(&ctxt);
 
 	while (numGenBytes == -1) {
 		// Infinite loop for downloading unlimited random bytes
-		status = swrngGetEntropy(receiveByteBuffer, BUFF_FILE_SIZE_BYTES);
+		status = swrngGetEntropy(&ctxt, receiveByteBuffer, SWRNG_BUFF_FILE_SIZE_BYTES);
 		if (status != SWRNG_SUCCESS) {
 			fprintf(
 					stderr,
 					"Failed to receive %d bytes for unlimited download, error code %d. ",
-					BUFF_FILE_SIZE_BYTES, status);
+					SWRNG_BUFF_FILE_SIZE_BYTES, status);
 			closeHandle();
-			swrngClose();
+			swrngClose(&ctxt);
 			return status;
 		}
-		writeBytes(receiveByteBuffer, BUFF_FILE_SIZE_BYTES);
+		writeBytes(receiveByteBuffer, SWRNG_BUFF_FILE_SIZE_BYTES);
 	}
 
 	// Calculate number of complete random byte chunks to download
-	int64_t numCompleteChunks = numGenBytes / BUFF_FILE_SIZE_BYTES;
+	int64_t numCompleteChunks = numGenBytes / SWRNG_BUFF_FILE_SIZE_BYTES;
 
 	// Calculate number of bytes in the last incomplete chunk
-	uint32_t chunkRemaindBytes = (uint32_t)(numGenBytes % BUFF_FILE_SIZE_BYTES);
+	uint32_t chunkRemaindBytes = (uint32_t)(numGenBytes % SWRNG_BUFF_FILE_SIZE_BYTES);
 
 	// Process each chunk
 	int64_t chunkNum;
 	for (chunkNum = 0; chunkNum < numCompleteChunks; chunkNum++) {
-		status = swrngGetEntropy(receiveByteBuffer, BUFF_FILE_SIZE_BYTES);
+		status = swrngGetEntropy(&ctxt, receiveByteBuffer, SWRNG_BUFF_FILE_SIZE_BYTES);
 		if (status != SWRNG_SUCCESS) {
 			fprintf(stderr, "Failed to receive %d bytes, error code %d. ",
-					BUFF_FILE_SIZE_BYTES, status);
+					SWRNG_BUFF_FILE_SIZE_BYTES, status);
 			closeHandle();
-			swrngClose();
+			swrngClose(&ctxt);
 			return status;
 		}
-		writeBytes(receiveByteBuffer, BUFF_FILE_SIZE_BYTES);
+		writeBytes(receiveByteBuffer, SWRNG_BUFF_FILE_SIZE_BYTES);
 	}
 
 	if (chunkRemaindBytes > 0) {
 		//Process incomplete chunk
-		status = swrngGetEntropy(receiveByteBuffer, chunkRemaindBytes);
+		status = swrngGetEntropy(&ctxt, receiveByteBuffer, chunkRemaindBytes);
 		if (status != SWRNG_SUCCESS) {
 			fprintf(
 					stderr,
 					"Failed to receive %d bytes for last chunk, error code %d. ",
 					chunkRemaindBytes, status);
 			closeHandle();
-			swrngClose();
+			swrngClose(&ctxt);
 			return status;
 		}
 		writeBytes(receiveByteBuffer, chunkRemaindBytes);
 	}
 
 	closeHandle();
-	swrngClose();
+	swrngClose(&ctxt);
 	return SWRNG_SUCCESS;
 }
 
@@ -405,17 +480,17 @@ int handleDownloadRequest() {
  * @return int - 0 when run successfully
  */
 int processDownloadRequest() {
-	if (filePathName != NULL && !strcmp(filePathName, "STDOUT")) {
+	if (filePathName != NULL && (!strcmp(filePathName, "STDOUT") || !strcmp(filePathName, "/dev/stdout"))) {
 		isOutputToStandardOutput = SWRNG_TRUE;
 	} else {
 		isOutputToStandardOutput = SWRNG_FALSE;
 	}
 	int status = handleDownloadRequest();
-	DeviceStatistics *ds = swrngGenerateDeviceStatistics();
+	DeviceStatistics *ds = swrngGenerateDeviceStatistics(&ctxt);
 	if (!isOutputToStandardOutput) {
 		printf(
-				"Completed in %d seconds, speed: %d KBytes/sec, blocks re-sent: %d\n",
-				(int) ds->totalTime, (int) ds->downloadSpeedKBsec,
+				"Completed in %d seconds, using %s post processing method, speed: %d KBytes/sec, blocks re-sent: %d\n",
+				(int) ds->totalTime, postProcessingMethodStr, (int) ds->downloadSpeedKBsec,
 				(int) ds->totalRetries);
 	}
 	return status;
@@ -424,15 +499,27 @@ int processDownloadRequest() {
 /**
  * Process command line arguments
  *
+ * @param int argc - number of parameters
+ * @param char ** argv - parameters
  * @return int - 0 when run successfully
  */
 int process(int argc, char **argv) {
-	swrngEnablePrintingErrorMessages();
+	// Initialize the context
+	strcpy_s(postProcessingMethodStr, "*unknown*");
+	int status = swrngInitializeContext(&ctxt);
+	if (status != SWRNG_SUCCESS) {
+		fprintf(stderr, "Could not initialize context\n");
+		return(status);
+	}
+
+	swrngEnablePrintingErrorMessages(&ctxt);
 	if (argc == 1) {
 		displayUsage();
 		return -1;
 	}
-	return processArguments(argc, argv);
+	status = processArguments(argc, argv);
+	swrngClose(&ctxt);
+	return status;
 }
 
 //.............
@@ -445,17 +532,17 @@ int process(int argc, char **argv) {
  */
 int feedKernelEntropyPool() {
 
-	int status = swrngOpen(deviceNum);
+	int status = swrngOpen(&ctxt, deviceNum);
 	if(status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Cannot open device, error code %d ... ", status);
-		swrngClose();
+		swrngClose(&ctxt);
 		return status;
 	}
 
 	int rndout = open(KERNEL_ENTROPY_POOL_NAME, O_WRONLY);
 	if (rndout < 0) {
 		printf("Cannot open %s : %d\n", KERNEL_ENTROPY_POOL_NAME, rndout);
-		swrngClose();
+		swrngClose(&ctxt);
 		return rndout;
 	}
 
@@ -463,7 +550,7 @@ int feedKernelEntropyPool() {
 	int result = ioctl(rndout, RNDGETENTCNT, &entropyAvailable);
 	if (result < 0) {
 		printf("Cannot verify available entropy in the pool, make sure you run this utility with CAP_SYS_ADMIN capability\n");
-		swrngClose();
+		swrngClose(&ctxt);
 		close(rndout);
 		return result;
 	}
@@ -476,10 +563,10 @@ int feedKernelEntropyPool() {
 		ioctl(rndout, RNDGETENTCNT, &entropyAvailable);
 		if (entropyAvailable < (KERNEL_ENTROPY_POOL_SIZE_BYTES * 8) / 2) {
 			int addMoreBytes = KERNEL_ENTROPY_POOL_SIZE_BYTES - (entropyAvailable >> 3);
-			status = swrngGetEntropy(entropy.data, addMoreBytes);
+			status = swrngGetEntropy(&ctxt, entropy.data, addMoreBytes);
 			if(status != SWRNG_SUCCESS) {
 				fprintf(stderr, "Failed to receive %d bytes for feeding entropy pool, error code %d. ", addMoreBytes, status);
-				swrngClose();
+				swrngClose(&ctxt);
 				return status;
 			}
 			entropy.buf_size = addMoreBytes;
@@ -489,7 +576,7 @@ int feedKernelEntropyPool() {
 			result = ioctl(rndout, RNDADDENTROPY, &entropy);
 			if (result < 0) {
 				printf("Cannot add more entropy to the pool, error: %d\n", result);
-				swrngClose();
+				swrngClose(&ctxt);
 				close(rndout);
 				return result;
 			}
@@ -505,9 +592,13 @@ int feedKernelEntropyPool() {
 //.............
 
 
-//
-// Main entry
-//
+/**
+ * Main entry
+ *
+ * @param int argc - number of parameters
+ * @param char ** argv - parameters
+ *
+ */
 int main(int argc, char **argv) {
 	return process(argc, argv);
 }
