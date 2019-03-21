@@ -2,13 +2,13 @@
 
 /*
  * swrng.c
- * Ver. 2.10
+ * Ver. 2.11
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2018 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2019 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -73,7 +73,7 @@ int displayDevices() {
  */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   TectroLabs - swrng - download utility Ver 2.4  \n");
+	printf("                   TectroLabs - swrng - download utility Ver 2.5  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng  - True Random Number Generator SwiftRNG download \n");
@@ -401,6 +401,7 @@ int handleDownloadRequest() {
 
 	if (isOutputToStandardOutput == SWRNG_TRUE) {
 #ifdef _WIN32
+		_setmode(_fileno(stdout), _O_BINARY);
 		pOutputFile = fdopen(_dup(fileno(stdout)), "wb");
 #else
 		pOutputFile = fdopen(dup(fileno(stdout)), "wb");
