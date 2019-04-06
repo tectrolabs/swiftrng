@@ -129,16 +129,16 @@ void displayUsage() {
 	printf("EXAMPLES:\n");
 	printf("     It may require system admin permissions to run this utility on Linux or OSX.\n");
 	printf("     To list all available SwiftRNG (not currently in use) devices.\n");
-	printf("           ./swrng-cl -ld\n");
+	printf("           swrng-cl -ld\n");
 	printf("     To download 12 MB of true random bytes to 'rnd.bin' file using a cluster \n");
 	printf("     of 2 devices \n");
-	printf("           ./swrng-cl  -dd -fn rnd.bin -nb 12000000\n");
+	printf("           swrng-cl  -dd -fn rnd.bin -nb 12000000\n");
 	printf("     To download 12 MB of true random bytes to 'rnd.bin' file using a cluster \n");
 	printf("     of 3 devices \n");
-	printf("           ./swrng-cl  -dd -fn rnd.bin -nb 12000000 -cs 3\n");
+	printf("           swrng-cl  -dd -fn rnd.bin -nb 12000000 -cs 3\n");
 	printf("     To download 12 MB of true random bytes to 'rnd.bin' file using \n");
 	printf("           lowest power consumption and slowest download speed\n");
-	printf("           ./swrng-cl  -dd -fn rnd.bin -nb 12000000 -ppn 0\n");
+	printf("           swrng-cl  -dd -fn rnd.bin -nb 12000000 -ppn 0\n");
 #ifdef __linux__
 	printf("     To feed Kernel /dev/random entropy pool using a cluster of 2 devices.\n");
 	printf("           ./swrng -fep\n");

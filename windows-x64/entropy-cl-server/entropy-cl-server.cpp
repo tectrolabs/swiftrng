@@ -1,20 +1,20 @@
 #include "stdafx.h"
 
 /*
-* entropy-server.cpp
-* Ver. 1.1
+* entropy-cl-server.cpp
+* Ver. 1.0
 *
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2017 TectroLabs, http://tectrolabs.com
+Copyright (C) 2014-2019 TectroLabs, http://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
-This program is used for interacting with the hardware random data generator device SwiftRNG for the purpose of
-downloading and distributing true random bytes using named pipes.
+This program is used for interacting with a cluster of hardware random data generator device SwiftRNG for 
+purpose of downloading and distributing true random bytes using named pipes.
 
 This program requires the libusb-1.0 library and the DLL when communicating with any SwiftRNG device.
 Please read the provided documentation for libusb-1.0 installation details.
@@ -22,7 +22,7 @@ Please read the provided documentation for libusb-1.0 installation details.
 This program uses libusb-1.0 (directly or indirectly) which is distributed under the terms of the GNU Lesser General
 Public License as published by the Free Software Foundation. For more information, please visit: http://libusb.info
 
-This program may only be used in conjunction with the SwiftRNG device.
+This program may only be used in conjunction with SwiftRNG devices.
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -35,47 +35,46 @@ This program may only be used in conjunction with the SwiftRNG device.
 */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   SwiftRNG entropy-server Ver 1.1  \n");
+	printf("                   SwiftRNG entropy-cl-server Ver 1.0  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
-	printf("     entropy-server - An application server for distributing random bytes \n");
-	printf("              downloaded from SwiftRNG device \n");
+	printf("     entropy-cl-server - An application server for distributing random bytes \n");
+	printf("              downloaded from a cluster of SwiftRNG devices \n");
 	printf("SYNOPSIS\n");
-	printf("     entropy-server <options>\n");
+	printf("     entropy-cl-server <options>\n");
 	printf("\n");
 	printf("DESCRIPTION\n");
-	printf("     entropy-serv downloads random bytes from Hardware (True) \n");
-	printf("     Random Number Generator SwiftRNG device and distributes them to \n");
+	printf("     entropy-cl-serv downloads random bytes from two more Hardware (True) \n");
+	printf("     Random Number Generator SwiftRNG devicse and distributes them to \n");
 	printf("     consumer applications using a named pipe.\n");
 	printf("\n");
 	printf("OPTIONS\n");
 	printf("     Operation modifiers:\n");
 	printf("\n");
-	printf("     -dn NUMBER, --device-number NUMBER\n");
-	printf("           Device NUMBER, 0 - first device\n");
+	printf("     -cs NUMBER, --cluster-size NUMBER\n");
+	printf("           Preferred number (between 1 and 10) of devices in a cluster.\n");
+	printf("           Default value is 2\n");
 	printf("\n");
 	printf("     -ppn NUMBER, --power-profile-number NUMBER\n");
 	printf("           Device power profile NUMBER, 0 (lowest) to 9 (highest - default)\n");
 	printf("\n");
 	printf("     -ppm METHOD, --post-processing-method METHOD\n");
 	printf("           SwiftRNG post processing method: SHA256, SHA512 or xorshift64\n");
-	printf("           Skip this option for using default (SHA256) mode\n");
+	printf("           Skip this option for using default method\n");
 	printf("\n");
 	printf("     -dpp, --disable-post-processing\n");
 	printf("           Disable post processing of random data for devices with version 1.2+\n");
 	printf("\n");
 	printf("     -npe, ENDPOINT, --named-pipe-endpoint ENDPOINT\n");
-	printf("           Use custom named pipe endpoint (different from the default endpoint)\n");
+	printf("           Use custom named pipe endpoint (if different from the default endpoint)\n");
 	printf("\n");
 	printf("EXAMPLES:\n");
-	printf("     To start the server using first SwiftRNG device:\n");
-	printf("           entropy-server -dn 0\n");
+	printf("     To start the server using two SwiftRNG devices:\n");
+	printf("           entropy-server -cs 2\n");
 	printf("     To start the server with post processing disabled for distributing RAW device data:\n");
-	printf("           entropy-server -dn 0 -dpp\n");
-	printf("     To start the server using the second SwiftRNG device:\n");
-	printf("           entropy-server -dn 1\n");
-	printf("     To start the server using first SwiftRNG device and custom pipe endpoint name:\n");
-	printf("           entropy-server -dn 0 -pn \\\\.\\pipe\\mycustompipename \n");
+	printf("           entropy-server -cs 2 -dpp\n");
+	printf("     To start the server using a custom pipe endpoint name:\n");
+	printf("           entropy-server -cs 2 -npe \\\\.\\pipe\\mycustompipename \n");
 	printf("\n");
 }
 
@@ -156,7 +155,7 @@ int processArguments(int argc, char **argv) {
 			mbstowcs_s(&numCharConverted, pipeEndPoint, argv[idx], strlen(argv[idx]) + 1);
 			idx++;
 		}
-		else if (parseDeviceNum(idx, argc, argv) == -1) {
+		else if (parseClusterSize(idx, argc, argv) == -1) {
 			return -1;
 		}
 		else if (parsePowerProfileNum(idx, argc, argv) == -1) {
@@ -167,10 +166,7 @@ int processArguments(int argc, char **argv) {
 			++idx;
 		}
 	}
-	if (isDevieNumSpecified == FALSE) {
-		fprintf(stderr, "Device number was not specified, please specify device number\n");
-		return -1;
-	}
+
 	return processServer();
 }
 
@@ -215,26 +211,25 @@ swrngBool validateArgumentCount(int curIdx, int actualArgumentCount) {
 }
 
 /**
-* Parse device number if specified
+* Parse cluster size if specified
 *
 * @param int idx - current parameter number
 * @param int argc - number of parameters
 * @param char ** argv - parameters
 * @return int - 0 when successfully parsed
 */
-int parseDeviceNum(int idx, int argc, char **argv) {
+int parseClusterSize(int idx, int argc, char **argv) {
 	if (idx < argc) {
-		if (strcmp("-dn", argv[idx]) == 0 || strcmp("--device-number",
+		if (strcmp("-cs", argv[idx]) == 0 || strcmp("--cluster-size",
 			argv[idx]) == 0) {
 			if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
 				return -1;
 			}
-			deviceNum = atoi(argv[idx++]);
-			if (deviceNum < 0) {
-				fprintf(stderr, "Device number cannot be a negative value\n");
+			clusterSize = atoi(argv[idx++]);
+			if (clusterSize < 1 || clusterSize > 10) {
+				fprintf(stderr, "Cluster size invalid value, must be between 1 and 10\n");
 				return -1;
 			}
-			isDevieNumSpecified = TRUE;
 		}
 	}
 	return 0;
@@ -246,9 +241,9 @@ int parseDeviceNum(int idx, int argc, char **argv) {
 * @return int - 0 when run successfully
 */
 int openDevice() {
-	int status = swrngCLOpen(&ctxt, 3);
+	int status = swrngCLOpen(&ctxt, clusterSize);
 	if (status != SWRNG_SUCCESS) {
-		fprintf(stderr, "Cannot open device, error code %d\n", status);
+		fprintf(stderr, "Cannot open device cluster , error code %d\n", status);
 		swrngCLClose(&ctxt);
 		return status;
 	}
@@ -265,7 +260,7 @@ int openDevice() {
 	else if (postProcessingMethod != NULL) {
 		status = swrngEnableCLPostProcessing(&ctxt, postProcessingMethodId);
 		if (status != SWRNG_SUCCESS) {
-			fprintf(stderr, " Cannot enable processing method, error code %d ... ",
+			fprintf(stderr, "Cannot enable processing method, error code %d ... ",
 				status);
 			swrngCLClose(&ctxt);
 			return status;
@@ -274,7 +269,7 @@ int openDevice() {
 
 	status = swrngSetCLPowerProfile(&ctxt, ppNum);
 	if (status != SWRNG_SUCCESS) {
-		fprintf(stderr, "Cannot set device power profile, error code %d\n",
+		fprintf(stderr, "Cannot set cluster power profile, error code %d\n",
 			status);
 		swrngCLClose(&ctxt);
 		return status;
@@ -341,8 +336,6 @@ int createPipeInstances() {
 */
 int processServer() {
 
-	int postProcessingStatus;
-
 	int devStatus = openDevice();
 	if (devStatus != SWRNG_SUCCESS) {
 		return devStatus;
@@ -354,8 +347,7 @@ int processServer() {
 	}
 
 
-
-	printf("Entropy server started ");
+	printf("Entropy server started using a cluster of %d devices", swrngGetCLSize(&ctxt));
 	_tprintf(TEXT(", on named pipe: %s\n"), pipeEndPoint);
 
 	while (1)

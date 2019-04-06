@@ -59,13 +59,13 @@ void displayUsage() {
 	printf("\n");
 	printf("     -ppm METHOD, --post-processing-method METHOD\n");
 	printf("           SwiftRNG post processing method: SHA256, SHA512 or xorshift64\n");
-	printf("           Skip this option for using default (SHA256) mode\n");
+	printf("           Skip this option for using default method for device\n");
 	printf("\n");
 	printf("     -dpp, --disable-post-processing\n");
 	printf("           Disable post processing of random data for devices with version 1.2+\n");
 	printf("\n");
 	printf("     -npe, ENDPOINT, --named-pipe-endpoint ENDPOINT\n");
-	printf("           Use custom named pipe endpoint (different from the default endpoint)\n");
+	printf("           Use custom named pipe endpoint (if different from the default endpoint)\n");
 	printf("\n");
 	printf("EXAMPLES:\n");
 	printf("     To start the server using first SwiftRNG device:\n");
@@ -75,7 +75,7 @@ void displayUsage() {
 	printf("     To start the server using the second SwiftRNG device:\n");
 	printf("           entropy-server -dn 1\n");
 	printf("     To start the server using first SwiftRNG device and custom pipe endpoint name:\n");
-	printf("           entropy-server -dn 0 -pn \\\\.\\pipe\\mycustompipename \n");
+	printf("           entropy-server -dn 0 -npe \\\\.\\pipe\\mycustompipename \n");
 	printf("\n");
 }
 

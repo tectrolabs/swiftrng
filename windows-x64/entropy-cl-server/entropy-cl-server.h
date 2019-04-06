@@ -1,18 +1,18 @@
 /*
-* entropy-server.h
+* entropy-cl-server.h
 * Ver. 1.0
 *
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2017 TectroLabs, http://tectrolabs.com
+Copyright (C) 2014-2019 TectroLabs, http://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
-This program is used for interacting with the hardware random data generator device SwiftRNG for the purpose of
-downloading and distributing true random bytes using named pipes.
+This program is used for interacting with a cluster of hardware random data generator device SwiftRNG for
+purpose of downloading and distributing true random bytes using named pipes.
 
 This program requires the libusb-1.0 library and the DLL when communicating with any SwiftRNG device.
 Please read the provided documentation for libusb-1.0 installation details.
@@ -20,7 +20,7 @@ Please read the provided documentation for libusb-1.0 installation details.
 This program uses libusb-1.0 (directly or indirectly) which is distributed under the terms of the GNU Lesser General
 Public License as published by the Free Software Foundation. For more information, please visit: http://libusb.info
 
-This program may only be used in conjunction with the SwiftRNG device.
+This program may only be used in conjunction with SwiftRNG devices.
 
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
@@ -68,19 +68,14 @@ typedef struct
 
 PIPEINST Pipe[INSTANCES];
 HANDLE hEvents[INSTANCES];
-int deviceNum; // USB device number starting with 0 (a command line argument)
+int clusterSize = 2; // Cluster size, between 1 and 10
 int ppNum = 9; // Power profile number, between 0 and 9
 char *postProcessingMethod = NULL; // Post processing method or NULL if not specified
 int postProcessingMethodId = 0; // Post processing method id, 0 - SHA256, 1 - xorshift64, 2 - SHA512
-char postProcessingMethodName[64];
 SwrngCLContext ctxt;
 swrngBool postProcessingEnabled = SWRNG_TRUE;
 DWORD i, dwWait, cbRet, dwErr;
 BOOL fSuccess;
-BOOL isDevieNumSpecified = FALSE;
-DeviceSerialNumber dsn;
-DeviceModel dm;
-DeviceVersion dv;
 static wchar_t pipeEndPoint[PIPENAME_MAX_CHARS + 1];
 static char defaultPipeEndpoint[] = "\\\\.\\pipe\\SwiftRNG";
 size_t numCharConverted;
@@ -98,7 +93,7 @@ void displayUsage();
 int process(int argc, char **argv);
 int processArguments(int argc, char **argv);
 int validateArgumentCount(int curIdx, int actualArgumentCount);
-int parseDeviceNum(int idx, int argc, char **argv);
+int parseClusterSize(int idx, int argc, char **argv);
 int parsePowerProfileNum(int idx, int argc, char **argv);
 int processServer();
 int fillEntropyForWrite(DWORD i);

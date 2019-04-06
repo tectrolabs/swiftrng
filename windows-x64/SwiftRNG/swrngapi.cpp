@@ -662,6 +662,11 @@ static void test_samples(SwrngContext *ctxt) {
 							ctxt->apt.statusByte = ctxt->apt.signature;
 						}
 					}
+					#ifdef inDebugMode
+					if (ctxt->apt.cycleFailures >= 1) {
+						fprintf(stderr, "ctxt->apt.cycleFailures: %d value: %d\n", ctxt->apt.cycleFailures, value);
+                    }
+				#endif
 				} else {
 					// restart cycle
 					ctxt->apt.cycleFailures = 0;

@@ -1,3 +1,4 @@
+#include "stdafx.h"
 /*
  * sample-cl.c
  * Ver. 2.1
