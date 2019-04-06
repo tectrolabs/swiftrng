@@ -2,7 +2,7 @@
 
 /*
 * entropy-server.cpp
-* Ver. 1.1
+* Ver. 1.2
 *
 */
 
@@ -35,7 +35,7 @@ This program may only be used in conjunction with the SwiftRNG device.
 */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   SwiftRNG entropy-server Ver 1.1  \n");
+	printf("                   SwiftRNG entropy-server Ver 1.2  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     entropy-server - An application server for distributing random bytes \n");
@@ -404,7 +404,7 @@ int processServer() {
 		}
 	}
 
-	printf("Entropy server started using device %s with S/N: %s and Ver: %s, post processing: %s", dm.value, dsn.value, dv.value, postProcessingMethodName);
+	printf("Entropy server started using device %s with S/N: %s and Ver: %s, post processing: '%s'", dm.value, dsn.value, dv.value, postProcessingMethodName);
 	_tprintf(TEXT(", on named pipe: %s\n"), pipeEndPoint);
 
 	while (1)

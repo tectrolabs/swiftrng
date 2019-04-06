@@ -346,8 +346,15 @@ int processServer() {
 		return pipesStatus;
 	}
 
+	strcpy_s(postProcessingMethodName, "default");
+	if (postProcessingEnabled == SWRNG_FALSE) {
+		strcpy_s(postProcessingMethodName, "none");
+	}
+	else if (postProcessingMethod != NULL) {
+		strcpy_s(postProcessingMethodName, postProcessingMethod);
+	}
 
-	printf("Entropy server started using a cluster of %d devices", swrngGetCLSize(&ctxt));
+	printf("Entropy server started using a cluster of %d devices, post processing: '%s'", swrngGetCLSize(&ctxt), postProcessingMethodName);
 	_tprintf(TEXT(", on named pipe: %s\n"), pipeEndPoint);
 
 	while (1)

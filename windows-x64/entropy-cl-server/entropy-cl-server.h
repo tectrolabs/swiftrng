@@ -72,6 +72,7 @@ int clusterSize = 2; // Cluster size, between 1 and 10
 int ppNum = 9; // Power profile number, between 0 and 9
 char *postProcessingMethod = NULL; // Post processing method or NULL if not specified
 int postProcessingMethodId = 0; // Post processing method id, 0 - SHA256, 1 - xorshift64, 2 - SHA512
+char postProcessingMethodName[64];
 SwrngCLContext ctxt;
 swrngBool postProcessingEnabled = SWRNG_TRUE;
 DWORD i, dwWait, cbRet, dwErr;
