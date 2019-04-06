@@ -30,12 +30,27 @@
 #define SWRNG_CL_API_H_
 
 #include "swrngapi.h"
-#include <pthread.h>
-#include <sched.h>
-#include <unistd.h>
+#if defined(_WIN32)
+ #include <windows.h> 
+ #include <stdio.h>
+ #include <conio.h>
+ #include <sys/types.h>
+ #include <stdint.h>
+ #include <stdlib.h>
+ #include <sys/types.h>
+ #include <stdint.h>
+ #include <time.h>
+ #include <errno.h>
+ #include <process.h>
+#else
+ #include <pthread.h>
+ #include <sched.h>
+ #include <unistd.h>
+#endif
 
 
 #define SWRNG_MAX_ERR_MSG_SIZE_BYTES (256)
+
 
 //
 // Context thread structure
@@ -44,9 +59,13 @@ typedef struct {
 	SwrngContext ctxt;
 
 	// Thread variables
-	pthread_t  dwnl_thread;
+#if defined(_WIN32)
+	HANDLE dwnl_thread;
+#else
+	pthread_t dwnl_thread;
 	pthread_mutex_t dwnl_mutex;
 	pthread_cond_t dwnl_synch;
+#endif
 	int devNum; // Logical SwiftRNG device number
 	volatile int destroyDwnlThreadReq;
 	volatile int dwnlRequestActive;
@@ -55,7 +74,7 @@ typedef struct {
 } SwrngThreadContext;
 
 //
-// Context thread structure
+// Clustered context thread structure
 //
 typedef struct {
 	int startSignature;

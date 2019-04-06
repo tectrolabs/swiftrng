@@ -34,8 +34,11 @@ int main(int argc, char **argv) {
 	char postProcessingMethodStr[256];
 	int actualPostProcessingMethodId;
 	int postProcessingStatus;
-
+#ifdef _WIN32
+	strcpy_s(postProcessingMethodStr, "SHA256");
+#else
 	strcpy(postProcessingMethodStr, "SHA256");
+#endif
 
 	printf("------------------------------------------------------------------------------\n");
 	printf("--- A program for counting 1's and 0's bits retrieved from SwiftRNG device ---\n");
@@ -47,7 +50,11 @@ int main(int argc, char **argv) {
 		totalBlocks = atol(argv[1]);
 		deviceNum = atol(argv[2]);
 		if (argc > 3) {
+#ifdef _WIN32
+			strcpy_s(postProcessingMethodStr, argv[3]);
+#else
 			strcpy(postProcessingMethodStr, argv[3]);
+#endif
 			if (!strcmp("SHA256", postProcessingMethodStr)) {
 				postProcessingMethod = 0;
 			} else if (!strcmp("SHA512", postProcessingMethodStr)) {
@@ -98,7 +105,11 @@ int main(int argc, char **argv) {
 	}
 
 	if (postProcessingStatus == 0) {
+#ifdef _WIN32
+		strcpy_s(postProcessingMethodStr, "'no'");
+#else
 		strcpy(postProcessingMethodStr, "'no'");
+#endif
 	} else {
 		if (swrngGetPostProcessingMethod(&ctxt, &actualPostProcessingMethodId) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
@@ -106,16 +117,32 @@ int main(int argc, char **argv) {
 		}
 		switch (actualPostProcessingMethodId) {
 		case 0:
+#ifdef _WIN32
+			strcpy_s(postProcessingMethodStr, "SHA256");
+#else
 			strcpy(postProcessingMethodStr, "SHA256");
+#endif
 			break;
 		case 1:
+#ifdef _WIN32
+			strcpy_s(postProcessingMethodStr, "xorshift64");
+#else
 			strcpy(postProcessingMethodStr, "xorshift64");
+#endif
 			break;
 		case 2:
+#ifdef _WIN32
+			strcpy_s(postProcessingMethodStr, "SHA512");
+#else
 			strcpy(postProcessingMethodStr, "SHA512");
+#endif
 			break;
 		default:
+#ifdef _WIN32
+			strcpy_s(postProcessingMethodStr, "*unknown*");
+#else
 			strcpy(postProcessingMethodStr, "*unknown*");
+#endif
 			break;
 		}
 

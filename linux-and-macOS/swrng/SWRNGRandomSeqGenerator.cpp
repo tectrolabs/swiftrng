@@ -55,14 +55,22 @@ int SWRNGRandomSeqGenerator::openDevice() {
 	if (!isDeviceOpen) {
 		status = swrngInitializeContext(&ctxt);
 		if (status != SWRNG_SUCCESS) {
+#ifdef _WIN32
+			strcpy_s(lastErrorMessage, swrngGetLastErrorMessage(&ctxt));
+#else
 			strcpy(lastErrorMessage, swrngGetLastErrorMessage(&ctxt));
+#endif
 			return(status);
 		}
 
 		// Open SwiftRNG device if available
 		status = swrngOpen(&ctxt, deviceNumber);
-		if ( status != SWRNG_SUCCESS) {
+		if (status != SWRNG_SUCCESS) {
+#ifdef _WIN32
+			strcpy_s(lastErrorMessage, swrngGetLastErrorMessage(&ctxt));
+#else
 			strcpy(lastErrorMessage, swrngGetLastErrorMessage(&ctxt));
+#endif
 			return(status);
 		}
 		isDeviceOpen = true;
@@ -92,7 +100,11 @@ int SWRNGRandomSeqGenerator::generateSequence(uint32_t *dest, uint32_t size) {
 	while(currentNumberBufferSize > 0 && destIdx < size) {
 		status = swrngGetEntropyEx(&ctxt, (uint8_t*)rndBuffer, size * 4);
 		if (status != 0) {
+#ifdef _WIN32
+			strcpy_s(lastErrorMessage, swrngGetLastErrorMessage(&ctxt));
+#else
 			strcpy(lastErrorMessage, swrngGetLastErrorMessage(&ctxt));
+#endif
 			return status;
 		}
 		iterate(dest, size);

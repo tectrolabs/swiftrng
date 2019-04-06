@@ -31,12 +31,18 @@
     <ClInclude Include="libusb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="swrng-cl-api.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="stdafx.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
     <ClCompile Include="swrngapi.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="swrng-cl-api.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>

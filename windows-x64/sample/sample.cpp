@@ -4,7 +4,7 @@
  * Ver. 2.1
  *
  * This is a sample C program that demonstrates how to download random bytes
- * from Hardware Random Number Generator SwiftRNG using 'swrngapi' API for C language.
+ * from a SwiftRNG using 'swrngapi' API for C language.
  *
  */
 

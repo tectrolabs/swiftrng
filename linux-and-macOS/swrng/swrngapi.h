@@ -36,7 +36,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
 	#include "libusb.h"
 #else
 	#include <libusb-1.0/libusb.h>

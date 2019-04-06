@@ -2,13 +2,13 @@
 
 /*
  * swrngapi.c
- * ver. 3.2
+ * ver. 3.4
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2018 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2019 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -629,6 +629,11 @@ static void test_samples(SwrngContext *ctxt) {
 							ctxt->rct.statusByte = ctxt->rct.signature;
 						}
 					}
+					#ifdef inDebugMode
+					if (ctxt->rct.failureCount >= 1) {
+						fprintf(stderr, "rct.failureCount: %d value: %d\n", ctxt->rct.failureCount, value);
+					}
+					#endif
 				}
 
 			} else {
@@ -1053,7 +1058,7 @@ int swrngSetPowerProfile(SwrngContext *ctxt, int ppNum) {
 * Enable post processing method.
 *
 * @param ctxt - pointer to SwrngContext structure
-* @param postProcessingMethodId - 0 for SHA256 (default), 2 - SHA512, 1 - xorshift64 (devices with versions 1.2 and up)
+* @param postProcessingMethodId - 0 for SHA256 (default), 1 - xorshift64 (devices with versions 1.2 and up), 2 - for SHA512
 *
 * @return int - 0 when post processing successfully enabled, otherwise the error code
 *

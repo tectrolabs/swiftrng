@@ -1,3 +1,4 @@
+#include "stdafx.h"
 /*
  * swrng-cl.c
  * ver. 2.10
@@ -355,7 +356,12 @@ int handleDownloadRequest() {
 	}
 
 	if (isOutputToStandardOutput == SWRNG_TRUE) {
+#ifdef _WIN32
+		_setmode(_fileno(stdout), _O_BINARY);
+		pOutputFile = fdopen(_dup(fileno(stdout)), "wb");
+#else
 		pOutputFile = fdopen(dup(fileno(stdout)), "wb");
+#endif
 	} else {
 		pOutputFile = fopen(filePathName, "wb");
 	}

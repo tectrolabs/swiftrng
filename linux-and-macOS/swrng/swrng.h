@@ -1,12 +1,12 @@
 /*
  * swrng.h
- * ver. 2.10
+ * ver. 2.11
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2018 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2019 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -33,6 +33,8 @@
 #ifndef _WIN32
 #include <unistd.h>
 #else
+#include <stdio.h>
+#include <fcntl.h>
 #include <io.h>
 #endif
 

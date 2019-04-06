@@ -363,7 +363,11 @@ int handleDownloadRequest() {
 	}
 
 	if (postProcessingStatus == 0) {
+#ifdef _WIN32
 		strcpy_s(postProcessingMethodStr, "'no'");
+#else
+		strcpy(postProcessingMethodStr, "'no'");
+#endif
 	} else {
 		if (swrngGetPostProcessingMethod(&ctxt, &actualPostProcessingMethodId) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
@@ -505,7 +509,11 @@ int processDownloadRequest() {
  */
 int process(int argc, char **argv) {
 	// Initialize the context
+#ifdef _WIN32
 	strcpy_s(postProcessingMethodStr, "*unknown*");
+#else
+	strcpy(postProcessingMethodStr, "*unknown*");
+#endif
 	int status = swrngInitializeContext(&ctxt);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Could not initialize context\n");

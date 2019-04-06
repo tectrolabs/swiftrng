@@ -143,4 +143,3 @@ void printRandomSequence(int64_t *buffer) {
 	}
 	std::cout << "-- Ending of random sequence --" << std::endl;
 }
-
