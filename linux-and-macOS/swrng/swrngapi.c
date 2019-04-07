@@ -2,7 +2,7 @@
 
 /*
  * swrngapi.c
- * ver. 3.4
+ * ver. 3.5
  *
  */
 
@@ -807,7 +807,7 @@ int swrngGetDeviceList(SwrngContext *ctxt, DeviceInfoList *devInfoList) {
 	if (isContextInitialized(ctxt) == SWRNG_FALSE) {
 		return -1;
 	}
-
+	
 	if (ctxt->deviceOpen == SWRNG_TRUE) {
 		swrng_printErrorMessage(ctxt, "Cannot invoke listDevices when there is a USB session in progress");
 		return -1;
@@ -821,7 +821,7 @@ int swrngGetDeviceList(SwrngContext *ctxt, DeviceInfoList *devInfoList) {
 		}
 		ctxt->libusbInitialized = SWRNG_TRUE;
 	}
-
+	
 	memset((void*) devInfoList, 0, sizeof(DeviceInfoList));
 	ssize_t cnt = libusb_get_device_list(NULL, &devs);
 	if (cnt < 0) {
@@ -850,19 +850,23 @@ int swrngGetDeviceList(SwrngContext *ctxt, DeviceInfoList *devInfoList) {
 		uint16_t idProductCur = desc.idProduct;
 		if (idVendorCur == SWRNG_VENDOR_ID && idProductCur == SWRNG_PRODUCT_ID) {
 			devInfoList->devInfoList[curFoundDevNum].devNum = curFoundDevNum;
-			if (swrngOpen(ctxt, curFoundDevNum) == 0) {
-				swrngGetModel(ctxt, &devInfoList->devInfoList[curFoundDevNum].dm);
-				swrngGetVersion(ctxt, &devInfoList->devInfoList[curFoundDevNum].dv);
-				swrngGetSerialNumber(ctxt, 
+			SwrngContext localCtxt;
+			swrngInitializeContext(&localCtxt);
+			if (swrngOpen(&localCtxt, curFoundDevNum) == 0) {
+				swrngGetModel(&localCtxt, &devInfoList->devInfoList[curFoundDevNum].dm);
+				swrngGetVersion(&localCtxt, &devInfoList->devInfoList[curFoundDevNum].dv);
+				swrngGetSerialNumber(&localCtxt,
 						&devInfoList->devInfoList[curFoundDevNum].sn);
 			}
-			swrngClose(ctxt);
+			swrngClose(&localCtxt);
 			devInfoList->numDevs++;
 			curFoundDevNum++;
 		}
 	}
 	libusb_free_device_list(devs, 1);
+	
 	closeUSBLib(ctxt);
+	
 	return 0;
 }
 
