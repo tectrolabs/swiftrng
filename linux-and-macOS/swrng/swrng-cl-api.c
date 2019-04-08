@@ -44,7 +44,9 @@ static const char ctxtNotInitializedErrMsg[] = "SwrngCLContext not initialized";
 static const char needMoreCPUsErrMsg[] = "Need more CPUs available to continue";
 static const char threadCreationErrMsg[] = "Thread creation error";
 static const char eventCreationErrMsg[] = "Event creation error";
+#ifdef _WIN32
 static const char eventSynchErrMsg[] = "Event synchronization error";
+#endif
 
 static const long outputBuffSizeBytes = 100000L;
 
