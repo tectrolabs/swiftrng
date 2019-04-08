@@ -694,8 +694,8 @@ static void *download_thread(void *th_params) {
 
 	while (1) {
 		start = time(NULL);
-		timeout.tv_sec = start;
-		timeout.tv_nsec = 1000000;
+		timeout.tv_sec = start + 1;
+		timeout.tv_nsec = 0;
 		rc = pthread_cond_timedwait(&tctxt->dwnl_synch, &tctxt->dwnl_mutex, &timeout);
 		switch (rc) {
 		case 0:
