@@ -50,6 +50,7 @@
 
 
 #define SWRNG_MAX_ERR_MSG_SIZE_BYTES (256)
+#define SWRNG_THREAD_EVENT_ERROR (10)
 
 
 //
@@ -61,6 +62,7 @@ typedef struct {
 	// Thread variables
 #if defined(_WIN32)
 	HANDLE dwnl_thread;
+	HANDLE dwnl_thread_event;
 #else
 	pthread_t dwnl_thread;
 	pthread_mutex_t dwnl_mutex;

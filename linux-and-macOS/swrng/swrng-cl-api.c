@@ -43,6 +43,8 @@ static const char leakMemoryErrMsg[] = "Memory block already allocated";
 static const char ctxtNotInitializedErrMsg[] = "SwrngCLContext not initialized";
 static const char needMoreCPUsErrMsg[] = "Need more CPUs available to continue";
 static const char threadCreationErrMsg[] = "Thread creation error";
+static const char eventCreationErrMsg[] = "Event creation error";
+static const char eventSynchErrMsg[] = "Event synchronization error";
 
 static const long outputBuffSizeBytes = 100000L;
 
@@ -78,6 +80,7 @@ static void cleanup_download_thread(void *param);
 static void *download_thread(void *th_params);
 #else
 unsigned int __stdcall download_thread(void *th_params);
+static void errorCleanUpEventsAndThreads(SwrngCLContext *ctxt, int maxIndex);
 #endif
 static void wait_complete_download_req(SwrngThreadContext *ctxt);
 static void wait_all_complete_download_reqs(SwrngCLContext *ctxt);
@@ -120,6 +123,8 @@ static void trigger_download_reqs(SwrngCLContext *ctxt) {
 		ctxt->tctxts[i].dwnlRequestActive = SWRNG_TRUE;
 #ifndef _WIN32
 		pthread_cond_signal(&ctxt->tctxts[i].dwnl_synch);
+#else
+		SetEvent(ctxt->tctxts[i].dwnl_thread_event);
 #endif
 	}
 }
@@ -137,7 +142,12 @@ static int getClusterDownloadStatus(SwrngCLContext *ctxt) {
 	for (i = 0; i < ctxt->actClusterSize; i++) {
 		if (ctxt->tctxts[i].dwnl_status != SWRNG_SUCCESS) {
 			retval = ctxt->tctxts[i].dwnl_status;
-			strcpy(ctxt->lastError, ctxt->tctxts[i].ctxt.lastError);
+			if (retval == SWRNG_THREAD_EVENT_ERROR) {
+				strcpy(ctxt->lastError, eventSynchErrMsg);
+			}
+			else {
+				strcpy(ctxt->lastError, ctxt->tctxts[i].ctxt.lastError);
+			}
 		}
 	}
 	return retval;
@@ -385,28 +395,53 @@ static int initializeCLThreads(SwrngCLContext *ctxt) {
 			printCLErrorMessage(ctxt, threadCreationErrMsg);
 			int j;
 			for (j = 0; j < i; j++) {
-				ctxt->tctxts[i].destroyDwnlThreadReq = SWRNG_TRUE;
+				ctxt->tctxts[j].destroyDwnlThreadReq = SWRNG_TRUE;
+				pthread_cond_signal(&ctxt->tctxts[j].dwnl_synch);
 				pthread_join(ctxt->tctxts[j].dwnl_thread, &th_retval);
+				pthread_mutex_destroy(&ctxt->tctxts[j].dwnl_mutex);
+				pthread_cond_destroy(&ctxt->tctxts[j].dwnl_synch);
+
 			}
 			return -1;
 		}
 #else
-		ctxt->tctxts[i].dwnl_thread = (HANDLE)_beginthreadex(0, 0, &download_thread, (void*)&ctxt->tctxts[i], 0, 0);
-		if (ctxt->tctxts[i].dwnl_thread == NULL) {
-			printCLErrorMessage(ctxt, threadCreationErrMsg);
-			int j;
-			for (j = 0; j < i; j++) {
-				ctxt->tctxts[i].destroyDwnlThreadReq = SWRNG_TRUE;
-				WaitForSingleObject(ctxt->tctxts[i].dwnl_thread, INFINITE);
-				CloseHandle(ctxt->tctxts[i].dwnl_thread);
-			}
+		ctxt->tctxts[i].dwnl_thread_event = CreateEvent(NULL, FALSE, FALSE, TEXT("Thread Wakeup Event"));
+		if (ctxt->tctxts[i].dwnl_thread_event == NULL) {
+			printCLErrorMessage(ctxt, eventCreationErrMsg);
+			errorCleanUpEventsAndThreads(ctxt, i);
 			return -1;
 		}
+		ctxt->tctxts[i].dwnl_thread = (HANDLE)_beginthreadex(0, 0, &download_thread, (void*)&ctxt->tctxts[i], CREATE_SUSPENDED, 0);
+		if (ctxt->tctxts[i].dwnl_thread == NULL) {
+			CloseHandle(ctxt->tctxts[i].dwnl_thread_event);
+			printCLErrorMessage(ctxt, threadCreationErrMsg);
+			errorCleanUpEventsAndThreads(ctxt, i);
+			return -1;
+		}
+		ResumeThread(ctxt->tctxts[i].dwnl_thread);
 #endif
 	}
 
 	return status;
 }
+
+#ifdef _WIN32
+/**
+* Clean up all previous threads and events 
+*
+* @param ctxt - pointer to SwrngCLContext structure
+* @param maxIndex - upper bound of threads and events to close
+*/
+static void errorCleanUpEventsAndThreads(SwrngCLContext *ctxt, int maxIndex) {
+	for (int j = 0; j < maxIndex; j++) {
+		ctxt->tctxts[j].destroyDwnlThreadReq = SWRNG_TRUE;
+		SetEvent(ctxt->tctxts[j].dwnl_thread_event);
+		WaitForSingleObject(ctxt->tctxts[j].dwnl_thread, INFINITE);
+		CloseHandle(ctxt->tctxts[j].dwnl_thread);
+		CloseHandle(ctxt->tctxts[j].dwnl_thread_event);
+	}
+}
+#endif
 
 /**
  * Shutdown and clean up all threads
@@ -428,8 +463,10 @@ static void unInitializeCLThreads(SwrngCLContext *ctxt) {
 		pthread_mutex_destroy(&ctxt->tctxts[i].dwnl_mutex);
 		pthread_cond_destroy(&ctxt->tctxts[i].dwnl_synch);
 #else
+		SetEvent(ctxt->tctxts[i].dwnl_thread_event);
 		WaitForSingleObject(ctxt->tctxts[i].dwnl_thread, INFINITE);
 		CloseHandle(ctxt->tctxts[i].dwnl_thread);
+		CloseHandle(ctxt->tctxts[i].dwnl_thread_event);
 #endif
 		ctxt->tctxts[i].dwnlRequestActive = SWRNG_FALSE;
 	}
@@ -673,15 +710,30 @@ static void *download_thread(void *th_params) {
 #ifdef _WIN32
 unsigned int __stdcall download_thread(void *th_params) {
 	SwrngThreadContext *tctxt = (SwrngThreadContext *)th_params;
+	DWORD dwWaitResult;
 
-	while (tctxt->destroyDwnlThreadReq == SWRNG_FALSE) {
-		if (tctxt->dwnlRequestActive == SWRNG_TRUE) {
-			tctxt->dwnl_status = swrngGetEntropy(&tctxt->ctxt, tctxt->trngOutBuffer, outputBuffSizeBytes);
+	while (true) {
+		dwWaitResult = WaitForSingleObject(tctxt->dwnl_thread_event, 1);
+		switch (dwWaitResult) {
+		case WAIT_OBJECT_0:
+		case WAIT_TIMEOUT:
+			if (tctxt->destroyDwnlThreadReq == SWRNG_TRUE) {
+				return 0;
+			} else {
+				if (tctxt->dwnlRequestActive == SWRNG_TRUE) {
+					tctxt->dwnl_status = swrngGetEntropy(&tctxt->ctxt, tctxt->trngOutBuffer, outputBuffSizeBytes);
+					tctxt->dwnlRequestActive = SWRNG_FALSE;
+				}
+			}
+			break;
+		default:
+			tctxt->dwnl_status = SWRNG_THREAD_EVENT_ERROR;
 			tctxt->dwnlRequestActive = SWRNG_FALSE;
+			if (tctxt->destroyDwnlThreadReq == SWRNG_TRUE) {
+				return 0;
+			}
 		}
-		Sleep(0);
 	}
-	return 0;
 }
 #endif
 
