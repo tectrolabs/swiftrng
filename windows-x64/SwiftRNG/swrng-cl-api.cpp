@@ -692,18 +692,32 @@ static void *download_thread(void *th_params) {
 		pthread_exit(NULL);
 	}
 
-	while(tctxt->destroyDwnlThreadReq == SWRNG_FALSE) {
-		if (tctxt->dwnlRequestActive == SWRNG_TRUE) {
-			tctxt->dwnl_status = swrngGetEntropy(&tctxt->ctxt, tctxt->trngOutBuffer, outputBuffSizeBytes);
-			tctxt->dwnlRequestActive = SWRNG_FALSE;
-		}
-		usleep(100);
+	while (1) {
 		start = time(NULL);
-		timeout.tv_sec = start;
-		timeout.tv_nsec = 1000;
-		pthread_cond_timedwait(&tctxt->dwnl_synch, &tctxt->dwnl_mutex, &timeout);
+		timeout.tv_sec = start + 1;
+		timeout.tv_nsec = 0;
+		rc = pthread_cond_timedwait(&tctxt->dwnl_synch, &tctxt->dwnl_mutex, &timeout);
+		switch (rc) {
+		case 0:
+		case ETIMEDOUT:
+			if (tctxt->destroyDwnlThreadReq == SWRNG_TRUE) {
+				goto exit;
+			} else {
+				if (tctxt->dwnlRequestActive == SWRNG_TRUE) {
+					tctxt->dwnl_status = swrngGetEntropy(&tctxt->ctxt, tctxt->trngOutBuffer, outputBuffSizeBytes);
+					tctxt->dwnlRequestActive = SWRNG_FALSE;
+				}
+			}
+			break;
+		default:
+			tctxt->dwnl_status = SWRNG_THREAD_EVENT_ERROR;
+			tctxt->dwnlRequestActive = SWRNG_FALSE;
+			if (tctxt->destroyDwnlThreadReq == SWRNG_TRUE) {
+				goto exit;
+			}
+		}
 	}
-
+exit:
 	pthread_exit(NULL);
 	pthread_cleanup_pop(0);
 }
