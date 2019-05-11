@@ -1,6 +1,6 @@
 /*
  * swrngapi.h
- * ver. 3.3
+ * ver. 3.4
  *
  */
 
@@ -29,7 +29,6 @@
 #define SWRNGAPI_H_
 
 #include <stdlib.h>
-#include <sys/types.h>
 #include <stdint.h>
 #include <time.h>
 #include <string.h>
