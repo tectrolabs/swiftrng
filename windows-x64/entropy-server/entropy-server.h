@@ -1,6 +1,6 @@
 /*
 * entropy-server.h
-* Ver. 1.2
+* Ver. 1.3
 *
 */
 
@@ -84,7 +84,8 @@ DeviceVersion dv;
 static wchar_t pipeEndPoint[PIPENAME_MAX_CHARS + 1];
 static char defaultPipeEndpoint[] = "\\\\.\\pipe\\SwiftRNG";
 size_t numCharConverted;
-
+char embeddedCorrectionMethodStr[32];
+int embeddedCorrectionMethodId;
 
 
 /**

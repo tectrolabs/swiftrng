@@ -2,7 +2,7 @@
 
 /*
 * entropy-server.cpp
-* Ver. 1.2
+* Ver. 1.3
 *
 */
 
@@ -35,7 +35,7 @@ This program may only be used in conjunction with the SwiftRNG device.
 */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   SwiftRNG entropy-server Ver 1.2  \n");
+	printf("                   SwiftRNG entropy-server Ver 1.3  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     entropy-server - An application server for distributing random bytes \n");
@@ -404,7 +404,23 @@ int processServer() {
 		}
 	}
 
-	printf("Entropy server started using device %s with S/N: %s and Ver: %s, post processing: '%s'", dm.value, dsn.value, dv.value, postProcessingMethodName);
+	if (swrngGetEmbeddedCorrectionMethod(&ctxt, &embeddedCorrectionMethodId) != SWRNG_SUCCESS) {
+		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		return(1);
+	}
+
+	switch (embeddedCorrectionMethodId) {
+	case 0:
+		strcpy_s(embeddedCorrectionMethodStr, "none");
+		break;
+	case 1:
+		strcpy_s(embeddedCorrectionMethodStr, "Linear");
+		break;
+	default:
+		strcpy_s(embeddedCorrectionMethodStr, "*unknown*");
+	}
+
+	printf("Entropy server started using device %s with S/N: %s and Ver: %s, post processing: '%s', embedded correction method: '%s'", dm.value, dsn.value, dv.value, postProcessingMethodName, embeddedCorrectionMethodStr);
 	_tprintf(TEXT(", on named pipe: %s\n"), pipeEndPoint);
 
 	while (1)
