@@ -2,13 +2,13 @@
 
 /*
  * swrngapi.c
- * ver. 3.2
+ * ver. 3.6
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2018 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2019 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -444,6 +444,10 @@ int swrngOpen(SwrngContext *ctxt, int deviceNum) {
 				if (ctxt->deviceVersionDouble >= 2.0) {
 					// By default, disable post processing for devices with versions 2.0+
 					ctxt->postProcessingEnabled = SWRNG_FALSE;
+					if (ctxt->deviceVersionDouble >= 3.0) {
+						// SwiftRNG Z devices use built-in 'P. Lacharme' Linear Correction method
+						ctxt->deviceEmbeddedCorrectionMethodId = SWRNG_EMB_CORR_METHOD_LINEAR;
+					}
 				} else {
 					// Adjust APT and RCT tests to count for BIAS with older devices.
 					// All tests are performed now before applying post-processing to comply
@@ -629,6 +633,11 @@ static void test_samples(SwrngContext *ctxt) {
 							ctxt->rct.statusByte = ctxt->rct.signature;
 						}
 					}
+					#ifdef inDebugMode
+					if (ctxt->rct.failureCount >= 1) {
+						fprintf(stderr, "rct.failureCount: %d value: %d\n", ctxt->rct.failureCount, value);
+					}
+					#endif
 				}
 
 			} else {
@@ -657,6 +666,11 @@ static void test_samples(SwrngContext *ctxt) {
 							ctxt->apt.statusByte = ctxt->apt.signature;
 						}
 					}
+					#ifdef inDebugMode
+					if (ctxt->apt.cycleFailures >= 1) {
+						fprintf(stderr, "ctxt->apt.cycleFailures: %d value: %d\n", ctxt->apt.cycleFailures, value);
+                    }
+				#endif
 				} else {
 					// restart cycle
 					ctxt->apt.cycleFailures = 0;
@@ -797,7 +811,7 @@ int swrngGetDeviceList(SwrngContext *ctxt, DeviceInfoList *devInfoList) {
 	if (isContextInitialized(ctxt) == SWRNG_FALSE) {
 		return -1;
 	}
-
+	
 	if (ctxt->deviceOpen == SWRNG_TRUE) {
 		swrng_printErrorMessage(ctxt, "Cannot invoke listDevices when there is a USB session in progress");
 		return -1;
@@ -811,7 +825,7 @@ int swrngGetDeviceList(SwrngContext *ctxt, DeviceInfoList *devInfoList) {
 		}
 		ctxt->libusbInitialized = SWRNG_TRUE;
 	}
-
+	
 	memset((void*) devInfoList, 0, sizeof(DeviceInfoList));
 	ssize_t cnt = libusb_get_device_list(NULL, &devs);
 	if (cnt < 0) {
@@ -840,19 +854,23 @@ int swrngGetDeviceList(SwrngContext *ctxt, DeviceInfoList *devInfoList) {
 		uint16_t idProductCur = desc.idProduct;
 		if (idVendorCur == SWRNG_VENDOR_ID && idProductCur == SWRNG_PRODUCT_ID) {
 			devInfoList->devInfoList[curFoundDevNum].devNum = curFoundDevNum;
-			if (swrngOpen(ctxt, curFoundDevNum) == 0) {
-				swrngGetModel(ctxt, &devInfoList->devInfoList[curFoundDevNum].dm);
-				swrngGetVersion(ctxt, &devInfoList->devInfoList[curFoundDevNum].dv);
-				swrngGetSerialNumber(ctxt, 
+			SwrngContext localCtxt;
+			swrngInitializeContext(&localCtxt);
+			if (swrngOpen(&localCtxt, curFoundDevNum) == 0) {
+				swrngGetModel(&localCtxt, &devInfoList->devInfoList[curFoundDevNum].dm);
+				swrngGetVersion(&localCtxt, &devInfoList->devInfoList[curFoundDevNum].dv);
+				swrngGetSerialNumber(&localCtxt,
 						&devInfoList->devInfoList[curFoundDevNum].sn);
 			}
-			swrngClose(ctxt);
+			swrngClose(&localCtxt);
 			devInfoList->numDevs++;
 			curFoundDevNum++;
 		}
 	}
 	libusb_free_device_list(devs, 1);
+	
 	closeUSBLib(ctxt);
+	
 	return 0;
 }
 
@@ -1053,7 +1071,7 @@ int swrngSetPowerProfile(SwrngContext *ctxt, int ppNum) {
 * Enable post processing method.
 *
 * @param ctxt - pointer to SwrngContext structure
-* @param postProcessingMethodId - 0 for SHA256 (default), 2 - SHA512, 1 - xorshift64 (devices with versions 1.2 and up)
+* @param postProcessingMethodId - 0 for SHA256 (default), 1 - xorshift64 (devices with versions 1.2 and up), 2 - for SHA512
 *
 * @return int - 0 when post processing successfully enabled, otherwise the error code
 *
@@ -1162,6 +1180,28 @@ int swrngGetPostProcessingMethod(SwrngContext *ctxt, int *postProcessingMethodId
 		return -1;
 	}
 	*postProcessingMethodId = ctxt->postProcessingMethodId;
+	return SWRNG_SUCCESS;
+}
+
+/**
+* Retrieve device embedded correction method
+*
+* @param ctxt - pointer to SwrngContext structure
+* @param deviceEmbeddedCorrectionMethodId - pointer to store the device built-in correction method id:
+* 			0 - none, 1 - Linear correction (P. Lacharme)
+* @return int - 0 embedded correction method successfully retrieved, otherwise the error code
+*
+*/
+int swrngGetEmbeddedCorrectionMethod(SwrngContext *ctxt, int *deviceEmbeddedCorrectionMethodId) {
+	if (isContextInitialized(ctxt) == SWRNG_FALSE) {
+		return -1;
+	}
+
+	if (ctxt->deviceOpen == SWRNG_FALSE) {
+		swrng_printErrorMessage(ctxt, SWRNG_DEV_NOT_OPEN_MSG);
+		return -1;
+	}
+	*deviceEmbeddedCorrectionMethodId = ctxt->deviceEmbeddedCorrectionMethodId;
 	return SWRNG_SUCCESS;
 }
 
@@ -1830,6 +1870,7 @@ int swrngInitializeContext(SwrngContext *ctxt) {
 		strcpy(ctxt->lastError, "");
 		ctxt->postProcessingEnabled = SWRNG_TRUE;
 		ctxt->postProcessingMethodId = SWRNG_SHA256_PP_METHOD;
+		ctxt->deviceEmbeddedCorrectionMethodId = SWRNG_EMB_CORR_METHOD_NONE;
 		return SWRNG_SUCCESS;
 	}
 	return -1;

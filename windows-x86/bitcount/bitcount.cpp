@@ -1,7 +1,7 @@
 #include "stdafx.h"
 /*
  * bitcount.c
- * Ver. 1.8
+ * Ver. 1.9
  *
  * A C program for counting '1' and '0' bits downloaded from SwiftRNG device
  *
@@ -32,10 +32,17 @@ int main(int argc, char **argv) {
 	double arithmeticZeroMean;
 	int postProcessingMethod = -1;
 	char postProcessingMethodStr[256];
+	char embeddedCorrectionMethodStr[32];
 	int actualPostProcessingMethodId;
 	int postProcessingStatus;
-
+	int embeddedCorrectionMethodId;
+#ifdef _WIN32
 	strcpy_s(postProcessingMethodStr, "SHA256");
+	strcpy_s(embeddedCorrectionMethodStr, "none");
+#else
+	strcpy(postProcessingMethodStr, "SHA256");
+	strcpy(embeddedCorrectionMethodStr, "none");
+#endif
 
 	printf("------------------------------------------------------------------------------\n");
 	printf("--- A program for counting 1's and 0's bits retrieved from SwiftRNG device ---\n");
@@ -47,7 +54,11 @@ int main(int argc, char **argv) {
 		totalBlocks = atol(argv[1]);
 		deviceNum = atol(argv[2]);
 		if (argc > 3) {
+#ifdef _WIN32
 			strcpy_s(postProcessingMethodStr, argv[3]);
+#else
+			strcpy(postProcessingMethodStr, argv[3]);
+#endif
 			if (!strcmp("SHA256", postProcessingMethodStr)) {
 				postProcessingMethod = 0;
 			} else if (!strcmp("SHA512", postProcessingMethodStr)) {
@@ -98,7 +109,11 @@ int main(int argc, char **argv) {
 	}
 
 	if (postProcessingStatus == 0) {
-		strcpy_s(postProcessingMethodStr, "'no'");
+#ifdef _WIN32
+		strcpy_s(postProcessingMethodStr, "none");
+#else
+		strcpy(postProcessingMethodStr, "none");
+#endif
 	} else {
 		if (swrngGetPostProcessingMethod(&ctxt, &actualPostProcessingMethodId) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
@@ -106,22 +121,66 @@ int main(int argc, char **argv) {
 		}
 		switch (actualPostProcessingMethodId) {
 		case 0:
+#ifdef _WIN32
 			strcpy_s(postProcessingMethodStr, "SHA256");
+#else
+			strcpy(postProcessingMethodStr, "SHA256");
+#endif
 			break;
 		case 1:
+#ifdef _WIN32
 			strcpy_s(postProcessingMethodStr, "xorshift64");
+#else
+			strcpy(postProcessingMethodStr, "xorshift64");
+#endif
 			break;
 		case 2:
+#ifdef _WIN32
 			strcpy_s(postProcessingMethodStr, "SHA512");
+#else
+			strcpy(postProcessingMethodStr, "SHA512");
+#endif
 			break;
 		default:
+#ifdef _WIN32
 			strcpy_s(postProcessingMethodStr, "*unknown*");
+#else
+			strcpy(postProcessingMethodStr, "*unknown*");
+#endif
 			break;
 		}
 
 	}
 
-	printf("*** downloading random bytes and counting bits using %s post processing method ***\n", postProcessingMethodStr);
+	if (swrngGetEmbeddedCorrectionMethod(&ctxt, &embeddedCorrectionMethodId) != SWRNG_SUCCESS) {
+		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		return(1);
+	}
+
+	switch(embeddedCorrectionMethodId) {
+	case 0:
+		#ifdef _WIN32
+			strcpy_s(embeddedCorrectionMethodStr, "none");
+		#else
+			strcpy(embeddedCorrectionMethodStr, "none");
+		#endif
+			break;
+	case 1:
+		#ifdef _WIN32
+				strcpy_s(embeddedCorrectionMethodStr, "Linear");
+		#else
+				strcpy(embeddedCorrectionMethodStr, "Linear");
+		#endif
+			break;
+	default:
+		#ifdef _WIN32
+			strcpy_s(embeddedCorrectionMethodStr, "*unknown*");
+		#else
+			strcpy(embeddedCorrectionMethodStr, "*unknown*");
+		#endif
+	}
+
+	printf("*** downloading random bytes and counting bits, post processing: %s, embedded correction: %s ***\n", postProcessingMethodStr, embeddedCorrectionMethodStr);
 	totalOnes = 0;
 	totalZeros = 0;
 	for (l = 0; l < totalBlocks; l++) {

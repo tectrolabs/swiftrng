@@ -2,7 +2,7 @@
 
 /*
 * entropy-server.cpp
-* Ver. 1.1
+* Ver. 1.2
 *
 */
 
@@ -35,7 +35,7 @@ This program may only be used in conjunction with the SwiftRNG device.
 */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   SwiftRNG entropy-server Ver 1.1  \n");
+	printf("                   SwiftRNG entropy-server Ver 1.2  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     entropy-server - An application server for distributing random bytes \n");
@@ -59,13 +59,13 @@ void displayUsage() {
 	printf("\n");
 	printf("     -ppm METHOD, --post-processing-method METHOD\n");
 	printf("           SwiftRNG post processing method: SHA256, SHA512 or xorshift64\n");
-	printf("           Skip this option for using default (SHA256) mode\n");
+	printf("           Skip this option for using default method for device\n");
 	printf("\n");
 	printf("     -dpp, --disable-post-processing\n");
 	printf("           Disable post processing of random data for devices with version 1.2+\n");
 	printf("\n");
 	printf("     -npe, ENDPOINT, --named-pipe-endpoint ENDPOINT\n");
-	printf("           Use custom named pipe endpoint (different from the default endpoint)\n");
+	printf("           Use custom named pipe endpoint (if different from the default endpoint)\n");
 	printf("\n");
 	printf("EXAMPLES:\n");
 	printf("     To start the server using first SwiftRNG device:\n");
@@ -75,7 +75,7 @@ void displayUsage() {
 	printf("     To start the server using the second SwiftRNG device:\n");
 	printf("           entropy-server -dn 1\n");
 	printf("     To start the server using first SwiftRNG device and custom pipe endpoint name:\n");
-	printf("           entropy-server -dn 0 -pn \\\\.\\pipe\\mycustompipename \n");
+	printf("           entropy-server -dn 0 -npe \\\\.\\pipe\\mycustompipename \n");
 	printf("\n");
 }
 
@@ -404,7 +404,7 @@ int processServer() {
 		}
 	}
 
-	printf("Entropy server started using device %s with S/N: %s and Ver: %s, post processing: %s", dm.value, dsn.value, dv.value, postProcessingMethodName);
+	printf("Entropy server started using device %s with S/N: %s and Ver: %s, post processing: '%s'", dm.value, dsn.value, dv.value, postProcessingMethodName);
 	_tprintf(TEXT(", on named pipe: %s\n"), pipeEndPoint);
 
 	while (1)
