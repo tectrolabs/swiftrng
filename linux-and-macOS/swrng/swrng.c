@@ -522,7 +522,7 @@ int processDownloadRequest() {
 	DeviceStatistics *ds = swrngGenerateDeviceStatistics(&ctxt);
 	if (!isOutputToStandardOutput) {
 		printf(
-				"Completed in %d seconds, post processing method used: %s, device built-in correction method used: %s, speed: %d KBytes/sec, blocks re-sent: %d\n",
+				"Completed in %d seconds, post-processing method used: %s, device built-in correction method used: %s, speed: %d KBytes/sec, blocks re-sent: %d\n",
 				(int) ds->totalTime, postProcessingMethodStr, embeddedCorrectionMethodStr, (int) ds->downloadSpeedKBsec,
 				(int) ds->totalRetries);
 	}
