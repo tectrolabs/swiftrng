@@ -1,7 +1,7 @@
 #include "stdafx.h"
 /*
  * bitcount.c
- * Ver. 1.8
+ * Ver. 1.9
  *
  * A C program for counting '1' and '0' bits downloaded from SwiftRNG device
  *
@@ -32,12 +32,16 @@ int main(int argc, char **argv) {
 	double arithmeticZeroMean;
 	int postProcessingMethod = -1;
 	char postProcessingMethodStr[256];
+	char embeddedCorrectionMethodStr[32];
 	int actualPostProcessingMethodId;
 	int postProcessingStatus;
+	int embeddedCorrectionMethodId;
 #ifdef _WIN32
 	strcpy_s(postProcessingMethodStr, "SHA256");
+	strcpy_s(embeddedCorrectionMethodStr, "none");
 #else
 	strcpy(postProcessingMethodStr, "SHA256");
+	strcpy(embeddedCorrectionMethodStr, "none");
 #endif
 
 	printf("------------------------------------------------------------------------------\n");
@@ -106,9 +110,9 @@ int main(int argc, char **argv) {
 
 	if (postProcessingStatus == 0) {
 #ifdef _WIN32
-		strcpy_s(postProcessingMethodStr, "'no'");
+		strcpy_s(postProcessingMethodStr, "none");
 #else
-		strcpy(postProcessingMethodStr, "'no'");
+		strcpy(postProcessingMethodStr, "none");
 #endif
 	} else {
 		if (swrngGetPostProcessingMethod(&ctxt, &actualPostProcessingMethodId) != SWRNG_SUCCESS) {
@@ -148,7 +152,35 @@ int main(int argc, char **argv) {
 
 	}
 
-	printf("*** downloading random bytes and counting bits using %s post processing method ***\n", postProcessingMethodStr);
+	if (swrngGetEmbeddedCorrectionMethod(&ctxt, &embeddedCorrectionMethodId) != SWRNG_SUCCESS) {
+		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		return(1);
+	}
+
+	switch(embeddedCorrectionMethodId) {
+	case 0:
+		#ifdef _WIN32
+			strcpy_s(embeddedCorrectionMethodStr, "none");
+		#else
+			strcpy(embeddedCorrectionMethodStr, "none");
+		#endif
+			break;
+	case 1:
+		#ifdef _WIN32
+				strcpy_s(embeddedCorrectionMethodStr, "Linear");
+		#else
+				strcpy(embeddedCorrectionMethodStr, "Linear");
+		#endif
+			break;
+	default:
+		#ifdef _WIN32
+			strcpy_s(embeddedCorrectionMethodStr, "*unknown*");
+		#else
+			strcpy(embeddedCorrectionMethodStr, "*unknown*");
+		#endif
+	}
+
+	printf("*** downloading random bytes and counting bits, post processing: %s, embedded correction: %s ***\n", postProcessingMethodStr, embeddedCorrectionMethodStr);
 	totalOnes = 0;
 	totalZeros = 0;
 	for (l = 0; l < totalBlocks; l++) {

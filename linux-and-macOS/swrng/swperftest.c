@@ -2,7 +2,7 @@
 
 /*
  * swperftest.c
- * Ver. 1.4
+ * Ver. 1.5
  *
  */
 
@@ -32,7 +32,7 @@ static DeviceInfoList dil;
 static int status;
 static time_t start, end;
 static long l;
-
+static int embeddedCorrectionMethodId;
 
 
 /**
@@ -130,6 +130,26 @@ int main() {
 			return status;
 		}
 		printf("Success\n");
+
+		if (swrngGetEmbeddedCorrectionMethod(&ctxt, &embeddedCorrectionMethodId) != SWRNG_SUCCESS) {
+			printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
+			swrngClose(&ctxt);
+			return status;
+		}
+
+		switch (embeddedCorrectionMethodId) {
+		case 0:
+			printf("\n");
+			printf("Embedded correction algorithm ---------------------------- none");
+			break;
+		case 1:
+			printf("\n");
+			printf("Embedded correction algorithm ---------------------------- Linear");
+			break;
+		default:
+			printf("\n");
+			printf("Embedded correction algorithm ---------------------------- unknown");
+		}
 
 		status = swrngDisablePostProcessing(&ctxt);
 		if (status == SWRNG_SUCCESS) {
