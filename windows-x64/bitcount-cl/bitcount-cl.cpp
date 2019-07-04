@@ -1,7 +1,7 @@
 #include "stdafx.h"
 /*
  * bitcount-cl.c
- * Ver. 1.0
+ * Ver. 1.1
  *
  * A C program for counting '1' and '0' bits downloaded from a SwiftRNG cluster
  * using default configuration.
@@ -41,9 +41,9 @@ int main(int argc, char **argv) {
 
 	setbuf(stdout, NULL);
 #ifndef _WIN32
-	strcpy(postProcessingMethodStr, "'default'");
+	strcpy(postProcessingMethodStr, "default");
 #else
-	strcpy_s(postProcessingMethodStr, "'default'");
+	strcpy_s(postProcessingMethodStr, "default");
 #endif
 
 	if (argc > 2) {
@@ -99,7 +99,7 @@ int main(int argc, char **argv) {
 
 	printf("\nSwiftRNG cluster of %d devices open successfully\n\n", swrngGetCLSize(&ctxt));
 
-	printf("*** downloading random bytes and counting bits using %s post processing method ***\n", postProcessingMethodStr);
+	printf("*** downloading random bytes and counting bits using post processing method: %s ***\n", postProcessingMethodStr);
 	totalOnes = 0;
 	totalZeros = 0;
 	for (l = 0; l < totalBlocks; l++) {

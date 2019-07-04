@@ -2,7 +2,7 @@
 
 /*
  * swrngapi.c
- * ver. 3.5
+ * ver. 3.6
  *
  */
 
@@ -444,6 +444,10 @@ int swrngOpen(SwrngContext *ctxt, int deviceNum) {
 				if (ctxt->deviceVersionDouble >= 2.0) {
 					// By default, disable post processing for devices with versions 2.0+
 					ctxt->postProcessingEnabled = SWRNG_FALSE;
+					if (ctxt->deviceVersionDouble >= 3.0) {
+						// SwiftRNG Z devices use built-in 'P. Lacharme' Linear Correction method
+						ctxt->deviceEmbeddedCorrectionMethodId = SWRNG_EMB_CORR_METHOD_LINEAR;
+					}
 				} else {
 					// Adjust APT and RCT tests to count for BIAS with older devices.
 					// All tests are performed now before applying post-processing to comply
@@ -1180,6 +1184,28 @@ int swrngGetPostProcessingMethod(SwrngContext *ctxt, int *postProcessingMethodId
 }
 
 /**
+* Retrieve device embedded correction method
+*
+* @param ctxt - pointer to SwrngContext structure
+* @param deviceEmbeddedCorrectionMethodId - pointer to store the device built-in correction method id:
+* 			0 - none, 1 - Linear correction (P. Lacharme)
+* @return int - 0 embedded correction method successfully retrieved, otherwise the error code
+*
+*/
+int swrngGetEmbeddedCorrectionMethod(SwrngContext *ctxt, int *deviceEmbeddedCorrectionMethodId) {
+	if (isContextInitialized(ctxt) == SWRNG_FALSE) {
+		return -1;
+	}
+
+	if (ctxt->deviceOpen == SWRNG_FALSE) {
+		swrng_printErrorMessage(ctxt, SWRNG_DEV_NOT_OPEN_MSG);
+		return -1;
+	}
+	*deviceEmbeddedCorrectionMethodId = ctxt->deviceEmbeddedCorrectionMethodId;
+	return SWRNG_SUCCESS;
+}
+
+/**
 * A function for retrieving frequency tables of the random numbers generated from random sources.
 * There is one frequency table per noise source. Each table consist of 256 integers (16 bit) that represent
 * frequencies for the random numbers generated between 0 and 255. These tables are used for checking the quality of the
@@ -1844,6 +1870,7 @@ int swrngInitializeContext(SwrngContext *ctxt) {
 		strcpy(ctxt->lastError, "");
 		ctxt->postProcessingEnabled = SWRNG_TRUE;
 		ctxt->postProcessingMethodId = SWRNG_SHA256_PP_METHOD;
+		ctxt->deviceEmbeddedCorrectionMethodId = SWRNG_EMB_CORR_METHOD_NONE;
 		return SWRNG_SUCCESS;
 	}
 	return -1;

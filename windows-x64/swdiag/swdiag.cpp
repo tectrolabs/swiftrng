@@ -2,7 +2,7 @@
 
 /*
  * swdiag.c
- * Ver. 2.6
+ * Ver. 2.7
  *
  */
 
@@ -49,6 +49,7 @@ static unsigned long entropyfreqbuff[256];
 static FrequencyTables freqTables;
 static NoiseSourceRawData noiseSourceOneRawData;
 static NoiseSourceRawData noiseSourceTwoRawData;
+static int embeddedCorrectionMethodId;
 SwrngContext ctxt;
 
 /**
@@ -65,7 +66,7 @@ int main() {
 	int postProcessingEnabled;
 
 	printf("-------------------------------------------------------------------\n");
-	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 1.8  ---\n");
+	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 1.9  ---\n");
 	printf("-------------------------------------------------------------------\n");
 	printf("Searching for devices ------------------ ");
 
@@ -144,7 +145,22 @@ int main() {
 			printf("\n------------- Tests will be performed on RAW byte stream ----------");
 		}
 
+		if (swrngGetEmbeddedCorrectionMethod(&ctxt, &embeddedCorrectionMethodId) != SWRNG_SUCCESS) {
+			printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
+			swrngClose(&ctxt);
+			return status;
+		}
 
+		switch (embeddedCorrectionMethodId) {
+		case 0:
+			printf("\n------------- Using no embedded correction algorithm --------------");
+			break;
+		case 1:
+			printf("\n------------- Using embedded correction algorithm: Linear ---------");
+			break;
+		default:
+			printf("\n------------- Unknown built-in correction algorithm ---------------");
+		}
 
 		if (actualDeviceVersion >= 2.0) {
 			// This feature was only implemented in devices with version 2.0 and up

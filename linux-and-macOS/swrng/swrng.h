@@ -1,6 +1,6 @@
 /*
  * swrng.h
- * ver. 2.11
+ * ver. 2.12
  *
  */
 
@@ -77,6 +77,8 @@ swrngBool postProcessingEnabled = SWRNG_TRUE;
 int actualPostProcessingMethodId;
 int postProcessingStatus;
 char postProcessingMethodStr[32];
+char embeddedCorrectionMethodStr[32];
+int embeddedCorrectionMethodId;
 
 
 #ifdef __linux__

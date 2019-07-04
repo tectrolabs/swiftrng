@@ -1,6 +1,6 @@
 /*
  * swrngapi.h
- * ver. 3.4
+ * ver. 3.6
  *
  */
 
@@ -45,6 +45,8 @@
 #define SWRNG_TRUE (1)
 #define SWRNG_FALSE (0)
 #define SWRNG_SHA256_PP_METHOD (0)
+#define SWRNG_EMB_CORR_METHOD_NONE (0)
+#define SWRNG_EMB_CORR_METHOD_LINEAR (1)
 #define SWRNG_XORSHIFT64_PP_METHOD (1)
 #define SWRNG_SHA512_PP_METHOD (2)
 #define SWRNG_SUCCESS (0)
@@ -170,6 +172,7 @@ typedef struct {
 	double deviceVersionDouble;
 	swrngBool postProcessingEnabled;
 	int postProcessingMethodId;	// 0 - SHA256 method, 1 - xorshift64 post processing method, 2 - SHA512 method
+	int deviceEmbeddedCorrectionMethodId;	// 0 - none, 1 - Linear correction (P. Lacharme)
 } SwrngContext;
 
 
@@ -377,6 +380,18 @@ int swrngGetPostProcessingStatus(SwrngContext *ctxt, int *postProcessingStatus);
 *
 */
 int swrngGetPostProcessingMethod(SwrngContext *ctxt, int *postProcessingMethodId);
+
+/**
+* Retrieve device embedded correction method
+*
+* @param ctxt - pointer to SwrngContext structure
+* @param deviceEmbeddedCorrectionMethodId - pointer to store the device built-in correction method id:
+* 			0 - none, 1 - Linear correction (P. Lacharme)
+* @return int - 0 embedded correction method successfully retrieved, otherwise the error code
+*
+*/
+int swrngGetEmbeddedCorrectionMethod(SwrngContext *ctxt, int *deviceEmbeddedCorrectionMethodId);
+
 
 /**
 * Enable post processing method.

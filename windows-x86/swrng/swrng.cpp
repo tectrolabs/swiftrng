@@ -2,7 +2,7 @@
 
 /*
  * swrng.c
- * Ver. 2.11
+ * Ver. 2.12
  *
  */
 
@@ -73,7 +73,7 @@ int displayDevices() {
  */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   TectroLabs - swrng - download utility Ver 2.5  \n");
+	printf("                   TectroLabs - swrng - download utility Ver 2.6  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng  - True Random Number Generator SwiftRNG download \n");
@@ -363,7 +363,11 @@ int handleDownloadRequest() {
 	}
 
 	if (postProcessingStatus == 0) {
-		strcpy_s(postProcessingMethodStr, "'no'");
+#ifdef _WIN32
+		strcpy_s(postProcessingMethodStr, "none");
+#else
+		strcpy(postProcessingMethodStr, "none");
+#endif
 	} else {
 		if (swrngGetPostProcessingMethod(&ctxt, &actualPostProcessingMethodId) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
@@ -384,6 +388,35 @@ int handleDownloadRequest() {
 			break;
 		}
 	}
+
+	if (swrngGetEmbeddedCorrectionMethod(&ctxt, &embeddedCorrectionMethodId) != SWRNG_SUCCESS) {
+		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		return(1);
+	}
+
+	switch(embeddedCorrectionMethodId) {
+	case 0:
+		#ifdef _WIN32
+			strcpy_s(embeddedCorrectionMethodStr, "none");
+		#else
+			strcpy(embeddedCorrectionMethodStr, "none");
+		#endif
+			break;
+	case 1:
+		#ifdef _WIN32
+				strcpy_s(embeddedCorrectionMethodStr, "Linear");
+		#else
+				strcpy(embeddedCorrectionMethodStr, "Linear");
+		#endif
+			break;
+	default:
+		#ifdef _WIN32
+			strcpy_s(embeddedCorrectionMethodStr, "*unknown*");
+		#else
+			strcpy(embeddedCorrectionMethodStr, "*unknown*");
+		#endif
+	}
+
 
 	status = swrngSetPowerProfile(&ctxt, ppNum);
 	if (status != SWRNG_SUCCESS) {
@@ -489,8 +522,8 @@ int processDownloadRequest() {
 	DeviceStatistics *ds = swrngGenerateDeviceStatistics(&ctxt);
 	if (!isOutputToStandardOutput) {
 		printf(
-				"Completed in %d seconds, using %s post processing method, speed: %d KBytes/sec, blocks re-sent: %d\n",
-				(int) ds->totalTime, postProcessingMethodStr, (int) ds->downloadSpeedKBsec,
+				"Completed in %d seconds, post processing method used: %s, device built-in correction method used: %s, speed: %d KBytes/sec, blocks re-sent: %d\n",
+				(int) ds->totalTime, postProcessingMethodStr, embeddedCorrectionMethodStr, (int) ds->downloadSpeedKBsec,
 				(int) ds->totalRetries);
 	}
 	return status;
@@ -505,7 +538,11 @@ int processDownloadRequest() {
  */
 int process(int argc, char **argv) {
 	// Initialize the context
+#ifdef _WIN32
 	strcpy_s(postProcessingMethodStr, "*unknown*");
+#else
+	strcpy(postProcessingMethodStr, "*unknown*");
+#endif
 	int status = swrngInitializeContext(&ctxt);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Could not initialize context\n");
