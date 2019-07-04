@@ -1,6 +1,6 @@
 /*
  * swrngapi.h
- * ver. 3.2
+ * ver. 3.6
  *
  */
 
@@ -36,7 +36,7 @@
 #include <stdio.h>
 #include <errno.h>
 
-#if defined(_WIN32) || defined(_WIN64)
+#if defined(_WIN32)
 	#include "libusb.h"
 #else
 	#include <libusb-1.0/libusb.h>
@@ -46,6 +46,8 @@
 #define SWRNG_TRUE (1)
 #define SWRNG_FALSE (0)
 #define SWRNG_SHA256_PP_METHOD (0)
+#define SWRNG_EMB_CORR_METHOD_NONE (0)
+#define SWRNG_EMB_CORR_METHOD_LINEAR (1)
 #define SWRNG_XORSHIFT64_PP_METHOD (1)
 #define SWRNG_SHA512_PP_METHOD (2)
 #define SWRNG_SUCCESS (0)
@@ -171,6 +173,7 @@ typedef struct {
 	double deviceVersionDouble;
 	swrngBool postProcessingEnabled;
 	int postProcessingMethodId;	// 0 - SHA256 method, 1 - xorshift64 post processing method, 2 - SHA512 method
+	int deviceEmbeddedCorrectionMethodId;	// 0 - none, 1 - Linear correction (P. Lacharme)
 } SwrngContext;
 
 
@@ -380,10 +383,22 @@ int swrngGetPostProcessingStatus(SwrngContext *ctxt, int *postProcessingStatus);
 int swrngGetPostProcessingMethod(SwrngContext *ctxt, int *postProcessingMethodId);
 
 /**
+* Retrieve device embedded correction method
+*
+* @param ctxt - pointer to SwrngContext structure
+* @param deviceEmbeddedCorrectionMethodId - pointer to store the device built-in correction method id:
+* 			0 - none, 1 - Linear correction (P. Lacharme)
+* @return int - 0 embedded correction method successfully retrieved, otherwise the error code
+*
+*/
+int swrngGetEmbeddedCorrectionMethod(SwrngContext *ctxt, int *deviceEmbeddedCorrectionMethodId);
+
+
+/**
 * Enable post processing method.
 *
 * @param ctxt - pointer to SwrngContext structure
-* @param postProcessingMethodId - 0 for SHA256 (default), 2 - SHA512, 1 - xorshift64 (devices with versions 1.2 and up)
+* @param postProcessingMethodId - 0 for SHA256 (default), 1 - xorshift64 (devices with versions 1.2 and up), 2 - for SHA512
 *
 * @return int - 0 when post processing successfully enabled, otherwise the error code
 *
