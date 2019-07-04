@@ -180,7 +180,7 @@ int main(int argc, char **argv) {
 		#endif
 	}
 
-	printf("*** downloading random bytes and counting bits, post processing: %s, embedded correction: %s ***\n", postProcessingMethodStr, embeddedCorrectionMethodStr);
+	printf("*** downloading random bytes and counting bits, post-processing: %s, embedded correction: %s ***\n", postProcessingMethodStr, embeddedCorrectionMethodStr);
 	totalOnes = 0;
 	totalZeros = 0;
 	for (l = 0; l < totalBlocks; l++) {
