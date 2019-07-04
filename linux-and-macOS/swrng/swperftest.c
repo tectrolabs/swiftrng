@@ -139,17 +139,16 @@ int main() {
 
 		switch (embeddedCorrectionMethodId) {
 		case 0:
-			printf("\n");
-			printf("Embedded correction algorithm ---------------------------- none");
+			printf("Embedded correction algorithm -------------------------------- none");
 			break;
 		case 1:
-			printf("\n");
-			printf("Embedded correction algorithm ---------------------------- Linear");
+			printf("Embedded correction algorithm ------------------------------ Linear");
 			break;
 		default:
-			printf("\n");
-			printf("Embedded correction algorithm ---------------------------- unknown");
+			printf("Embedded correction algorithm ----------------------------- unknown");
 		}
+
+		printf("\n");
 
 		status = swrngDisablePostProcessing(&ctxt);
 		if (status == SWRNG_SUCCESS) {
