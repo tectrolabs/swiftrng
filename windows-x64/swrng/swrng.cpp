@@ -2,7 +2,7 @@
 
 /*
  * swrng.c
- * Ver. 2.12
+ * Ver. 2.13
  *
  */
 
@@ -73,7 +73,7 @@ int displayDevices() {
  */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   TectroLabs - swrng - download utility Ver 2.6  \n");
+	printf("                   TectroLabs - swrng - download utility Ver 2.7  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng  - True Random Number Generator SwiftRNG download \n");
@@ -359,6 +359,7 @@ int handleDownloadRequest() {
 
 	if (swrngGetPostProcessingStatus(&ctxt, &postProcessingStatus) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		swrngClose(&ctxt);
 		return(1);
 	}
 

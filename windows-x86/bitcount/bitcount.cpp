@@ -1,7 +1,7 @@
 #include "stdafx.h"
 /*
  * bitcount.c
- * Ver. 1.9
+ * Ver. 2.0
  *
  * A C program for counting '1' and '0' bits downloaded from SwiftRNG device
  *
@@ -11,31 +11,37 @@
 
 #define BLOCK_SIZE (16000)
 
+//
+// Local variables
+//
 static uint8_t buffer[BLOCK_SIZE];
 static uint8_t byteValueToOneBitCount[256];
+static long long totalOnes;
+static long long totalZeros;
+static long long totalBits;
+static long totalBlocks;
+static double arithmeticZeroMean;
+static int deviceNum = 0;
+static int postProcessingMethod = -1;
+static char embeddedCorrectionMethodStr[32];
+static char postProcessingMethodStr[256];
 
+
+//
+// Local functions
+//
 static void count_one_bits(uint8_t byte, uint8_t *ones);
 static void initializeStatData(void);
-
+static void displayUsage(void);
+static int countBitsFromSwiftRNG(void);
+static int countBitsFromFile(char *fileName);
+static void printFinalStats(void);
 
 /**
  * Main entry
  * @return int 0 - successful or error code
  */
 int main(int argc, char **argv) {
-	int i, deviceNum;
-	long totalBlocks, l;
-	SwrngContext ctxt;
-	long long totalOnes;
-	long long totalZeros;
-	long long totalBits;
-	double arithmeticZeroMean;
-	int postProcessingMethod = -1;
-	char postProcessingMethodStr[256];
-	char embeddedCorrectionMethodStr[32];
-	int actualPostProcessingMethodId;
-	int postProcessingStatus;
-	int embeddedCorrectionMethodId;
 #ifdef _WIN32
 	strcpy_s(postProcessingMethodStr, "SHA256");
 	strcpy_s(embeddedCorrectionMethodStr, "none");
@@ -44,15 +50,40 @@ int main(int argc, char **argv) {
 	strcpy(embeddedCorrectionMethodStr, "none");
 #endif
 
-	printf("------------------------------------------------------------------------------\n");
-	printf("--- A program for counting 1's and 0's bits retrieved from SwiftRNG device ---\n");
-	printf("------------------------------------------------------------------------------\n");
+	printf("----------------------------------------------------------------------------\n");
+	printf("---  A program for counting bits retrieved from SwiftRNG or from a file  ---\n");
+	printf("----------------------------------------------------------------------------\n");
 
 	setbuf(stdout, NULL);
 
+	if (argc < 2) {
+		displayUsage();
+		return(1);
+	}
+
+	if (strcmp("-fn", argv[1]) == 0) {
+		if (argc < 3) {
+			printf("File name not provided\n");
+			displayUsage();
+			return(1);
+		}
+		return countBitsFromFile(argv[2]);
+	}
+
+	totalBlocks = atol(argv[1]);
+	if (totalBlocks <= 0) {
+		printf("Total blocks parameter invalid\n");
+		displayUsage();
+		return(1);
+	}
+
 	if (argc > 2) {
-		totalBlocks = atol(argv[1]);
 		deviceNum = atol(argv[2]);
+		if (deviceNum < 0) {
+			printf("Device number parameter invalid\n");
+			displayUsage();
+			return(1);
+		}
 		if (argc > 3) {
 #ifdef _WIN32
 			strcpy_s(postProcessingMethodStr, argv[3]);
@@ -70,15 +101,66 @@ int main(int argc, char **argv) {
 				return(1);
 			}
 		}
-	} else if (argc > 1) {
-		totalBlocks = atol(argv[1]);
-		deviceNum = 0;
-	} else {
-		printf("Usage: bitcount <number of blocks> <device number> [SHA256, SHA512 or xorshift64]\n");
-		printf("Note: One block equals to 16000 bytes\n");
-		return(1);
 	}
 
+	return countBitsFromSwiftRNG();
+}
+
+/**
+ * Count number of 'ones' for provided byte value
+ *
+ * @param uint8_t byte - byte value to process
+ * @param uint8_t *ones - pointer to the 'ones' counter
+ */
+
+static void count_one_bits(uint8_t byte, uint8_t *ones) {
+	int i;
+	uint8_t val = byte;
+	for (i = 0; i < 8; i++) {
+		if (val & 0x1) {
+			(*ones)++;
+		}
+		val >>= 1;
+	}
+}
+
+/**
+ * Initialize statistical data
+ */
+static void initializeStatData(void) {
+	uint8_t oneCounter;
+	int i;
+	for (i = 0; i < 256; i++) {
+		oneCounter = 0;
+		count_one_bits(i, &oneCounter);
+		byteValueToOneBitCount[i] = oneCounter;
+	}
+}
+
+/**
+ * Print usage message
+ */
+static void displayUsage(void) {
+	printf("Usage: bitcount <total blocks> [device number] [SHA256, SHA512 or xorshift64]\n");
+	printf("Usage: bitcount -fn <file name>\n");
+	printf("Note: One block equals to 16000 bytes\n");
+	printf("Example 1: using 160000 bytes from the first SwiftRNG device: bitcount 10 0\n");
+	printf("Example 2: reading bytes from a data file: bitcount -fn binary-data-file.bin\n");
+}
+
+/**
+ * Count all the bits retrieved from a SwiftRNG device
+ *
+ * @return int 0 - successful or error code
+ */
+static int countBitsFromSwiftRNG(void) {
+
+	SwrngContext ctxt;
+	long l;
+	int i;
+	int actualPostProcessingMethodId;
+	int postProcessingStatus;
+	int embeddedCorrectionMethodId;
 
 	// Initialize the context
 	if (swrngInitializeContext(&ctxt) != SWRNG_SUCCESS) {
@@ -98,6 +180,7 @@ int main(int argc, char **argv) {
 	if (postProcessingMethod != -1) {
 		if (swrngEnablePostProcessing(&ctxt, postProcessingMethod) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+			swrngClose(&ctxt);
 			return(1);
 		}
 	}
@@ -105,6 +188,7 @@ int main(int argc, char **argv) {
 
 	if (swrngGetPostProcessingStatus(&ctxt, &postProcessingStatus) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		swrngClose(&ctxt);
 		return(1);
 	}
 
@@ -117,6 +201,7 @@ int main(int argc, char **argv) {
 	} else {
 		if (swrngGetPostProcessingMethod(&ctxt, &actualPostProcessingMethodId) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+			swrngClose(&ctxt);
 			return(1);
 		}
 		switch (actualPostProcessingMethodId) {
@@ -154,6 +239,7 @@ int main(int argc, char **argv) {
 
 	if (swrngGetEmbeddedCorrectionMethod(&ctxt, &embeddedCorrectionMethodId) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		swrngClose(&ctxt);
 		return(1);
 	}
 
@@ -180,7 +266,7 @@ int main(int argc, char **argv) {
 		#endif
 	}
 
-	printf("*** downloading random bytes and counting bits, post processing: %s, embedded correction: %s ***\n", postProcessingMethodStr, embeddedCorrectionMethodStr);
+	printf("*** downloading random bytes and counting bits, post-processing: %s, embedded correction: %s ***\n", postProcessingMethodStr, embeddedCorrectionMethodStr);
 	totalOnes = 0;
 	totalZeros = 0;
 	for (l = 0; l < totalBlocks; l++) {
@@ -196,44 +282,58 @@ int main(int argc, char **argv) {
 			totalZeros += (8 - oneCounter);
 		}
 	}
-	totalBits = (long long)totalBlocks * BLOCK_SIZE * 8;
+	printFinalStats();
+	swrngClose(&ctxt);
+	return (0);
+}
+
+/**
+ * Count all the bits retrieved from a file
+ *
+ * @param char *fileName - pointer to file name
+ * @return int 0 - successful or error code
+ */
+static int countBitsFromFile(char *fileName) {
+	FILE *file;
+	size_t bytesRead, i;
+
+	initializeStatData();
+	file = NULL;
+
+	file = fopen(fileName, "rb");
+	if (file == NULL) {
+		printf("File %s not found\n", fileName);
+		displayUsage();
+		return (1);
+	}
+
+	printf("*** reading bytes and counting bits from file: %s ***\n", fileName);
+
+	totalOnes = 0;
+	totalZeros = 0;
+
+
+	while ((bytesRead = fread(buffer, 1, sizeof(buffer), file)) > 0) {
+		for (i = 0; i < bytesRead; i++) {
+			int valPos = buffer[i];
+			int oneCounter = byteValueToOneBitCount[valPos];
+			totalOnes += oneCounter;
+			totalZeros += (8 - oneCounter);
+		}
+	}
+	printFinalStats();
+	fclose(file);
+	return 0;
+}
+
+/**
+ *  Print the test results
+ *
+ */
+static void printFinalStats(void) {
+	totalBits = totalZeros + totalOnes;
 	arithmeticZeroMean = (double)totalZeros / (double)totalBits;
 	printf("retrieved %lld total bits, 0's bit count: %lld, 1's bit count: %lld, 0's arithmetic mean: %.10g\n",
 			totalBits, totalZeros, totalOnes, arithmeticZeroMean);
-
 	printf("\n");
-	swrngClose(&ctxt);
-	return (0);
-
-}
-
-/**
- * Count number of 'ones' for provided byte value
- *
- * @param uint8_t byte - byte value to process
- * @param uint8_t *ones - pointer to the 'ones' counter
- */
-
-void count_one_bits(uint8_t byte, uint8_t *ones) {
-	int i;
-	uint8_t val = byte;
-	for (i = 0; i < 8; i++) {
-		if (val & 0x1) {
-			(*ones)++;
-		}
-		val >>= 1;
-	}
-}
-
-/**
- * Initialize statistical data
- */
-static void initializeStatData(void) {
-	uint8_t oneCounter;
-	int i;
-	for (i = 0; i < 256; i++) {
-		oneCounter = 0;
-		count_one_bits(i, &oneCounter);
-		byteValueToOneBitCount[i] = oneCounter;
-	}
 }

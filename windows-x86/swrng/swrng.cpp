@@ -2,7 +2,7 @@
 
 /*
  * swrng.c
- * Ver. 2.12
+ * Ver. 2.13
  *
  */
 
@@ -73,7 +73,7 @@ int displayDevices() {
  */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   TectroLabs - swrng - download utility Ver 2.6  \n");
+	printf("                   TectroLabs - swrng - download utility Ver 2.7  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng  - True Random Number Generator SwiftRNG download \n");
@@ -359,6 +359,7 @@ int handleDownloadRequest() {
 
 	if (swrngGetPostProcessingStatus(&ctxt, &postProcessingStatus) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		swrngClose(&ctxt);
 		return(1);
 	}
 
@@ -522,7 +523,7 @@ int processDownloadRequest() {
 	DeviceStatistics *ds = swrngGenerateDeviceStatistics(&ctxt);
 	if (!isOutputToStandardOutput) {
 		printf(
-				"Completed in %d seconds, post processing method used: %s, device built-in correction method used: %s, speed: %d KBytes/sec, blocks re-sent: %d\n",
+				"Completed in %d seconds, post-processing method used: %s, device built-in correction method used: %s, speed: %d KBytes/sec, blocks re-sent: %d\n",
 				(int) ds->totalTime, postProcessingMethodStr, embeddedCorrectionMethodStr, (int) ds->downloadSpeedKBsec,
 				(int) ds->totalRetries);
 	}
