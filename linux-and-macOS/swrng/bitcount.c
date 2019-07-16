@@ -72,7 +72,7 @@ int main(int argc, char **argv) {
 
 	totalBlocks = atol(argv[1]);
 	if (totalBlocks <= 0) {
-		printf("Total blocks invalid\n");
+		printf("Total blocks parameter invalid\n");
 		displayUsage();
 		return(1);
 	}
@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
 	if (argc > 2) {
 		deviceNum = atol(argv[2]);
 		if (deviceNum < 0) {
-			printf("Device number invalid\n");
+			printf("Device number parameter invalid\n");
 			displayUsage();
 			return(1);
 		}
@@ -180,6 +180,7 @@ static int countBitsFromSwiftRNG(void) {
 	if (postProcessingMethod != -1) {
 		if (swrngEnablePostProcessing(&ctxt, postProcessingMethod) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+			swrngClose(&ctxt);
 			return(1);
 		}
 	}
@@ -187,6 +188,7 @@ static int countBitsFromSwiftRNG(void) {
 
 	if (swrngGetPostProcessingStatus(&ctxt, &postProcessingStatus) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		swrngClose(&ctxt);
 		return(1);
 	}
 
@@ -199,6 +201,7 @@ static int countBitsFromSwiftRNG(void) {
 	} else {
 		if (swrngGetPostProcessingMethod(&ctxt, &actualPostProcessingMethodId) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+			swrngClose(&ctxt);
 			return(1);
 		}
 		switch (actualPostProcessingMethodId) {
@@ -236,6 +239,7 @@ static int countBitsFromSwiftRNG(void) {
 
 	if (swrngGetEmbeddedCorrectionMethod(&ctxt, &embeddedCorrectionMethodId) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		swrngClose(&ctxt);
 		return(1);
 	}
 
@@ -299,6 +303,7 @@ static int countBitsFromFile(char *fileName) {
 	file = fopen(fileName, "rb");
 	if (file == NULL) {
 		printf("File %s not found\n", fileName);
+		displayUsage();
 		return (1);
 	}
 

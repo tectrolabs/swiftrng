@@ -359,6 +359,7 @@ int handleDownloadRequest() {
 
 	if (swrngGetPostProcessingStatus(&ctxt, &postProcessingStatus) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		swrngClose(&ctxt);
 		return(1);
 	}
 
