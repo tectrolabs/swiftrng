@@ -1,9 +1,9 @@
 #include "stdafx.h"
 /*
  * swrawrandom.c
- * Ver. 1.0
+ * Ver. 1.1
  *
- * A C program for retrieving raw random bytes from SwiftRNG device
+ * A C program for retrieving raw (unprocessed) random bytes from SwiftRNG noise sources.
  *
  */
 
@@ -75,7 +75,7 @@ int main(int argc, char **argv) {
 		return -1;
 	}
 
-	printf("*** downloading raw random bytes from noise source %d ***\n", noiseSourceNum);
+	printf("*** retrieving raw random bytes from noise source %d ***\n", noiseSourceNum);
 	for (l = 0; l < totalBlocks; l++) {
 		if (swrngGetRawDataBlock(&ctxt, &noiseSourceOneRawData, noiseSourceNum) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetLastErrorMessage(&ctxt));

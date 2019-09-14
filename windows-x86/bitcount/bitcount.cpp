@@ -1,9 +1,9 @@
 #include "stdafx.h"
 /*
  * bitcount.c
- * Ver. 2.0
+ * Ver. 2.1
  *
- * A C program for counting '1' and '0' bits downloaded from SwiftRNG device
+ * A C program for counting '1' and '0' bits retrieved from SwiftRNG device or from a file
  *
  */
 
@@ -125,7 +125,7 @@ static void count_one_bits(uint8_t byte, uint8_t *ones) {
 }
 
 /**
- * Initialize statistical data
+ * Initialize statistics
  */
 static void initializeStatData(void) {
 	uint8_t oneCounter;
@@ -266,7 +266,7 @@ static int countBitsFromSwiftRNG(void) {
 		#endif
 	}
 
-	printf("*** downloading random bytes and counting bits, post-processing: %s, embedded correction: %s ***\n", postProcessingMethodStr, embeddedCorrectionMethodStr);
+	printf("*** retrieving random bytes and counting bits, post-processing: %s, embedded correction: %s ***\n", postProcessingMethodStr, embeddedCorrectionMethodStr);
 	totalOnes = 0;
 	totalZeros = 0;
 	for (l = 0; l < totalBlocks; l++) {

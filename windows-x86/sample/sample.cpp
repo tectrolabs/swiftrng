@@ -1,9 +1,9 @@
 #include "stdafx.h"
 /*
  * sample.c
- * Ver. 2.1
+ * Ver. 2.2
  *
- * This is a sample C program that demonstrates how to download random bytes
+ * This is a sample C program that demonstrates how to retrieve random bytes
  * from a SwiftRNG using 'swrngapi' API for C language.
  *
  */
@@ -25,7 +25,7 @@ int main() {
 	unsigned int ui;
 	SwrngContext ctxt;
 	printf("--------------------------------------------------------------------------\n");
-	printf("--- Sample C program for downloading random bytes from SwiftRNG device ---\n");
+	printf("--- Sample C program for retrieving random bytes from SwiftRNG device ----\n");
 	printf("--------------------------------------------------------------------------\n");
 
 	// Initialize the context
@@ -34,14 +34,14 @@ int main() {
 		return(1);
 	}
 
-	// Open the first (device number 0 is the first device) SwiftRNG device if available
+	// Open the first (device number 0) SwiftRNG device if available
 	if (swrngOpen(&ctxt, 0) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
 		return(1);
 	}
 	printf("\nSwiftRNG device open successfully\n\n");
 
-	// Download random bytes from device
+	// Retrieve random bytes from device
 	if (swrngGetEntropy(&ctxt, randombyte, BYTE_BUFF_SIZE) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
 		swrngClose(&ctxt);
@@ -54,7 +54,7 @@ int main() {
 		printf("random byte %d -> %d\n", i, (int)randombyte[i]);
 	}
 
-	// Download random integers from device
+	// Retrieve random integers from device
 	if (swrngGetEntropy(&ctxt, (unsigned char*)randomint, DEC_BUFF_SIZE * sizeof(unsigned int)) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
 		swrngClose(&ctxt);

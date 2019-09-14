@@ -1,13 +1,13 @@
 #include "stdafx.h"
 /*
  * swperf-cl-test.c
- * Ver. 1.4
+ * Ver. 1.5
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2018 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2019 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -21,7 +21,7 @@
 
 #include "swrng-cl-api.h"
 
-#define SAMPLES (100000)		// Number of random bytes per block to download
+#define SAMPLES (100000)		// Number of random bytes per block to retrieve
 #define NUM_BLOCKS (5000)		// Total blocks to read
 
 static unsigned char randonbuffer[SAMPLES];
@@ -48,7 +48,7 @@ int runPerfTest() {
 	printf("Performance ------- in progress ------------------ ");
 	start = time(NULL);
 	for (l = 0; l < NUM_BLOCKS; l++) {
-		// Download random bytes from the device
+		// Retrieve random bytes from the device
 		status = swrngGetCLEntropy(&ctxt, randonbuffer, SAMPLES);
 		if ( status != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetCLLastErrorMessage(&ctxt));

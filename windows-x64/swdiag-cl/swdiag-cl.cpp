@@ -1,18 +1,18 @@
 #include "stdafx.h"
 /*
  * swdiag-cl.c
- * Ver. 1.5
+ * Ver. 1.6
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2018 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2019 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
- This program is used for testing a cluster of one or more SwiftRNG devices.
+ This program is used for running diagnostics for a cluster of one or more SwiftRNG devices.
 
  This program may require 'sudo' permissions when running on Linux or macOS.
 
@@ -21,7 +21,7 @@
 #include "swrng-cl-api.h"
 #include <math.h>
 
-#define SAMPLES (10000)		// Number of random bytes per block to download
+#define SAMPLES (10000)		// Number of random bytes per block to retrieve
 #define NUM_BLOCKS (1000)		// Total blocks to read
 #define EXTLOOPS (5)
 #define ENTROPY_SCORE_BYTES (24000000)
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 	int clusterSize = 2;
 
 	printf("------------------------------------------------------------------------------\n");
-	printf("--- TectroLabs - swdiag-cl - SwiftRNG cluster diagnostics utility Ver 1.5  ---\n");
+	printf("--- TectroLabs - swdiag-cl - SwiftRNG cluster diagnostics utility Ver 1.6  ---\n");
 	printf("------------------------------------------------------------------------------\n");
 
 	setbuf(stdout, NULL);
@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
 	printf("Retrieving %d blocks of %6d random bytes each -------- ",
 			NUM_BLOCKS, SAMPLES);
 	for (l = 0; l < NUM_BLOCKS; l++) {
-		// Download random bytes from device
+		// Retrieve random bytes from device
 		status = swrngGetCLEntropy(&ctxt, randonbuffer, SAMPLES);
 		if (status != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetCLLastErrorMessage(&ctxt));
@@ -245,7 +245,7 @@ int run_chi_squire_test(long idx) {
 			idx + 1);
 	chiSquareSum = 0;
 	for (l = 0; l < NUM_BLOCKS; l++) {
-		// Download random bytes from device
+		// Retrieve random bytes from device
 		status = swrngGetCLEntropy(&ctxt, randonbuffer, SAMPLES);
 		if (status != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetCLLastErrorMessage(&ctxt));
