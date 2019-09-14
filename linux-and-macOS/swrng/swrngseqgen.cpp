@@ -1,12 +1,26 @@
 #include "stdafx.h"
 /*
  * swrngseqgen.cpp
- * Ver. 1.2
+ * Ver. 1.3
  *
  * A program for generating random sequences of unique integer numbers based
  * on true random bytes produced by a SwiftRNG device.
  *
+ *
  */
+
+ /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+ Copyright (C) 2014-2019 TectroLabs, https://tectrolabs.com
+
+ THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+ INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
+
+ This program generates sequences of unique integer numbers based on true random bytes produced by a SwiftRNG device.
+
+ This program may only be used in conjunction with TectroLabs devices.
+
+ +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 #include <iostream>
 #include <string>

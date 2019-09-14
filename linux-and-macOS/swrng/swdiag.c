@@ -2,18 +2,18 @@
 
 /*
  * swdiag.c
- * Ver. 2.7
+ * Ver. 2.0
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2018 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2019 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
- This program is used for testing one or more SwiftRNG devices.
+ This program is used for running diagnostics for one or more SwiftRNG devices.
 
  This program may require 'sudo' permissions when running on Linux or macOS.
 
@@ -23,7 +23,7 @@
 #include "swrngapi.h"
 #include <math.h>
 
-#define SAMPLES (10000)		// Number of random bytes per block to download
+#define SAMPLES (10000)		// Number of random bytes per block to retrieve
 #define NUM_BLOCKS (1000)		// Total blocks to read
 #define EXTLOOPS (5)
 #define ENTROPY_SCORE_BYTES (24000000)
@@ -60,13 +60,13 @@ int main() {
 	DeviceInfoList dil;
 	long i, k;
 	long l;
-	long p;
+	int p;
 	int status;
 	double actualDeviceVersion;
 	int postProcessingEnabled;
 
 	printf("-------------------------------------------------------------------\n");
-	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 1.9  ---\n");
+	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.0  ---\n");
 	printf("-------------------------------------------------------------------\n");
 	printf("Searching for devices ------------------ ");
 
@@ -221,8 +221,10 @@ int main() {
 		}
 		printf("\n-------- Running APT, RCT and device built-in tests ---------------\n");
 		printf("Retrieving %d blocks of %6d random bytes each -------- ", NUM_BLOCKS, SAMPLES);
+		// APT and RCT tests are implemented in SwiftRNG Software API.
+		// Those tests are also embedded in SwiftRNG devices
 		for (l = 0; l < NUM_BLOCKS; l++) {
-			// Download random bytes from device
+			// Retrieve random bytes from device
 			status = swrngGetEntropy(&ctxt, randonbuffer, SAMPLES);
 			if ( status != SWRNG_SUCCESS) {
 				printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
@@ -232,21 +234,24 @@ int main() {
 		}
 		printf("Success\n");
 
-		for (p=0; p< 10; p++) {
-			printf("\nSetting power profiles to %1ld ------------------------------- ", p);
-			status = swrngSetPowerProfile(&ctxt, p);
-			if (status != SWRNG_SUCCESS) {
-				printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-				swrngClose(&ctxt);
-				return status;
+		for (p = 0; p < 10; p++) {
+			// Power profiles are only implemented in 'SwiftRNG' models
+			if (!strcmp("SwiftRNG", dil.devInfoList[i].dm.value)) {
+				printf("\nSetting power profiles to %1d ------------------------------- ", p);
+				status = swrngSetPowerProfile(&ctxt, p);
+				if (status != SWRNG_SUCCESS) {
+					printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
+					swrngClose(&ctxt);
+					return status;
+				}
+				status = swrngGetEntropy(&ctxt, randonbuffer, SAMPLES);
+				if (status != SWRNG_SUCCESS) {
+					printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
+					swrngClose(&ctxt);
+					return status;
+				}
+				printf("Success\n");
 			}
-			status = swrngGetEntropy(&ctxt, randonbuffer, SAMPLES);
-			if (status != SWRNG_SUCCESS) {
-				printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-				swrngClose(&ctxt);
-				return status;
-			}
-			printf("Success\n");
 
 			// Retrieve random data for entropy score
 			printf("Entropy score for %8d bytes -------------------------- ", ENTROPY_SCORE_BYTES);
@@ -265,7 +270,7 @@ int main() {
 			}
 			printf("\n");
 
-			printf("---------------- Running Chi-Square test %3d times  --------------- \n", EXTLOOPS);
+			printf("-------- Running Chi-Square test (%1d times), step %1d of 10 ---------- \n", EXTLOOPS, p+1);
 			for (l = 0; l < EXTLOOPS; l++) {
 				status = run_chi_squire_test(l);
 				if (status != SWRNG_SUCCESS) {
@@ -397,7 +402,7 @@ static int inspectRawData(NoiseSourceRawData *rawData1, NoiseSourceRawData *rawD
 }
 
 /**
- * Inspect and print downloaded frequency tables
+ * Inspect and print retrieved frequency tables
  * @param uint16_t table[] - frequency table pointer
  * @return int - status
  */
@@ -496,7 +501,7 @@ int run_chi_squire_test(long idx) {
 	printf("Average chi-square for test %3ld --------------------------- ", idx + 1);
 	chiSquareSum = 0;
 	for (l = 0; l < NUM_BLOCKS; l++) {
-		// Download random bytes from device
+		// Retrieve random bytes from device
 		status = swrngGetEntropy(&ctxt, randonbuffer, SAMPLES);
 		if ( status != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));

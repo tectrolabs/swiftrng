@@ -1,9 +1,9 @@
 #include "stdafx.h"
 /*
  * sample-cl.c
- * Ver. 2.1
+ * Ver. 2.2
  *
- * This is a sample C program that demonstrates how to download random bytes
+ * This is a sample C program that demonstrates how to retrieve random bytes
  * from a cluster of two SwiftRNG devices using 'swrng-cl-api' API for C language.
  *
  */
@@ -26,7 +26,7 @@ int main() {
 	SwrngCLContext ctxt;
 
 	printf("-------------------------------------------------------------------------------------------\n");
-	printf("--- Sample C program for downloading random bytes from a cluster of two SwiftRNG device ---\n");
+	printf("--- Sample C program for retrieving random bytes from a cluster of two SwiftRNG device ----\n");
 	printf("-------------------------------------------------------------------------------------------\n");
 
 	// Initialize the context
@@ -44,7 +44,7 @@ int main() {
 	printf("\nSwiftRNG cluster of %d devices open successfully\n\n", swrngGetCLSize(&ctxt));
 
 
-	// Download random bytes from cluster
+	// Retrieve random bytes from cluster
 	if (swrngGetCLEntropy(&ctxt, randombyte, BYTE_BUFF_SIZE) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
 		swrngCLClose(&ctxt);
@@ -57,7 +57,7 @@ int main() {
 		printf("random byte %d -> %d\n", i, (int)randombyte[i]);
 	}
 
-	// Download random integers from the cluster
+	// Retrieve random integers from the cluster
 	if (swrngGetCLEntropy(&ctxt, (unsigned char*)randomint, DEC_BUFF_SIZE * sizeof(unsigned int)) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
 		swrngCLClose(&ctxt);
