@@ -2,7 +2,7 @@
 
 /*
 * entropy-cl-server.cpp
-* Ver. 1.0
+* Ver. 1.1
 *
 */
 
@@ -35,7 +35,7 @@ This program may only be used in conjunction with SwiftRNG devices.
 */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   SwiftRNG entropy-cl-server Ver 1.0  \n");
+	printf("                   SwiftRNG entropy-cl-server Ver 1.1  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     entropy-cl-server - An application server for distributing random bytes \n");
@@ -54,6 +54,11 @@ void displayUsage() {
 	printf("     -cs NUMBER, --cluster-size NUMBER\n");
 	printf("           Preferred number (between 1 and 10) of devices in a cluster.\n");
 	printf("           Default value is 2\n");
+	printf("\n");
+	printf("     -pi NUMBER, --pipe-instances NUMBER\n");
+	printf("          How many pipe instances to create (default: %d)\n", DEFAULT_PIPE_INSTANCES);
+	printf("          It also defines how many concurrent requests the server can handle\n");
+	printf("          Valid values are integers from 1 to %d \n", MAX_PIPE_INSTANCES);
 	printf("\n");
 	printf("     -ppn NUMBER, --power-profile-number NUMBER\n");
 	printf("           Device power profile NUMBER, 0 (lowest) to 9 (highest - default)\n");
@@ -158,6 +163,9 @@ int processArguments(int argc, char **argv) {
 		else if (parseClusterSize(idx, argc, argv) == -1) {
 			return -1;
 		}
+		else if (parsePipeInstances(idx, argc, argv) == -1) {
+			return -1;
+		}
 		else if (parsePowerProfileNum(idx, argc, argv) == -1) {
 			return -1;
 		}
@@ -236,6 +244,31 @@ int parseClusterSize(int idx, int argc, char **argv) {
 }
 
 /**
+* Parse pipe instances if specified
+*
+* @param int idx - current parameter number
+* @param int argc - number of parameters
+* @param char ** argv - parameters
+* @return int - 0 when successfully parsed
+*/
+int parsePipeInstances(int idx, int argc, char **argv) {
+	if (idx < argc) {
+		if (strcmp("-pi", argv[idx]) == 0 || strcmp("--pipe-instances",
+			argv[idx]) == 0) {
+			if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
+				return -1;
+			}
+			pipeInstances = atoi(argv[idx++]);
+			if (pipeInstances < 1 || pipeInstances > MAX_PIPE_INSTANCES) {
+				fprintf(stderr, "Pipe Instances parameter is invalid, must be an integer between 1 and %d\n", MAX_PIPE_INSTANCES);
+				return -1;
+			}
+		}
+	}
+	return 0;
+}
+
+/**
 * Open SwiftRNG device
 *
 * @return int - 0 when run successfully
@@ -284,7 +317,7 @@ int openDevice() {
 * @return int - 0 when run successfully
 */
 int createPipeInstances() {
-	for (i = 0; i < INSTANCES; i++)
+	for (i = 0; i < pipeInstances; i++)
 	{
 
 		hEvents[i] = CreateEvent(
@@ -308,7 +341,7 @@ int createPipeInstances() {
 			PIPE_TYPE_BYTE |      // byte-type pipe 
 			PIPE_READMODE_BYTE |  // byte-read mode 
 			PIPE_WAIT,               // blocking mode 
-			INSTANCES,               // number of instances 
+			pipeInstances,               // number of instances 
 			WRITE_BUFSIZE,		// output buffer size 
 			sizeof(READCMD),    // input buffer size 
 			PIPE_TIMEOUT,            // client time-out 
@@ -360,13 +393,13 @@ int processServer() {
 	while (1)
 	{
 		dwWait = WaitForMultipleObjects(
-			INSTANCES,    // number of event objects 
+			pipeInstances,    // number of event objects 
 			hEvents,      // array of event objects 
 			FALSE,        // does not wait for all 
 			INFINITE);    // waits indefinitely 
 
 		i = dwWait - WAIT_OBJECT_0;  // determines which pipe 
-		if (i < 0 || i >(INSTANCES - 1))
+		if (i < 0 || i >(pipeInstances - 1))
 		{
 			fprintf(stderr, "Index out of range.\n");
 			return 0;

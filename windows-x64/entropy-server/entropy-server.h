@@ -1,12 +1,12 @@
 /*
 * entropy-server.h
-* Ver. 1.3
+* Ver. 1.4
 *
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2017 TectroLabs, http://tectrolabs.com
+Copyright (C) 2014-2019 TectroLabs, http://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -37,7 +37,8 @@ This program may only be used in conjunction with the SwiftRNG device.
 #define CONNECTING_STATE 0 
 #define READING_STATE 1 
 #define WRITING_STATE 2 
-#define INSTANCES 10
+#define DEFAULT_PIPE_INSTANCES 10
+#define MAX_PIPE_INSTANCES 64
 #define PIPE_TIMEOUT 5000
 #define WRITE_BUFSIZE 100000
 #define CMD_ENTROPY_RETRIEVE_ID 0
@@ -66,9 +67,10 @@ typedef struct
 // Local variables
 //
 
-PIPEINST Pipe[INSTANCES];
-HANDLE hEvents[INSTANCES];
+PIPEINST Pipe[MAX_PIPE_INSTANCES];
+HANDLE hEvents[MAX_PIPE_INSTANCES];
 int deviceNum; // USB device number starting with 0 (a command line argument)
+DWORD pipeInstances = DEFAULT_PIPE_INSTANCES;
 int ppNum = 9; // Power profile number, between 0 and 9
 char *postProcessingMethod = NULL; // Post processing method or NULL if not specified
 int postProcessingMethodId = 0; // Post processing method id, 0 - SHA256, 1 - xorshift64, 2 - SHA512
@@ -100,6 +102,7 @@ int process(int argc, char **argv);
 int processArguments(int argc, char **argv);
 int validateArgumentCount(int curIdx, int actualArgumentCount);
 int parseDeviceNum(int idx, int argc, char **argv);
+int parsePipeInstances(int idx, int argc, char **argv);
 int parsePowerProfileNum(int idx, int argc, char **argv);
 int processServer();
 int fillEntropyForWrite(DWORD i);

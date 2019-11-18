@@ -1,6 +1,6 @@
 /*
 * entropy-cl-server.h
-* Ver. 1.0
+* Ver. 1.1
 *
 */
 
@@ -37,7 +37,8 @@ This program may only be used in conjunction with SwiftRNG devices.
 #define CONNECTING_STATE 0 
 #define READING_STATE 1 
 #define WRITING_STATE 2 
-#define INSTANCES 10
+#define DEFAULT_PIPE_INSTANCES 10
+#define MAX_PIPE_INSTANCES 64
 #define PIPE_TIMEOUT 5000
 #define WRITE_BUFSIZE 100000
 #define CMD_ENTROPY_RETRIEVE_ID 0
@@ -66,8 +67,9 @@ typedef struct
 // Local variables
 //
 
-PIPEINST Pipe[INSTANCES];
-HANDLE hEvents[INSTANCES];
+PIPEINST Pipe[MAX_PIPE_INSTANCES];
+HANDLE hEvents[MAX_PIPE_INSTANCES];
+DWORD pipeInstances = DEFAULT_PIPE_INSTANCES;
 int clusterSize = 2; // Cluster size, between 1 and 10
 int ppNum = 9; // Power profile number, between 0 and 9
 char *postProcessingMethod = NULL; // Post processing method or NULL if not specified
@@ -95,6 +97,7 @@ int process(int argc, char **argv);
 int processArguments(int argc, char **argv);
 int validateArgumentCount(int curIdx, int actualArgumentCount);
 int parseClusterSize(int idx, int argc, char **argv);
+int parsePipeInstances(int idx, int argc, char **argv);
 int parsePowerProfileNum(int idx, int argc, char **argv);
 int processServer();
 int fillEntropyForWrite(DWORD i);
