@@ -1,12 +1,12 @@
 /*
  * swrng.h
- * ver. 2.12
+ * ver. 2.14
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2019 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -74,6 +74,7 @@ FILE *pOutputFile = NULL; // Output file handle
 swrngBool isOutputToStandardOutput = SWRNG_FALSE;
 SwrngContext ctxt;
 swrngBool postProcessingEnabled = SWRNG_TRUE;
+swrngBool statisticalTestsEnabled = SWRNG_TRUE;
 int actualPostProcessingMethodId;
 int postProcessingStatus;
 char postProcessingMethodStr[32];
