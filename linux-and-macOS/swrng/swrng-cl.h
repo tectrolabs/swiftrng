@@ -1,12 +1,12 @@
 /*
  * swrng-cl.h
- * Ver. 2.8
+ * Ver. 2.9
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2018 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -77,6 +77,7 @@ long failOverCount = 0;
 long resizeAttemptCount = 0;
 int actClusterSize = 0;
 swrngBool postProcessingEnabled = SWRNG_TRUE;
+swrngBool statisticalTestsEnabled = SWRNG_TRUE;
 
 
 #ifdef __linux__

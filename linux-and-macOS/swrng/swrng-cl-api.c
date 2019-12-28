@@ -2,13 +2,13 @@
 
 /*
  * swrng-cl-api.c
- * Ver. 1.10
+ * Ver. 1.11
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2018 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -91,8 +91,9 @@ static void unInitializeCLThreads(SwrngCLContext *ctxt);
 static void trigger_download_reqs(SwrngCLContext *ctxt);
 static int getClusterDownloadStatus(SwrngCLContext *ctxt);
 static int disableCLPostProcessing(SwrngCLContext *ctxt);
+static int disableCLStatisticalTests(SwrngCLContext *ctxt);
 static int enableCLPostProcessing(SwrngCLContext *ctxt, int postProcessingMethodId);
-
+static int enableCLStatisticalTests(SwrngCLContext *ctxt);
 
 /**
 * Retrieve the last error message.
@@ -358,11 +359,15 @@ int swrngCLOpen(SwrngCLContext *ctxt, int clusterSize) {
 	}
 
 	if (ctxt->postProcessingEnabled == SWRNG_FALSE) {
-		disableCLPostProcessing(ctxt);	// Ignore the error
+		disableCLPostProcessing(ctxt);	// Ignore any error
 	} else {
 		if (ctxt->postProcessingMethodId != -1) {
 			enableCLPostProcessing(ctxt, ctxt->postProcessingMethodId); // Ignore the error
 		}
+	}
+
+	if (ctxt->statisticalTestsEnabled == SWRNG_FALSE) {
+		disableCLStatisticalTests(ctxt);// Ignore any error
 	}
 
 	ctxt->clusterStartedSecs = time(NULL);
@@ -622,6 +627,7 @@ static int initializeCLContext(SwrngCLContext *ctxt) {
 		ctxt->startSignature = clContextStartSignature;
 		ctxt->endSignature = clContextEndSignature;
 		ctxt->postProcessingEnabled = SWRNG_TRUE;
+		ctxt->statisticalTestsEnabled = SWRNG_TRUE;
 		ctxt->postProcessingMethodId = -1;
 		return SWRNG_SUCCESS;
 	}
@@ -811,7 +817,7 @@ int swrngEnableCLPostProcessing(SwrngCLContext *ctxt, int postProcessingMethodId
 		return -1;
 	}
 
-	enableCLPostProcessing(ctxt, postProcessingMethodId); 	// Ignore the error
+	enableCLPostProcessing(ctxt, postProcessingMethodId); 	// Ignore any error
 	ctxt->postProcessingMethodId = postProcessingMethodId;
 
 	return SWRNG_SUCCESS;
@@ -835,11 +841,32 @@ int swrngDisableCLPostProcessing(SwrngCLContext *ctxt) {
 		return -1;
 	}
 
-	disableCLPostProcessing(ctxt); 	// Ignore the error
+	disableCLPostProcessing(ctxt); 	// Ignore any error
 	ctxt->postProcessingEnabled = SWRNG_FALSE;
 
 	return SWRNG_SUCCESS;
+}
 
+/**
+* Disable statistical tests on raw random data stream for each device in a cluster.
+* Statistical tests are initially enabled for all devices.
+*
+* To disable statistical tests, call this function immediately after cluster is successfully open.
+*
+* @param ctxt - pointer to SwrngContext structure
+* @return int - 0 when statistical tests successfully disabled, otherwise the error code
+*
+*/
+int swrngDisableCLStatisticalTests(SwrngCLContext *ctxt) {
+	if (swrngIsCLOpen(ctxt) == SWRNG_FALSE) {
+		printCLErrorMessage(ctxt, clusterNotOpenErrMsg);
+		return -1;
+	}
+
+	disableCLStatisticalTests(ctxt); 	// Ignore any error
+	ctxt->statisticalTestsEnabled = SWRNG_FALSE;
+
+	return SWRNG_SUCCESS;
 }
 
 /**
@@ -860,6 +887,22 @@ static int disableCLPostProcessing(SwrngCLContext *ctxt) {
 }
 
 /**
+* Disable statistical tests on raw random data for each device in a cluster.
+*
+* @param ctxt - pointer to SwrngCLContext structure
+* @return int - 0 when statistical tests successfully disabled, otherwise the error code
+*
+*/
+static int disableCLStatisticalTests(SwrngCLContext *ctxt) {
+	int status = SWRNG_SUCCESS;
+	int i;
+	for (i = 0; i < ctxt->actClusterSize; i++) {
+		status = swrngDisableStatisticalTests(&ctxt->tctxts[i].ctxt);
+	}
+	return status;
+}
+
+/**
 * Enable post processing method.
 *
 * @param ctxt - pointer to SwrngContext structure
@@ -873,6 +916,43 @@ static int enableCLPostProcessing(SwrngCLContext *ctxt, int postProcessingMethod
 	int i;
 	for (i = 0; i < ctxt->actClusterSize; i++) {
 		status = swrngEnablePostProcessing(&ctxt->tctxts[i].ctxt, postProcessingMethodId);
+	}
+	return status;
+}
+
+/**
+* Enable statistical tests on raw random data stream for each device in a cluster.
+*
+* @param ctxt - pointer to SwrngContext structure
+*
+* @return int - 0 when statistical tests successfully enabled, otherwise the error code
+*
+*/
+int swrngEnableCLStatisticaTests(SwrngCLContext *ctxt) {
+	if (swrngIsCLOpen(ctxt) == SWRNG_FALSE) {
+		printCLErrorMessage(ctxt, clusterNotOpenErrMsg);
+		return -1;
+	}
+
+	enableCLStatisticalTests(ctxt); 	// Ignore any error
+	ctxt->statisticalTestsEnabled = SWRNG_TRUE;
+
+	return SWRNG_SUCCESS;
+}
+
+/**
+* Enable statistical tests on raw random data stream for each device in a cluster.
+*
+* @param ctxt - pointer to SwrngContext structure
+*
+* @return int - 0 when statistical tests successfully enabled, otherwise the error code
+*
+*/
+static int enableCLStatisticalTests(SwrngCLContext *ctxt) {
+	int status = SWRNG_SUCCESS;
+	int i;
+	for (i = 0; i < ctxt->actClusterSize; i++) {
+		status = swrngEnableStatisticalTests(&ctxt->tctxts[i].ctxt);
 	}
 	return status;
 }
