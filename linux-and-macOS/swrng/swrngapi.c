@@ -508,9 +508,9 @@ static int swrng_rcv_rnd_bytes(SwrngContext *ctxt) {
 	retval = swrng_snd_rcv_usb_data(ctxt, (char *)ctxt->bulk_out_buffer, 1, ctxt->buffRndIn,
 			SWRNG_RND_IN_BUFFSIZE, SWRNG_USB_READ_TIMEOUT_SECS);
 	if (retval == SWRNG_SUCCESS) {
-		rct_restart(ctxt);
-		apt_restart(ctxt);
 		if (ctxt->statisticalTestsEnabled == SWRNG_TRUE) {
+			rct_restart(ctxt);
+			apt_restart(ctxt);
 			test_samples(ctxt);
 		}
 		if (ctxt->postProcessingEnabled == SWRNG_TRUE) {
