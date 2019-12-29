@@ -1,13 +1,13 @@
 #include "stdafx.h"
 /*
  * swrng-cl.c
- * ver. 2.10
+ * ver. 2.11
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2018 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -68,7 +68,7 @@ int displayDevices() {
  */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("             TectroLabs - swrng-cl - cluster download utility Ver 2.3          \n");
+	printf("             TectroLabs - swrng-cl - cluster download utility Ver 2.4          \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng-cl - Download true random bytes from a cluster of SwiftRNG devices\n");
@@ -125,6 +125,9 @@ void displayUsage() {
 	printf("\n");
 	printf("     -dpp, --disable-post-processing\n");
 	printf("           Disable post processing of random data for devices with version 1.2+\n");
+	printf("\n");
+	printf("     -dst, --disable-statistical-tests\n");
+	printf("           Disable 'Repetition Count' and 'Adaptive Proportion' tests.\n");
 	printf("\n");
 	printf("EXAMPLES:\n");
 	printf("     It may require system admin permissions to run this utility on Linux or OSX.\n");
@@ -239,6 +242,9 @@ int processArguments(int argc, char **argv) {
 					argv[idx]) == 0) {
 				idx++;
 				postProcessingEnabled = SWRNG_FALSE;
+			} else if (strcmp("-dst", argv[idx]) == 0 || strcmp("--disable-statistical-tests", argv[idx]) == 0) {
+				idx++;
+				statisticalTestsEnabled = SWRNG_FALSE;
 			} else if (strcmp("-nb", argv[idx]) == 0 || strcmp("--number-bytes",
 					argv[idx]) == 0) {
 				if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
@@ -321,6 +327,15 @@ int handleDownloadRequest() {
 		fprintf(stderr, " Cannot open cluster, error code %d ... ", status);
 		swrngCLClose(&cxt);
 		return status;
+	}
+
+	if (statisticalTestsEnabled == SWRNG_FALSE) {
+		status = swrngDisableCLStatisticalTests(&cxt);
+		if (status != SWRNG_SUCCESS) {
+			fprintf(stderr, " Cannot disable statistical tests, error code %d ... ", status);
+			swrngCLClose(&cxt);
+			return status;
+		}
 	}
 
 	if (postProcessingEnabled == SWRNG_FALSE) {

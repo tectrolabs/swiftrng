@@ -2,13 +2,13 @@
 
 /*
  * swdiag.c
- * Ver. 2.0
+ * Ver. 2.1
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2019 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -66,7 +66,7 @@ int main() {
 	int postProcessingEnabled;
 
 	printf("-------------------------------------------------------------------\n");
-	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.0  ---\n");
+	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.1  ---\n");
 	printf("-------------------------------------------------------------------\n");
 	printf("Searching for devices ------------------ ");
 
@@ -279,7 +279,12 @@ int main() {
 				}
 			}
 		}
-
+		printf("Maximum RCT/APT failures per block: ----------------------- %d/%d      ", ctxt.maxRctFailuresPerBlock, ctxt.maxAptFailuresPerBlock);
+		if (ctxt.maxRctFailuresPerBlock >= 3 || ctxt.maxAptFailuresPerBlock >= 3) {
+			printf("   (Warning)");
+		} else {
+			printf("(Acceptable)\n");
+		}
 		printf("Closing device -------------------------------------------- ");
 		swrngClose(&ctxt);
 		printf("Success\n");

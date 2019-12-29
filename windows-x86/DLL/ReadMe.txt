@@ -75,6 +75,13 @@ __declspec(dllexport) int swrngGetRawDataBlockSynchronized(unsigned char rawByte
 __declspec(dllexport) int swrngEnableDataPostProcessing();
 
 /**
+* Check to see if raw data post processing is enabled for device.
+*
+* @return int - 1 when post processing is enabled, 0 if disabled, negative number if error
+*/
+__declspec(dllexport) int swrngGetDataPostProcessingStatus();
+
+/**
 * A process-safe and thread-safe function for disabling post processing of raw random data. 
 * It takes effect only for devices with versions 1.2 and up.
 *
@@ -86,11 +93,27 @@ __declspec(dllexport) int swrngEnableDataPostProcessing();
 __declspec(dllexport) int swrngDisableDataPostProcessing();
 
 /**
-* Check to see if raw data post processing is enabled for device.
+* A process-safe and thread-safe function for disabling statistical tests for raw random data.
 *
-* @return int - 1 when post processing is enabled, 0 if disabled, negative number if error
+* @return int - 0 when statistical tests were successfully disabled, otherwise the error code
+*
 */
-__declspec(dllexport) int swrngGetDataPostProcessingStatus();
+__declspec(dllexport) int swrngDisableDataStatisticalTests();
+
+/**
+* A process-safe and thread-safe function for enabling statistical tests for raw random data.
+*
+* @return int - 0 when statistical tests were successfully enabled, otherwise the error code
+*
+*/
+__declspec(dllexport) int swrngEnableDataStatisticalTests();
+
+/**
+* Check to see if statistical tests are enabled for device.
+*
+* @return int - 1 when statistical tests are enabled, 0 if disabled, negative number if error
+*/
+__declspec(dllexport) int swrngGetDataStatisticalTestsStatus();
 
 /**
 *

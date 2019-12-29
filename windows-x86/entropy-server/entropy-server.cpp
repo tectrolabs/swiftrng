@@ -2,13 +2,13 @@
 
 /*
 * entropy-server.cpp
-* Ver. 1.3
+* Ver. 1.5
 *
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2017 TectroLabs, http://tectrolabs.com
+Copyright (C) 2014-2020 TectroLabs, http://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -35,7 +35,7 @@ This program may only be used in conjunction with the SwiftRNG device.
 */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   SwiftRNG entropy-server Ver 1.3  \n");
+	printf("                   SwiftRNG entropy-server Ver 1.5  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     entropy-server - An application server for distributing random bytes \n");
@@ -54,6 +54,11 @@ void displayUsage() {
 	printf("     -dn NUMBER, --device-number NUMBER\n");
 	printf("           Device NUMBER, 0 - first device\n");
 	printf("\n");
+	printf("     -pi NUMBER, --pipe-instances NUMBER\n");
+	printf("          How many pipe instances to create (default: %d)\n", DEFAULT_PIPE_INSTANCES);
+	printf("          It also defines how many concurrent requests the server can handle\n");
+	printf("          Valid values are integers from 1 to %d \n", MAX_PIPE_INSTANCES);
+	printf("\n");
 	printf("     -ppn NUMBER, --power-profile-number NUMBER\n");
 	printf("           Device power profile NUMBER, 0 (lowest) to 9 (highest - default)\n");
 	printf("\n");
@@ -63,6 +68,9 @@ void displayUsage() {
 	printf("\n");
 	printf("     -dpp, --disable-post-processing\n");
 	printf("           Disable post processing of random data for devices with version 1.2+\n");
+	printf("\n");
+	printf("     -dst, --disable-statistical-tests\n");
+	printf("           Disable 'Repetition Count' and 'Adaptive Proportion' tests.\n");
 	printf("\n");
 	printf("     -npe, ENDPOINT, --named-pipe-endpoint ENDPOINT\n");
 	printf("           Use custom named pipe endpoint (if different from the default endpoint)\n");
@@ -127,6 +135,9 @@ int processArguments(int argc, char **argv) {
 			if (strcmp("-dpp", argv[idx]) == 0 || strcmp("--disable-post-processing", argv[idx]) == 0) {
 				idx++;
 				postProcessingEnabled = SWRNG_FALSE;
+			} else if (strcmp("-dst", argv[idx]) == 0 || strcmp("--disable-statistical-tests", argv[idx]) == 0) {
+				idx++;
+				statisticalTestsEnabled = SWRNG_FALSE;
 			} else if (strcmp("-ppm", argv[idx]) == 0 || strcmp("--post-processing-method",
 				argv[idx]) == 0) {
 				if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
@@ -151,6 +162,8 @@ int processArguments(int argc, char **argv) {
 				mbstowcs_s(&numCharConverted, pipeEndPoint, argv[idx], strlen(argv[idx]) + 1);
 				idx++;
 			} else if(parseDeviceNum(idx, argc, argv) == -1) {
+				return -1;
+			} else if (parsePipeInstances(idx, argc, argv) == -1) {
 				return -1;
 			} else if(parsePowerProfileNum(idx, argc, argv) == -1) {
 				return -1;
@@ -233,6 +246,31 @@ int parseDeviceNum(int idx, int argc, char **argv) {
 }
 
 /**
+* Parse pipe instances if specified
+*
+* @param int idx - current parameter number
+* @param int argc - number of parameters
+* @param char ** argv - parameters
+* @return int - 0 when successfully parsed
+*/
+int parsePipeInstances(int idx, int argc, char **argv) {
+	if (idx < argc) {
+		if (strcmp("-pi", argv[idx]) == 0 || strcmp("--pipe-instances",
+			argv[idx]) == 0) {
+			if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
+				return -1;
+			}
+			pipeInstances = atoi(argv[idx++]);
+			if (pipeInstances < 1 || pipeInstances > MAX_PIPE_INSTANCES) {
+				fprintf(stderr, "Pipe Instances parameter is invalid, must be an integer between 1 and %d\n", MAX_PIPE_INSTANCES);
+				return -1;
+			}
+		}
+	}
+	return 0;
+}
+
+/**
 * Open SwiftRNG device
 *
 * @return int - 0 when run successfully
@@ -244,6 +282,15 @@ int openDevice() {
 		fprintf(stderr, "Cannot open device, error code %d\n", status);
 		swrngClose(&ctxt);
 		return status;
+	}
+
+	if (statisticalTestsEnabled == SWRNG_FALSE) {
+		status = swrngDisableStatisticalTests(&ctxt);
+		if (status != SWRNG_SUCCESS) {
+			fprintf(stderr, "Cannot disable statistical tests, error code %d\n", status);
+			swrngClose(&ctxt);
+			return status;
+		}
 	}
 
 	if (postProcessingEnabled == SWRNG_FALSE) {
@@ -305,7 +352,7 @@ int openDevice() {
 * @return int - 0 when run successfully
 */
 int createPipeInstances() {
-	for (i = 0; i < INSTANCES; i++)
+	for (i = 0; i < pipeInstances; i++)
 	{
 
 		hEvents[i] = CreateEvent(
@@ -329,7 +376,7 @@ int createPipeInstances() {
 			PIPE_TYPE_BYTE |      // byte-type pipe 
 			PIPE_READMODE_BYTE |  // byte-read mode 
 			PIPE_WAIT,               // blocking mode 
-			INSTANCES,               // number of instances 
+			pipeInstances,               // number of instances 
 			WRITE_BUFSIZE,		// output buffer size 
 			sizeof(READCMD),    // input buffer size 
 			PIPE_TIMEOUT,            // client time-out 
@@ -421,18 +468,25 @@ int processServer() {
 	}
 
 	printf("Entropy server started using device %s with S/N: %s and Ver: %s, post processing: '%s', embedded correction method: '%s'", dm.value, dsn.value, dv.value, postProcessingMethodName, embeddedCorrectionMethodStr);
+	_tprintf(TEXT(", statistical tests "));
+	int statTestsEnabled;
+	swrngGetStatisticalTestsStatus(&ctxt, &statTestsEnabled);
+	if (statTestsEnabled)
+		_tprintf(TEXT("enabled"));
+	else
+		_tprintf(TEXT("disabled"));
 	_tprintf(TEXT(", on named pipe: %s\n"), pipeEndPoint);
 
 	while (1)
 	{
 		dwWait = WaitForMultipleObjects(
-			INSTANCES,    // number of event objects 
+			pipeInstances,    // number of event objects 
 			hEvents,      // array of event objects 
 			FALSE,        // does not wait for all 
 			INFINITE);    // waits indefinitely 
 
 		i = dwWait - WAIT_OBJECT_0;  // determines which pipe 
-		if (i < 0 || i > (INSTANCES - 1))
+		if (i < 0 || i > (pipeInstances - 1))
 		{
 			fprintf(stderr, "Index out of range.\n");
 			return 0;

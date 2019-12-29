@@ -2,13 +2,13 @@
 
 /*
  * swrngapi.c
- * ver. 3.6
+ * ver. 3.7
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2019 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -46,7 +46,6 @@
 #define SWRNG_PRODUCT_ID (0x8110)	// This product ID is only to be used with SwiftRNG device
 #define SWRNG_BULK_EP_OUT     0x01
 #define SWRNG_BULK_EP_IN      0x81
-
 
 #define SWRNG_USB_READ_MAX_RETRY_CNT	(15)
 #define SWRNG_USB_READ_TIMEOUT_SECS	(2)
@@ -453,9 +452,9 @@ int swrngOpen(SwrngContext *ctxt, int deviceNum) {
 					// All tests are performed now before applying post-processing to comply
 					// with NIST SP 800-90B (second draft)
 					if (ctxt->deviceVersionDouble == 1.1) {
-						ctxt->numConsecFailThreshold = 7;
+						ctxt->numFailuresThreshold = 6;
 					} else if (ctxt->deviceVersionDouble == 1.0) {
-						ctxt->numConsecFailThreshold = 10;
+						ctxt->numFailuresThreshold = 9;
 					}
 				}
 
@@ -509,9 +508,11 @@ static int swrng_rcv_rnd_bytes(SwrngContext *ctxt) {
 	retval = swrng_snd_rcv_usb_data(ctxt, (char *)ctxt->bulk_out_buffer, 1, ctxt->buffRndIn,
 			SWRNG_RND_IN_BUFFSIZE, SWRNG_USB_READ_TIMEOUT_SECS);
 	if (retval == SWRNG_SUCCESS) {
-		rct_restart(ctxt);
-		apt_restart(ctxt);
-		test_samples(ctxt);
+		if (ctxt->statisticalTestsEnabled == SWRNG_TRUE) {
+			rct_restart(ctxt);
+			apt_restart(ctxt);
+			test_samples(ctxt);
+		}
 		if (ctxt->postProcessingEnabled == SWRNG_TRUE) {
 			if (ctxt->postProcessingMethodId == SWRNG_SHA256_PP_METHOD) {
 				dst32 = (uint32_t *)ctxt->buffTRndOut;
@@ -599,7 +600,6 @@ static void rct_initialize(SwrngContext *ctxt) {
 static void rct_restart(SwrngContext *ctxt) {
 	ctxt->rct.isInitialized = SWRNG_FALSE;
 	ctxt->rct.curRepetitions = 1;
-	ctxt->rct.failureWindow = 0;
 	ctxt->rct.failureCount = 0;
 }
 
@@ -628,11 +628,17 @@ static void test_samples(SwrngContext *ctxt) {
 				ctxt->rct.curRepetitions++;
 				if (ctxt->rct.curRepetitions >= ctxt->rct.maxRepetitions) {
 					ctxt->rct.curRepetitions = 1;
-					if (++ctxt->rct.failureCount >= ctxt->numConsecFailThreshold) {
+					if (++ctxt->rct.failureCount > ctxt->numFailuresThreshold) {
 						if (ctxt->rct.statusByte == 0) {
 							ctxt->rct.statusByte = ctxt->rct.signature;
 						}
 					}
+
+					if (ctxt->rct.failureCount > ctxt->maxRctFailuresPerBlock) {
+						// Record the maximum failures per block for reporting
+						ctxt->maxRctFailuresPerBlock = ctxt->rct.failureCount;
+					}
+
 					#ifdef inDebugMode
 					if (ctxt->rct.failureCount >= 1) {
 						fprintf(stderr, "rct.failureCount: %d value: %d\n", ctxt->rct.failureCount, value);
@@ -655,25 +661,30 @@ static void test_samples(SwrngContext *ctxt) {
 			ctxt->apt.curRepetitions = 0;
 			ctxt->apt.curSamples = 0;
 		} else {
-			if (++ctxt->apt.curSamples >= ctxt->apt.windoiwSize) {
+			if (++ctxt->apt.curSamples >= ctxt->apt.windowSize) {
 				ctxt->apt.isInitialized = SWRNG_FALSE;
-			}
-			if (ctxt->apt.firstSample == value) {
-				if (++ctxt->apt.curRepetitions > ctxt->apt.cutoffValue) {
+				if (ctxt->apt.curRepetitions > ctxt->apt.cutoffValue) {
 					// Check to see if we have reached the failure threshold
-					if (++ctxt->apt.cycleFailures >= ctxt->numConsecFailThreshold) {
+					if (++ctxt->apt.cycleFailures > ctxt->numFailuresThreshold) {
 						if (ctxt->apt.statusByte == 0) {
 							ctxt->apt.statusByte = ctxt->apt.signature;
 						}
 					}
+					if (ctxt->apt.cycleFailures > ctxt->maxAptFailuresPerBlock) {
+						// Record the maximum failures per block for reporting
+						ctxt->maxAptFailuresPerBlock = ctxt->apt.cycleFailures;
+					}
+
 					#ifdef inDebugMode
 					if (ctxt->apt.cycleFailures >= 1) {
 						fprintf(stderr, "ctxt->apt.cycleFailures: %d value: %d\n", ctxt->apt.cycleFailures, value);
                     }
-				#endif
-				} else {
-					// restart cycle
-					ctxt->apt.cycleFailures = 0;
+					#endif
+				}
+
+			} else {
+				if (ctxt->apt.firstSample == value) {
+					++ctxt->apt.curRepetitions;
 				}
 			}
 		}
@@ -693,7 +704,7 @@ static void apt_initialize(SwrngContext *ctxt) {
 	memset(&ctxt->apt, 0x00, sizeof(ctxt->apt));
 	ctxt->apt.statusByte = 0;
 	ctxt->apt.signature = 2;
-	ctxt->apt.windoiwSize = 64;
+	ctxt->apt.windowSize = 64;
 	ctxt->apt.cutoffValue = 5;
 	apt_restart(ctxt);
 }
@@ -1110,6 +1121,29 @@ int swrngEnablePostProcessing(SwrngContext *ctxt, int postProcessingMethodId) {
 }
 
 /**
+* Enable statistical tests for raw random data stream.
+*
+* @param ctxt - pointer to SwrngContext structure
+*
+* @return int - 0 when statistical tests successfully enabled, otherwise the error code
+*
+*/
+int swrngEnableStatisticalTests(SwrngContext *ctxt) {
+
+	if (isContextInitialized(ctxt) == SWRNG_FALSE) {
+		return -1;
+	}
+
+	if (ctxt->deviceOpen == SWRNG_FALSE) {
+		swrng_printErrorMessage(ctxt, SWRNG_DEV_NOT_OPEN_MSG);
+		return -1;
+	}
+
+	ctxt->statisticalTestsEnabled = SWRNG_TRUE;
+	return SWRNG_SUCCESS;
+}
+
+/**
 * Disable post processing of raw random data (applies only to devices with versions 1.2 and up)
 * Post processing is initially enabled for all devices.
 *
@@ -1141,6 +1175,32 @@ int swrngDisablePostProcessing(SwrngContext *ctxt) {
 }
 
 /**
+* Disable statistical tests for raw random data stream.
+* Statistical tests are initially enabled for all devices.
+*
+* To disable statistical tests, call this function immediately after device is successfully open.
+*
+* @param ctxt - pointer to SwrngContext structure
+* @return int - 0 when statistical tests successfully disabled, otherwise the error code
+*
+*/
+int swrngDisableStatisticalTests(SwrngContext *ctxt) {
+
+	if (isContextInitialized(ctxt) == SWRNG_FALSE) {
+		return -1;
+	}
+
+	if (ctxt->deviceOpen == SWRNG_FALSE) {
+		swrng_printErrorMessage(ctxt, SWRNG_DEV_NOT_OPEN_MSG);
+		return -1;
+	}
+
+	ctxt->statisticalTestsEnabled = SWRNG_FALSE;
+	return SWRNG_SUCCESS;
+
+}
+
+/**
 * Check to see if raw data post processing is enabled for device.
 *
 * @param ctxt - pointer to SwrngContext structure
@@ -1159,6 +1219,28 @@ int swrngGetPostProcessingStatus(SwrngContext *ctxt, int *postProcessingStatus) 
 	}
 
 	*postProcessingStatus = ctxt->postProcessingEnabled;
+	return SWRNG_SUCCESS;
+}
+
+/**
+* Check to see if statistical tests are enabled on raw data stream for device.
+*
+* @param ctxt - pointer to SwrngContext structure
+* @param statisticalTestsEnabledStatus - pointer to store statistical tests status (1 - enabled or 0 - otherwise)
+* @return int - 0 when statistical tests flag successfully retrieved, otherwise the error code
+*
+*/
+int swrngGetStatisticalTestsStatus(SwrngContext *ctxt, int *statisticalTestsEnabledStatus) {
+	if (isContextInitialized(ctxt) == SWRNG_FALSE) {
+		return -1;
+	}
+
+	if (ctxt->deviceOpen == SWRNG_FALSE) {
+		swrng_printErrorMessage(ctxt, SWRNG_DEV_NOT_OPEN_MSG);
+		return -1;
+	}
+
+	*statisticalTestsEnabledStatus = ctxt->statisticalTestsEnabled;
 	return SWRNG_SUCCESS;
 }
 
@@ -1862,13 +1944,16 @@ static void swrng_printErrorMessage(SwrngContext *ctxt, const char* errMsg) {
 int swrngInitializeContext(SwrngContext *ctxt) {
 	if (ctxt != NULL) {
 		memset(ctxt, 0, sizeof(SwrngContext));
-		ctxt->numConsecFailThreshold = 5;
+		ctxt->numFailuresThreshold = 4;
+		ctxt->maxAptFailuresPerBlock = 0;
+		ctxt->maxRctFailuresPerBlock = 0;
 		ctxt->enPrintErrorMessages = SWRNG_FALSE;
 		ctxt->startSignature = SWRNG_START_CONTEXT_SIGNATURE;
 		ctxt->endSignature = SWRNG_END_CONTEXT_SIGNATURE;
 		ctxt->curTrngOutIdx = SWRNG_TRND_OUT_BUFFSIZE;
 		strcpy(ctxt->lastError, "");
 		ctxt->postProcessingEnabled = SWRNG_TRUE;
+		ctxt->statisticalTestsEnabled = SWRNG_TRUE;
 		ctxt->postProcessingMethodId = SWRNG_SHA256_PP_METHOD;
 		ctxt->deviceEmbeddedCorrectionMethodId = SWRNG_EMB_CORR_METHOD_NONE;
 		return SWRNG_SUCCESS;

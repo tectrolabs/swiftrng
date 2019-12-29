@@ -77,6 +77,7 @@ int postProcessingMethodId = 0; // Post processing method id, 0 - SHA256, 1 - xo
 char postProcessingMethodName[64];
 SwrngContext ctxt;
 swrngBool postProcessingEnabled = SWRNG_TRUE;
+swrngBool statisticalTestsEnabled = SWRNG_TRUE;
 DWORD i, dwWait, cbRet, dwErr;
 BOOL fSuccess;
 BOOL isDevieNumSpecified = FALSE;

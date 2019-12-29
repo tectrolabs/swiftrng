@@ -1,12 +1,12 @@
 /*
  * swrngapi.h
- * ver. 3.6
+ * ver. 3.7
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2018 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -29,7 +29,6 @@
 #define SWRNGAPI_H_
 
 #include <stdlib.h>
-#include <sys/types.h>
 #include <stdint.h>
 #include <time.h>
 #include <string.h>
@@ -133,13 +132,12 @@ typedef struct {
 		uint8_t statusByte;
 		uint8_t signature;
 		swrngBool isInitialized;
-		uint32_t failureWindow;
 		uint16_t failureCount;
 	} rct;
 
 	// Adaptive Proportion Test data
 	struct apt_data {
-		uint16_t windoiwSize;
+		uint16_t windowSize;
 		uint16_t cutoffValue;
 		uint16_t curRepetitions;
 		uint16_t curSamples;
@@ -164,7 +162,9 @@ typedef struct {
 	char buffTRndOut[SWRNG_TRND_OUT_BUFFSIZE]; // Random output buffer
 	uint32_t srcToHash32[SWRNG_MIN_INPUT_NUM_WORDS + 1]; // The source of one block of data to hash
 	uint64_t srcToHash64[SWRNG_MIN_INPUT_NUM_WORDS]; // The source of one block of data to hash
-	uint8_t numConsecFailThreshold;// For real-time statistical tests
+	uint8_t numFailuresThreshold;// How many statistical test failures allowed per block (16000 random bytes)
+	uint16_t maxRctFailuresPerBlock; // Max number of repetition count test failures encountered per data block
+	uint16_t maxAptFailuresPerBlock; // Max number of adaptive proportion test failures encountered per data block
 	DeviceStatistics ds;
 	char lastError[512];
 	swrngBool enPrintErrorMessages;
@@ -172,6 +172,7 @@ typedef struct {
 	DeviceVersion curDeviceVersion;
 	double deviceVersionDouble;
 	swrngBool postProcessingEnabled;
+	swrngBool statisticalTestsEnabled;
 	int postProcessingMethodId;	// 0 - SHA256 method, 1 - xorshift64 post processing method, 2 - SHA512 method
 	int deviceEmbeddedCorrectionMethodId;	// 0 - none, 1 - Linear correction (P. Lacharme)
 } SwrngContext;
@@ -363,6 +364,18 @@ int swrngRunDeviceDiagnostics(SwrngContext *ctxt);
 int swrngDisablePostProcessing(SwrngContext *ctxt);
 
 /**
+* Disable statistical tests for raw random data stream.
+* Statistical tests are initially enabled for all devices.
+*
+* To disable statistical tests, call this function immediately after device is successfully open.
+*
+* @param ctxt - pointer to SwrngContext structure
+* @return int - 0 when statistical tests successfully disabled, otherwise the error code
+*
+*/
+int swrngDisableStatisticalTests(SwrngContext *ctxt);
+
+/**
 * Check to see if raw data post processing is enabled for device.
 *
 * @param ctxt - pointer to SwrngContext structure
@@ -371,6 +384,16 @@ int swrngDisablePostProcessing(SwrngContext *ctxt);
 *
 */
 int swrngGetPostProcessingStatus(SwrngContext *ctxt, int *postProcessingStatus);
+
+/**
+* Check to see if statistical tests are enabled on raw data stream for device.
+*
+* @param ctxt - pointer to SwrngContext structure
+* @param statisticalTestsEnabledStatus - pointer to store statistical tests status (1 - enabled or 0 - otherwise)
+* @return int - 0 when statistical tests flag successfully retrieved, otherwise the error code
+*
+*/
+int swrngGetStatisticalTestsStatus(SwrngContext *ctxt, int *statisticalTestsEnabledStatus);
 
 /**
 * Retrieve post processing method
@@ -404,6 +427,16 @@ int swrngGetEmbeddedCorrectionMethod(SwrngContext *ctxt, int *deviceEmbeddedCorr
 *
 */
 int swrngEnablePostProcessing(SwrngContext *ctxt, int postProcessingMethodId);
+
+/**
+* Enable statistical tests for raw random data stream.
+*
+* @param ctxt - pointer to SwrngContext structure
+*
+* @return int - 0 when statistical tests successfully enabled, otherwise the error code
+*
+*/
+int swrngEnableStatisticalTests(SwrngContext *ctxt);
 
 /**
 * Generate and retrieve device statistics

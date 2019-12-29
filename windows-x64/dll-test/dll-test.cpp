@@ -1,5 +1,33 @@
 #include "stdafx.h"
 
+/*
+* dll-test.cpp
+* ver. 1.6
+*
+*/
+
+/*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+Copyright (C) 2014-2020 TectroLabs, http://tectrolabs.com
+
+THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
+
+This program is used for interacting with the hardware random data generator device SwiftRNG for the purpose of
+downloading true random bytes.
+
+This program requires the libusb-1.0 library when communicating with the SwiftRNG device. Please read the provided
+documentation for libusb-1.0 installation details.
+
+This program uses libusb-1.0 (directly or indirectly) which is distributed under the terms of the GNU Lesser General
+Public License as published by the Free Software Foundation. For more information, please visit: http://libusb.info
+
+This program may only be used in conjunction with the SwiftRNG device.
+
++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+#include "stdafx.h"
+
 #include "SwiftRNG.h"
 #include <windows.h>
 #include <process.h>
@@ -29,6 +57,9 @@ typedef int (CALLBACK* LPGETRAW)(unsigned char *, int);
 typedef int (CALLBACK* LPENABLEDPP)();
 typedef int (CALLBACK* LPDISABLEDPP)();
 typedef int (CALLBACK* LPGETPPSTATUS)();
+typedef int (CALLBACK* LPENABLEST)();
+typedef int (CALLBACK* LPDISABLEST)();
+typedef int (CALLBACK* LPGETSTSTATUS)();
 
 
 LPGEBS1 lpGetEntropyByteSynchronized;
@@ -41,6 +72,10 @@ LPGETRAW lpSwftGetRawDataBlockSynchronized;
 LPENABLEDPP lpSwrngEnableDataPostProcessing;
 LPDISABLEDPP lpSwrngDisableDataPostProcessing;
 LPGETPPSTATUS lpSwrngGetDataPostProcessingStatus;
+LPENABLEST lpSwrngEnableDataStatisticalTests;
+LPDISABLEST lpSwrngDisableDataStatisticalTests;
+LPGETSTSTATUS lpSwrngGetDataStatisticalTestsStatus;
+
 
 int status;
 volatile BOOL isMultiThreadTestStatusSuccess = TRUE;
@@ -263,7 +298,7 @@ int main() {
 	//
 	// Step 8
 	//
-	printf("Testing swrngGetRawDataBlockSynchronized(V1.2 only) .............. ");
+	printf("Testing swrngGetRawDataBlockSynchronized (V1.2 only) ............. ");
 	lpSwftGetRawDataBlockSynchronized = (LPGETRAW)GetProcAddress(hDLL, "swrngGetRawDataBlockSynchronized");
 	if (!lpSwftGetRawDataBlockSynchronized)
 	{
@@ -273,11 +308,30 @@ int main() {
 	}
 	status = lpSwftGetRawDataBlockSynchronized(rawNoiseSourceBytes, 0);
 	if (status != 0) {
-		printf("FAILED");
+		printf("FAILED\n");
+	}
+	else {
+		status = lpSwftGetRawDataBlockSynchronized(rawNoiseSourceBytes, 1);
+		if (status != 0) {
+			printf("FAILED");
+			FreeLibrary(hDLL);
+			return -1;
+		}
+		printf("SUCCESS\n");
+	}
+
+	//
+	// Step 9
+	//
+	printf("Testing lpSwrngEnableDataStatisticalTests ........................ ");
+	lpSwrngEnableDataStatisticalTests = (LPENABLEST)GetProcAddress(hDLL, "swrngEnableDataStatisticalTests");
+	if (!lpSwrngEnableDataStatisticalTests)
+	{
+		printf("failed to get address\n");
 		FreeLibrary(hDLL);
 		return -1;
 	}
-	status = lpSwftGetRawDataBlockSynchronized(rawNoiseSourceBytes, 1);
+	status = lpSwrngEnableDataStatisticalTests();
 	if (status != 0) {
 		printf("FAILED");
 		FreeLibrary(hDLL);
@@ -286,7 +340,45 @@ int main() {
 	printf("SUCCESS\n");
 
 	//
-	// Step 9
+	// Step 10
+	//
+	printf("Testing lpSwrngDisableDataStatisticatTests ....................... ");
+	lpSwrngDisableDataStatisticalTests = (LPENABLEST)GetProcAddress(hDLL, "swrngDisableDataStatisticalTests");
+	if (!lpSwrngDisableDataStatisticalTests)
+	{
+		printf("failed to get address\n");
+		FreeLibrary(hDLL);
+		return -1;
+	}
+	status = lpSwrngDisableDataStatisticalTests();
+	if (status != 0) {
+		printf("FAILED");
+		FreeLibrary(hDLL);
+		return -1;
+	}
+	printf("SUCCESS\n");
+
+	//
+	// Step 11
+	// 
+	printf("Testing lpSwrngGetDataStatisticalTestsStatus ..................... ");
+	lpSwrngGetDataStatisticalTestsStatus = (LPENABLEST)GetProcAddress(hDLL, "swrngGetDataStatisticalTestsStatus");
+	if (!lpSwrngGetDataStatisticalTestsStatus)
+	{
+		printf("failed to get address\n");
+		FreeLibrary(hDLL);
+		return -1;
+	}
+	status = lpSwrngGetDataStatisticalTestsStatus();
+	if (status != 0) {
+		printf("FAILED");
+		FreeLibrary(hDLL);
+		return -1;
+	}
+	printf("SUCCESS\n");
+
+	//
+	// Step 12
 	//
 	printf("Testing swftGetEntropySynchronized() %3d threads ................. ", NUM_TEST_THREADS);
 

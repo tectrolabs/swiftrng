@@ -129,7 +129,7 @@ void displayUsage() {
 	printf("     -dst, --disable-statistical-tests\n");
 	printf("           Disable 'Repetition Count' and 'Adaptive Proportion' tests.\n");
 	printf("\n");
-printf("EXAMPLES:\n");
+	printf("EXAMPLES:\n");
 	printf("     It may require system admin permissions to run this utility on Linux or OSX.\n");
 	printf("     To list all available SwiftRNG (not currently in use) devices.\n");
 	printf("           swrng-cl -ld\n");

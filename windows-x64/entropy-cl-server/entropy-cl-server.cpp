@@ -2,13 +2,13 @@
 
 /*
 * entropy-cl-server.cpp
-* Ver. 1.1
+* Ver. 1.2
 *
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2019 TectroLabs, http://tectrolabs.com
+Copyright (C) 2014-2020 TectroLabs, http://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -35,7 +35,7 @@ This program may only be used in conjunction with SwiftRNG devices.
 */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   SwiftRNG entropy-cl-server Ver 1.1  \n");
+	printf("                   SwiftRNG entropy-cl-server Ver 1.2  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     entropy-cl-server - An application server for distributing random bytes \n");
@@ -69,6 +69,9 @@ void displayUsage() {
 	printf("\n");
 	printf("     -dpp, --disable-post-processing\n");
 	printf("           Disable post processing of random data for devices with version 1.2+\n");
+	printf("\n");
+	printf("     -dst, --disable-statistical-tests\n");
+	printf("           Disable 'Repetition Count' and 'Adaptive Proportion' tests.\n");
 	printf("\n");
 	printf("     -npe, ENDPOINT, --named-pipe-endpoint ENDPOINT\n");
 	printf("           Use custom named pipe endpoint (if different from the default endpoint)\n");
@@ -131,6 +134,10 @@ int processArguments(int argc, char **argv) {
 		if (strcmp("-dpp", argv[idx]) == 0 || strcmp("--disable-post-processing", argv[idx]) == 0) {
 			idx++;
 			postProcessingEnabled = SWRNG_FALSE;
+		}
+		else if (strcmp("-dst", argv[idx]) == 0 || strcmp("--disable-statistical-tests", argv[idx]) == 0) {
+			idx++;
+			statisticalTestsEnabled = SWRNG_FALSE;
 		}
 		else if (strcmp("-ppm", argv[idx]) == 0 || strcmp("--post-processing-method",
 			argv[idx]) == 0) {
@@ -281,6 +288,14 @@ int openDevice() {
 		return status;
 	}
 
+	if (statisticalTestsEnabled == SWRNG_FALSE) {
+		status = swrngDisableCLStatisticalTests(&ctxt);
+		if (status != SWRNG_SUCCESS) {
+			fprintf(stderr, "Cannot disable statistical tests, error code %d\n", status);
+			swrngCLClose(&ctxt);
+			return status;
+		}
+	}
 	if (postProcessingEnabled == SWRNG_FALSE) {
 		status = swrngDisableCLPostProcessing(&ctxt);
 		if (status != SWRNG_SUCCESS) {
@@ -388,6 +403,11 @@ int processServer() {
 	}
 
 	printf("Entropy server started using a cluster of %d devices, post processing: '%s'", swrngGetCLSize(&ctxt), postProcessingMethodName);
+	_tprintf(TEXT(", statistical tests "));
+	if (statisticalTestsEnabled)
+		_tprintf(TEXT("enabled"));
+	else
+		_tprintf(TEXT("disabled"));
 	_tprintf(TEXT(", on named pipe: %s\n"), pipeEndPoint);
 
 	while (1)

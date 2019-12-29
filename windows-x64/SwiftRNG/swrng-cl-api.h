@@ -1,12 +1,12 @@
 /*
  * swrng-cl-api.h
- * Ver. 1.10
+ * Ver. 1.11
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2018 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -96,6 +96,7 @@ typedef struct {
 	long numClusterResizeAttempts;	// How many times cluster attempted to resize
 	time_t clusterStartedSecs;	// The time when cluster open successfully
 	swrngBool postProcessingEnabled; // A flag indicating if post processing is enabled for all cluster devices
+	swrngBool statisticalTestsEnabled; // A flag indicating if statistical tests are enabled for all cluster devices
 	int postProcessingMethodId;	// -1 - not in use, 0 - default SHA256 method, 1 - xorshift64 post processing method
 
 
@@ -223,6 +224,27 @@ int swrngDisableCLPostProcessing(SwrngCLContext *ctxt);
 */
 int swrngEnableCLPostProcessing(SwrngCLContext *ctxt, int postProcessingMethodId);
 
+/**
+* Disable statistical tests on raw random data stream for each device in a cluster.
+* Statistical tests are initially enabled for all devices.
+*
+* To disable statistical tests, call this function immediately after cluster is successfully open.
+*
+* @param ctxt - pointer to SwrngContext structure
+* @return int - 0 when statistical tests successfully disabled, otherwise the error code
+*
+*/
+int swrngDisableCLStatisticalTests(SwrngCLContext *ctxt);
+
+/**
+* Enable statistical tests on raw random data stream for each device in a cluster.
+*
+* @param ctxt - pointer to SwrngContext structure
+*
+* @return int - 0 when statistical tests successfully enabled, otherwise the error code
+*
+*/
+int swrngEnableCLStatisticaTests(SwrngCLContext *ctxt);
 
 #ifdef __cplusplus
 }

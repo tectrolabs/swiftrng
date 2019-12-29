@@ -1,12 +1,12 @@
 /*
 * entropy-cl-server.h
-* Ver. 1.1
+* Ver. 1.2
 *
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2019 TectroLabs, http://tectrolabs.com
+Copyright (C) 2014-2020 TectroLabs, http://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -77,6 +77,7 @@ int postProcessingMethodId = 0; // Post processing method id, 0 - SHA256, 1 - xo
 char postProcessingMethodName[64];
 SwrngCLContext ctxt;
 swrngBool postProcessingEnabled = SWRNG_TRUE;
+swrngBool statisticalTestsEnabled = SWRNG_TRUE;
 DWORD i, dwWait, cbRet, dwErr;
 BOOL fSuccess;
 static wchar_t pipeEndPoint[PIPENAME_MAX_CHARS + 1];

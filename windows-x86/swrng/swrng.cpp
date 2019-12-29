@@ -2,13 +2,13 @@
 
 /*
  * swrng.c
- * Ver. 2.13
+ * Ver. 2.14
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2019 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -73,7 +73,7 @@ int displayDevices() {
  */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   TectroLabs - swrng - download utility Ver 2.7  \n");
+	printf("                   TectroLabs - swrng - download utility Ver 2.8  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng  - True Random Number Generator SwiftRNG download \n");
@@ -142,6 +142,12 @@ void displayUsage() {
 	printf("     -dpp, --disable-post-processing\n");
 	printf("           Disable post processing of random data for devices with version 1.2+\n");
 	printf("\n");
+
+	printf("\n");
+	printf("     -dst, --disable-statistical-tests\n");
+	printf("           Disable 'Repetition Count' and 'Adaptive Proportion' tests.\n");
+	printf("\n");
+
 	printf("EXAMPLES:\n");
 	printf(
 			"     It may require system admin permissions to run this utility on Linux or OSX.\n");
@@ -254,6 +260,10 @@ int processArguments(int argc, char **argv) {
 					argv[idx]) == 0) {
 				idx++;
 				postProcessingEnabled = SWRNG_FALSE;
+			} else if (strcmp("-dst", argv[idx]) == 0 || strcmp("--disable-statistical-tests",
+					argv[idx]) == 0) {
+				idx++;
+				statisticalTestsEnabled = SWRNG_FALSE;
 			} else if (strcmp("-nb", argv[idx]) == 0 || strcmp("--number-bytes",
 					argv[idx]) == 0) {
 				if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
@@ -337,6 +347,15 @@ int handleDownloadRequest() {
 		fprintf(stderr, " Cannot open device, error code %d ... ", status);
 		swrngClose(&ctxt);
 		return status;
+	}
+
+	if (statisticalTestsEnabled == SWRNG_FALSE) {
+		status = swrngDisableStatisticalTests(&ctxt);
+		if (status != SWRNG_SUCCESS) {
+			fprintf(stderr, " Cannot disable statistical tests, error code %d ... ",status);
+			swrngClose(&ctxt);
+			return status;
+		}
 	}
 
 	if (postProcessingEnabled == SWRNG_FALSE) {
@@ -522,10 +541,14 @@ int processDownloadRequest() {
 	int status = handleDownloadRequest();
 	DeviceStatistics *ds = swrngGenerateDeviceStatistics(&ctxt);
 	if (!isOutputToStandardOutput) {
-		printf(
-				"Completed in %d seconds, post-processing method used: %s, device built-in correction method used: %s, speed: %d KBytes/sec, blocks re-sent: %d\n",
-				(int) ds->totalTime, postProcessingMethodStr, embeddedCorrectionMethodStr, (int) ds->downloadSpeedKBsec,
-				(int) ds->totalRetries);
+		printf("Completed in %d seconds, post-processing method used: %s, device built-in correction method used: %s, ",
+				(int) ds->totalTime, postProcessingMethodStr, embeddedCorrectionMethodStr);
+		if (statisticalTestsEnabled) {
+			printf("statistical tests enabled, max RCT/APT failures per block: %d/%d, ", ctxt.maxRctFailuresPerBlock, ctxt.maxAptFailuresPerBlock);
+		} else {
+			printf("statistical tests disabled, ");
+		}
+		printf("speed: %d KBytes/sec, blocks re-sent: %d\n", (int) ds->downloadSpeedKBsec, (int) ds->totalRetries);
 	}
 	return status;
 }

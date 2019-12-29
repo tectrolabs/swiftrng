@@ -1,12 +1,12 @@
 /*
  * SwiftRNG.cpp
- * ver. 1.4
+ * ver. 1.5
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2016 TectroLabs, http://tectrolabs.com
+ Copyright (C) 2014-2020 TectroLabs, http://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -46,6 +46,7 @@ static HANDLE sharedGlobalMutex;		// For process synchronization
 static unsigned char cacheBuffer[CACHE_BUFF_SIZE_BYTES + 1];
 static uint32_t idx;
 static BOOL enablePostProcessing;
+static BOOL enableStatisticalTests;
 
 //
 // Entropy server API related data
@@ -94,6 +95,7 @@ static void initializeDLL() {
 	idx = CACHE_BUFF_SIZE_BYTES;
 	idxEs = MAX_ES_BUFF_REQUEST_SIZE;
 	enablePostProcessing = true;
+	enableStatisticalTests = true;
 	mbstowcs(pipeEndPoint, defaultPipeEndpoint, strlen(defaultPipeEndpoint) + 1);
 	fSuccess = FALSE;
 }
@@ -143,8 +145,12 @@ static int fillEntropyBuffer() {
 			if (status == 0) {
 
 				if (enablePostProcessing == FALSE) {
-					swrngDisablePostProcessing(&ctxt); // Ignore the error
+					swrngDisablePostProcessing(&ctxt); // Ignore any error
 				}
+				if (enableStatisticalTests == TRUE)
+					swrngEnableStatisticalTests(&ctxt);
+				else
+					swrngDisableStatisticalTests(&ctxt);
 
 				for (int i = 0; i < NUM_REQUESTS; i++) {
 					unsigned char *p = cacheBuffer + (i * MAX_BUFF_REQUEST_SIZE);
@@ -617,9 +623,32 @@ int swrngSetPostProcessing(BOOL postProcessingFlag) {
 		}
 	}
 	return status;
-
 }
 
+/**
+* Enable or disable statistical tests.
+* @param statisticalTestsFlag - true to enable statistical tests, false to disable
+* @return 0 - successful operation, otherwise the error code*
+*
+*/
+int swrngSetStatisticalTestsStatus(BOOL statisticalTestsFlag) {
+	int status = -1;
+	if (lockGlobalMutext() == TRUE)
+	{
+		__try {
+			enableStatisticalTests = statisticalTestsFlag;
+			status = 0;
+		}
+		__finally {
+			// Release ownership of the mutex object
+			if (unlockGlobalMutext() == FALSE)
+			{
+				status = -1;
+			}
+		}
+	}
+	return status;
+}
 
 /**
 * A process-safe and thread-safe function for enabling post processing of raw random data regardless of the device version.
@@ -669,6 +698,50 @@ __declspec(dllexport) int swrngGetDataPostProcessingStatus() {
 	}
 	return status;
 }
+
+/**
+* A process-safe and thread-safe function for disabling statistical tests for raw random data.
+*
+* @return int - 0 when statistical tests were successfully disabled, otherwise the error code
+*
+*/
+__declspec(dllexport) int swrngDisableDataStatisticalTests() {
+	return swrngSetStatisticalTestsStatus(false);
+}
+
+/**
+* A process-safe and thread-safe function for enabling statistical tests for raw random data.
+*
+* @return int - 0 when statistical tests were successfully enabled, otherwise the error code
+*
+*/
+__declspec(dllexport) int swrngEnableDataStatisticalTests() {
+	return swrngSetStatisticalTestsStatus(true);
+}
+
+/**
+* Check to see if statistical tests are enabled for device.
+*
+* @return int - 1 when statistical tests are enabled, 0 if disabled, negative number if error
+*/
+__declspec(dllexport) int swrngGetDataStatisticalTestsStatus() {
+	int status = -1;
+	if (lockGlobalMutext() == TRUE)
+	{
+		__try {
+			status = enableStatisticalTests == true ? 1 : 0;
+		}
+		__finally {
+			// Release ownership of the mutex object
+			if (unlockGlobalMutext() == FALSE)
+			{
+				status = -1;
+			}
+		}
+	}
+	return status;
+}
+
 
 
 
