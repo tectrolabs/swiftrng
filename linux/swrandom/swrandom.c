@@ -529,9 +529,9 @@ static int rcv_rnd_bytes(void) {
 
     	retval = snd_rcv_usb_data(usbData->bulk_out_buffer, 1, buffRndIn, RND_IN_BUFFSIZE, USB_READ_TIMEOUT_SECS);
     	if (retval == SUCCESS) {
-    		rct_restart();
-    		apt_restart();
     		if (!disableStatisticalTests) {
+        		rct_restart();
+        		apt_restart();
     			test_samples();
     		}
     		if (is_post_processing_enabled() == true) {
