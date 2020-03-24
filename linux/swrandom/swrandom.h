@@ -1,11 +1,11 @@
 /*
  * swrandom.h
- * ver. 1.10
+ * ver. 1.20
  *
  */
 
 /*
- * SwiftRNG device driver - 1.10
+ * SwiftRNG device driver - 1.20
  *
  * Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
  *
@@ -86,7 +86,7 @@
 
 #define SUCCESS 0
 #define DEVICE_NAME "swrandom"
-#define DEVICE_VERSION "1.4"
+#define DEVICE_VERSION "1.5"
 
 #define WORD_SIZE_BYTES (4)
 #define MIN_INPUT_NUM_WORDS (8)
@@ -202,8 +202,9 @@ static struct usb_data {
 } *usbData;
 
 static struct usb_device_id usb_table[] = {
-		//Product ID 0x8110 is reserved and should only be used with TectroLabs Hardware RNG devices
+		//Product ID 0x8110 and 0x8111 are reserved and should only be used with TectroLabs Hardware RNG devices
 		{ USB_DEVICE(0x1fc9, 0x8110) },
+		{ USB_DEVICE(0x1fc9, 0x8111) },
 		{ }
 };
 MODULE_DEVICE_TABLE( usb, usb_table);
