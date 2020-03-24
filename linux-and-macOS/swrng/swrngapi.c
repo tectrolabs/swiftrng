@@ -273,7 +273,7 @@ static int swrng_chip_read_data(SwrngContext *ctxt, char *buff, int length, int 
 	cnt = 0;
 	do {
 #ifdef _WIN32
-		if (ctxt->usbComPort != NULL && ctxt->usbComPort->isConnected()) {
+		if (ctxt->usbComPort->isConnected()) {
 			retval = ctxt->usbComPort->receiveDeviceData(ctxt->bulk_in_buffer, length, &transferred);
 		}
 		else {
@@ -335,7 +335,7 @@ static int swrng_snd_rcv_usb_data(SwrngContext *ctxt, char *snd, int sizeSnd, ch
 
 	for (retry = 0; retry < SWRNG_USB_READ_MAX_RETRY_CNT; retry++) {
 #ifdef _WIN32
-		if (ctxt->usbComPort != NULL && ctxt->usbComPort->isConnected()) {
+		if (ctxt->usbComPort->isConnected()) {
 			retval = ctxt->usbComPort->sendCommand(snd, sizeSnd, &actualcCnt);
 		}
 		else {
@@ -385,6 +385,14 @@ int swrngOpen(SwrngContext *ctxt, int devNum) {
 	else {
 		swrng_contextReset(ctxt);
 	}
+
+#ifdef _WIN32
+	if (ctxt->usbComPort == NULL) {
+		ctxt->usbComPort = new USBComPort;
+		ctxt->usbComPort->initlalize();
+	}
+#endif
+
 
 	rct_initialize(ctxt);
 	apt_initialize(ctxt);
@@ -554,7 +562,7 @@ static void swrng_clearReceiverBuffer(SwrngContext *ctxt) {
 	for(i = 0; i < 10; i++) {
 
 #ifdef _WIN32
-		if (ctxt->usbComPort != NULL && ctxt->usbComPort->isConnected()) {
+		if (ctxt->usbComPort->isConnected()) {
 			retval = ctxt->usbComPort->receiveDeviceData(ctxt->bulk_in_buffer, SWRNG_RND_IN_BUFFSIZE + 1, &transferred);
 		}
 		else {
@@ -2063,11 +2071,6 @@ int swrngInitializeContext(SwrngContext *ctxt) {
 		ctxt->statisticalTestsEnabled = SWRNG_TRUE;
 		ctxt->postProcessingMethodId = SWRNG_SHA256_PP_METHOD;
 		ctxt->deviceEmbeddedCorrectionMethodId = SWRNG_EMB_CORR_METHOD_NONE;
-#ifdef _WIN32
-		ctxt->usbComPort = new USBComPort;
-		ctxt->usbComPort->initlalize();
-#endif
-
 		return SWRNG_SUCCESS;
 	}
 	return -1;
