@@ -37,6 +37,7 @@
 
 #if defined(_WIN32)
 	#include "libusb.h"
+	#include "USBComPort.h"
 #else
 	#include <libusb-1.0/libusb.h>
 #endif
@@ -57,6 +58,8 @@
 #define SWRNG_OUT_NUM_WORDS (8)
 #define SWRNG_TRND_OUT_BUFFSIZE (SWRNG_NUM_CHUNKS * SWRNG_OUT_NUM_WORDS * SWRNG_WORD_SIZE_BYTES)
 #define SWRNG_RND_IN_BUFFSIZE (SWRNG_NUM_CHUNKS * SWRNG_MIN_INPUT_NUM_WORDS * SWRNG_WORD_SIZE_BYTES)
+#define SWRNG_MAX_CDC_COM_PORTS (80)
+#define SWRNG_HDWARE_ID L"USB\\VID_1FC9&PID_8111"
 
  //
  // Structure definitions
@@ -175,8 +178,11 @@ typedef struct {
 	swrngBool statisticalTestsEnabled;
 	int postProcessingMethodId;	// 0 - SHA256 method, 1 - xorshift64 post processing method, 2 - SHA512 method
 	int deviceEmbeddedCorrectionMethodId;	// 0 - none, 1 - Linear correction (P. Lacharme)
-} SwrngContext;
+#ifdef _WIN32
+	USBComPort *usbComPort;
+#endif
 
+} SwrngContext;
 
 /**
  * Global function declaration section
