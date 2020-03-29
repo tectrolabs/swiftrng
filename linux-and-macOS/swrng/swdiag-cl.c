@@ -1,7 +1,7 @@
 #include "stdafx.h"
 /*
  * swdiag-cl.c
- * Ver. 1.6
+ * Ver. 2.0
  *
  */
 
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 	int clusterSize = 2;
 
 	printf("------------------------------------------------------------------------------\n");
-	printf("--- TectroLabs - swdiag-cl - SwiftRNG cluster diagnostics utility Ver 1.6  ---\n");
+	printf("--- TectroLabs - swdiag-cl - SwiftRNG cluster diagnostics utility Ver 2.0  ---\n");
 	printf("------------------------------------------------------------------------------\n");
 
 	setbuf(stdout, NULL);

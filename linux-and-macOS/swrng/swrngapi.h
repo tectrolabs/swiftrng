@@ -1,6 +1,6 @@
 /*
  * swrngapi.h
- * ver. 3.7
+ * ver. 4.0
  *
  */
 
