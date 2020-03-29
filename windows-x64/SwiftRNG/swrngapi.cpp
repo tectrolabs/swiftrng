@@ -2,7 +2,7 @@
 
 /*
  * swrngapi.c
- * ver. 3.7
+ * ver. 4.0
  *
  */
 
@@ -44,6 +44,7 @@
 #define SWRNG_LIBUSB_INIT_FAILURE "Failed to initialize libusb"
 #define SWRNG_VENDOR_ID (0x1fc9)
 #define SWRNG_PRODUCT_ID (0x8110)	// This product ID is only to be used with SwiftRNG device
+#define SWRNG_PRODUCT_ID2 (0x8111)	// This product ID is only to be used with SwiftRNG device
 #define SWRNG_BULK_EP_OUT     0x01
 #define SWRNG_BULK_EP_IN      0x81
 
@@ -122,6 +123,9 @@ static const uint8_t maxDataBlockSizeWords = 16;
 // Declarations for local functions
 //
 
+static void swrng_updateDevInfoList(DeviceInfoList* devInfoList, int* curFoundDevNum);
+static int swrng_handleDeviceVersion(SwrngContext* ctxt);
+static void swrng_contextReset(SwrngContext* ctxt);
 static void closeUSBLib(SwrngContext *ctxt);
 static swrngBool isContextInitialized(SwrngContext *ctxt);
 static void swrng_printErrorMessage(SwrngContext *ctxt, const char* errMsg);
@@ -179,9 +183,30 @@ int swrngClose(SwrngContext *ctxt) {
 		return -1;
 	}
 
+#ifdef _WIN32
+	if (ctxt->usbComPort != NULL) {
+		ctxt->usbComPort->disconnect();
+		delete ctxt->usbComPort;
+		ctxt->usbComPort = NULL;
+	}
+#endif
 	closeUSBLib(ctxt);
 	ctxt->deviceOpen = SWRNG_FALSE;
 	return SWRNG_SUCCESS;
+}
+
+static void swrng_contextReset(SwrngContext* ctxt) {
+	if (isContextInitialized(ctxt) == SWRNG_FALSE) {
+		return;
+	}
+#ifdef _WIN32
+	if (ctxt->usbComPort != NULL) {
+		ctxt->usbComPort->disconnect();
+	}
+#endif
+	closeUSBLib(ctxt);
+	strcpy(ctxt->lastError, "");
+	ctxt->deviceOpen = SWRNG_FALSE;
 }
 
 /**
@@ -247,8 +272,16 @@ static int swrng_chip_read_data(SwrngContext *ctxt, char *buff, int length, int 
 
 	cnt = 0;
 	do {
-		retval = libusb_bulk_transfer(ctxt->devh, SWRNG_BULK_EP_IN, ctxt->bulk_in_buffer, length,
-				&transferred, SWRNG_USB_BULK_READ_TIMEOUT_MLSECS);
+#ifdef _WIN32
+		if (ctxt->usbComPort->isConnected()) {
+			retval = ctxt->usbComPort->receiveDeviceData(ctxt->bulk_in_buffer, length, &transferred);
+		}
+		else {
+#endif
+			retval = libusb_bulk_transfer(ctxt->devh, SWRNG_BULK_EP_IN, ctxt->bulk_in_buffer, length, &transferred, SWRNG_USB_BULK_READ_TIMEOUT_MLSECS);
+#ifdef _WIN32
+		}
+#endif
 
 #ifdef inDebugMode
 		fprintf(stderr, "chip_read_data retval %d transferred %d, length %d\n", retval, transferred, length);
@@ -301,8 +334,16 @@ static int swrng_snd_rcv_usb_data(SwrngContext *ctxt, char *snd, int sizeSnd, ch
 	int retval = SWRNG_SUCCESS;
 
 	for (retry = 0; retry < SWRNG_USB_READ_MAX_RETRY_CNT; retry++) {
-		retval = libusb_bulk_transfer(ctxt->devh, SWRNG_BULK_EP_OUT, (unsigned char*) snd,
-				sizeSnd, &actualcCnt, 100);
+#ifdef _WIN32
+		if (ctxt->usbComPort->isConnected()) {
+			retval = ctxt->usbComPort->sendCommand((unsigned char*)snd, sizeSnd, &actualcCnt);
+		}
+		else {
+#endif
+			retval = libusb_bulk_transfer(ctxt->devh, SWRNG_BULK_EP_OUT, (unsigned char*)snd, sizeSnd, &actualcCnt, 100);
+#ifdef _WIN32
+		}
+#endif
 		if (retval == SWRNG_SUCCESS && actualcCnt == sizeSnd) {
 			retval = swrng_chip_read_data(ctxt, rcv, sizeRcv + 1, opTimeoutSecs);
 			if (retval == SWRNG_SUCCESS) {
@@ -332,19 +373,26 @@ static int swrng_snd_rcv_usb_data(SwrngContext *ctxt, char *snd, int sizeSnd, ch
  * Open SwiftRNG USB specific device.
  *
  * @param ctxt - pointer to SwrngContext structure
- * @param int deviceNum - device number (0 - for the first device or when there is only one device connected)
+ * @param int devNum - device number (0 - for the first device or when there is only one device connected)
  * @return int 0 - when open successfully or error code
  */
-int swrngOpen(SwrngContext *ctxt, int deviceNum) {
-	int status;
+int swrngOpen(SwrngContext *ctxt, int devNum) {
 	int ret;
+	int actualDeviceNum = devNum;
 	if (isContextInitialized(ctxt) == SWRNG_FALSE) {
 		swrngInitializeContext(ctxt);
 	}
 	else {
-		strcpy(ctxt->lastError, "");
-		swrngClose(ctxt);
+		swrng_contextReset(ctxt);
 	}
+
+#ifdef _WIN32
+	if (ctxt->usbComPort == NULL) {
+		ctxt->usbComPort = new USBComPort;
+		ctxt->usbComPort->initlalize();
+	}
+#endif
+
 
 	rct_initialize(ctxt);
 	apt_initialize(ctxt);
@@ -365,6 +413,28 @@ int swrngOpen(SwrngContext *ctxt, int deviceNum) {
 		return -EPERM;
 	}
 
+#if defined(_WIN32)
+	int portsConnected;
+	int ports[SWRNG_MAX_CDC_COM_PORTS];
+	// Retrieve devices connected as USB CDC in Windows
+	ctxt->usbComPort->getConnectedPorts(ports, SWRNG_MAX_CDC_COM_PORTS, &portsConnected, SWRNG_HDWARE_ID);
+	if (portsConnected > devNum) {
+		WCHAR portName[80];
+		ctxt->usbComPort->toPortName(ports[devNum], portName, 80);
+		bool comPortStatus = ctxt->usbComPort->connect(portName);
+		if (!comPortStatus) {
+			swrng_printErrorMessage(ctxt, ctxt->usbComPort->getLastErrMsg());
+			return -1;
+		}
+		else {
+			return swrng_handleDeviceVersion(ctxt);
+		}
+	}
+	else {
+		actualDeviceNum -= portsConnected;
+	}
+#endif
+
 	if (ctxt->libusbInitialized == SWRNG_FALSE) {
 		int r = libusb_init(&ctxt->luctx);
 		if (r < 0) {
@@ -374,13 +444,14 @@ int swrngOpen(SwrngContext *ctxt, int deviceNum) {
 		}
 		ctxt->libusbInitialized = SWRNG_TRUE;
 	}
+
+	int curFoundDevNum = -1;
 	ssize_t cnt = libusb_get_device_list(ctxt->luctx, &ctxt->devs);
 	if (cnt < 0) {
 		closeUSBLib(ctxt);
 		return cnt;
 	}
 	int i = 0;
-	int curFoundDevNum = -1;
 	while ((ctxt->dev = ctxt->devs[i++]) != NULL) {
 		struct libusb_device_descriptor desc;
 		ret = libusb_get_device_descriptor(ctxt->dev, &desc);
@@ -391,8 +462,12 @@ int swrngOpen(SwrngContext *ctxt, int deviceNum) {
 		}
 		uint16_t idVendorCur = desc.idVendor;
 		uint16_t idProductCur = desc.idProduct;
+#if defined(_WIN32)
 		if (idVendorCur == SWRNG_VENDOR_ID && idProductCur == SWRNG_PRODUCT_ID) {
-			if (++curFoundDevNum == deviceNum) {
+#else
+		if (idVendorCur == SWRNG_VENDOR_ID && (idProductCur == SWRNG_PRODUCT_ID || idProductCur == SWRNG_PRODUCT_ID2)) {
+#endif
+			if (++curFoundDevNum == actualDeviceNum) {
 				ret = libusb_open(ctxt->dev, &ctxt->devh);
 				switch (ret) {
 				case LIBUSB_ERROR_NO_MEM:
@@ -415,9 +490,11 @@ int swrngOpen(SwrngContext *ctxt, int deviceNum) {
 				}
 
 				if (libusb_kernel_driver_active(ctxt->devh, 0) == 1) { //find out if kernel driver is attached
-					closeUSBLib(ctxt);
-					swrng_printErrorMessage(ctxt, "Device is already in use");
-					return -1;
+					if (libusb_detach_kernel_driver(ctxt->devh, 0) != 0) {
+						closeUSBLib(ctxt);
+						swrng_printErrorMessage(ctxt, "Could not detach kernel driver");
+						return -1;
+					}
 				}
 				
 				ret = libusb_claim_interface(ctxt->devh, 0);
@@ -427,44 +504,51 @@ int swrngOpen(SwrngContext *ctxt, int deviceNum) {
 					return ret;
 				}
 				
-
-				// Clear the receive buffer
-				swrng_clearReceiverBuffer(ctxt);
-				ctxt->deviceOpen = SWRNG_TRUE;
-
-				// Retrieve device version number
-				status = swrngGetVersion(ctxt, &ctxt->curDeviceVersion);
-				if (status != SWRNG_SUCCESS) {
-					closeUSBLib(ctxt);
-					return status;
-				}
-				ctxt->deviceVersionDouble = atof((char*)&ctxt->curDeviceVersion + 1);
-
-				if (ctxt->deviceVersionDouble >= 2.0) {
-					// By default, disable post processing for devices with versions 2.0+
-					ctxt->postProcessingEnabled = SWRNG_FALSE;
-					if (ctxt->deviceVersionDouble >= 3.0) {
-						// SwiftRNG Z devices use built-in 'P. Lacharme' Linear Correction method
-						ctxt->deviceEmbeddedCorrectionMethodId = SWRNG_EMB_CORR_METHOD_LINEAR;
-					}
-				} else {
-					// Adjust APT and RCT tests to count for BIAS with older devices.
-					// All tests are performed now before applying post-processing to comply
-					// with NIST SP 800-90B (second draft)
-					if (ctxt->deviceVersionDouble == 1.1) {
-						ctxt->numFailuresThreshold = 6;
-					} else if (ctxt->deviceVersionDouble == 1.0) {
-						ctxt->numFailuresThreshold = 9;
-					}
-				}
-
-				return SWRNG_SUCCESS;
+				return swrng_handleDeviceVersion(ctxt);
 			}
 		}
 	}
 	closeUSBLib(ctxt);
 	swrng_printErrorMessage(ctxt, "Could not find any SwiftRNG device");
 	return -1;
+}
+
+static int swrng_handleDeviceVersion(SwrngContext* ctxt) {
+	int status;
+
+	// Clear the receive buffer
+	swrng_clearReceiverBuffer(ctxt);
+	ctxt->deviceOpen = SWRNG_TRUE;
+
+	// Retrieve device version number
+	status = swrngGetVersion(ctxt, &ctxt->curDeviceVersion);
+	if (status != SWRNG_SUCCESS) {
+		closeUSBLib(ctxt);
+		return status;
+	}
+	ctxt->deviceVersionDouble = atof((char*)&ctxt->curDeviceVersion + 1);
+
+	if (ctxt->deviceVersionDouble >= 2.0) {
+		// By default, disable post processing for devices with versions 2.0+
+		ctxt->postProcessingEnabled = SWRNG_FALSE;
+		if (ctxt->deviceVersionDouble >= 3.0) {
+			// SwiftRNG Z devices use built-in 'P. Lacharme' Linear Correction method
+			ctxt->deviceEmbeddedCorrectionMethodId = SWRNG_EMB_CORR_METHOD_LINEAR;
+		}
+	}
+	else {
+		// Adjust APT and RCT tests to count for BIAS with older devices.
+		// All tests are performed now before applying post-processing to comply
+		// with NIST SP 800-90B (second draft)
+		if (ctxt->deviceVersionDouble == 1.1) {
+			ctxt->numFailuresThreshold = 6;
+		}
+		else if (ctxt->deviceVersionDouble == 1.0) {
+			ctxt->numFailuresThreshold = 9;
+		}
+	}
+
+	return SWRNG_SUCCESS;
 }
 
 /**
@@ -476,8 +560,20 @@ static void swrng_clearReceiverBuffer(SwrngContext *ctxt) {
 	int retval;
 	int i;
 	for(i = 0; i < 10; i++) {
-		retval = libusb_bulk_transfer(ctxt->devh, SWRNG_BULK_EP_IN, ctxt->bulk_in_buffer, SWRNG_RND_IN_BUFFSIZE + 1,
-			&transferred, SWRNG_USB_BULK_READ_TIMEOUT_MLSECS);
+
+#ifdef _WIN32
+		if (ctxt->usbComPort->isConnected()) {
+			retval = ctxt->usbComPort->receiveDeviceData(ctxt->bulk_in_buffer, SWRNG_RND_IN_BUFFSIZE + 1, &transferred);
+		}
+		else {
+#endif
+			retval = libusb_bulk_transfer(ctxt->devh, SWRNG_BULK_EP_IN, ctxt->bulk_in_buffer, SWRNG_RND_IN_BUFFSIZE + 1, &transferred, SWRNG_USB_BULK_READ_TIMEOUT_MLSECS);
+#ifdef _WIN32
+		}
+#endif
+
+
+
 		if (retval) {
 			break;
 		} if (transferred == 0) {
@@ -838,13 +934,26 @@ int swrngGetDeviceList(SwrngContext *ctxt, DeviceInfoList *devInfoList) {
 	}
 	
 	memset((void*) devInfoList, 0, sizeof(DeviceInfoList));
+
+	int curFoundDevNum = 0;
+
+#if defined(_WIN32)
+	USBComPort usbComPort;
+	int portsConnected;
+	int ports[SWRNG_MAX_CDC_COM_PORTS];
+	// Add devices connected as USB CDC in Windows
+	usbComPort.getConnectedPorts(ports, SWRNG_MAX_CDC_COM_PORTS, &portsConnected, SWRNG_HDWARE_ID);
+	while (portsConnected-- > 0) {
+		swrng_updateDevInfoList(devInfoList, &curFoundDevNum);
+	}
+#endif
+
 	ssize_t cnt = libusb_get_device_list(NULL, &devs);
 	if (cnt < 0) {
 		closeUSBLib(ctxt);
 		return cnt;
 	}
 	int i = -1;
-	int curFoundDevNum = 0;
 	while ((dev = devs[++i]) != NULL) {
 		if (i > 127) {
 			libusb_free_device_list(devs, 1);
@@ -863,26 +972,32 @@ int swrngGetDeviceList(SwrngContext *ctxt, DeviceInfoList *devInfoList) {
 		}
 		uint16_t idVendorCur = desc.idVendor;
 		uint16_t idProductCur = desc.idProduct;
+#if defined(_WIN32)
 		if (idVendorCur == SWRNG_VENDOR_ID && idProductCur == SWRNG_PRODUCT_ID) {
-			devInfoList->devInfoList[curFoundDevNum].devNum = curFoundDevNum;
-			SwrngContext localCtxt;
-			swrngInitializeContext(&localCtxt);
-			if (swrngOpen(&localCtxt, curFoundDevNum) == 0) {
-				swrngGetModel(&localCtxt, &devInfoList->devInfoList[curFoundDevNum].dm);
-				swrngGetVersion(&localCtxt, &devInfoList->devInfoList[curFoundDevNum].dv);
-				swrngGetSerialNumber(&localCtxt,
-						&devInfoList->devInfoList[curFoundDevNum].sn);
-			}
-			swrngClose(&localCtxt);
-			devInfoList->numDevs++;
-			curFoundDevNum++;
+#else
+		if (idVendorCur == SWRNG_VENDOR_ID && (idProductCur == SWRNG_PRODUCT_ID || idProductCur == SWRNG_PRODUCT_ID2)) {
+#endif
+			swrng_updateDevInfoList(devInfoList, &curFoundDevNum);
 		}
 	}
 	libusb_free_device_list(devs, 1);
-	
 	closeUSBLib(ctxt);
-	
 	return 0;
+}
+
+static void swrng_updateDevInfoList(DeviceInfoList* devInfoList, int *curFoundDevNum) {
+	devInfoList->devInfoList[*curFoundDevNum].devNum = *curFoundDevNum;
+	SwrngContext localCtxt;
+	swrngInitializeContext(&localCtxt);
+	if (swrngOpen(&localCtxt, *curFoundDevNum) == 0) {
+		swrngGetModel(&localCtxt, &devInfoList->devInfoList[*curFoundDevNum].dm);
+		swrngGetVersion(&localCtxt, &devInfoList->devInfoList[*curFoundDevNum].dv);
+		swrngGetSerialNumber(&localCtxt,
+			&devInfoList->devInfoList[*curFoundDevNum].sn);
+	}
+	swrngClose(&localCtxt);
+	devInfoList->numDevs++;
+	(*curFoundDevNum)++;
 }
 
 /**

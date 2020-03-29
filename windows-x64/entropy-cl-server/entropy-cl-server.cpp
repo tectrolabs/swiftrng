@@ -2,7 +2,7 @@
 
 /*
 * entropy-cl-server.cpp
-* Ver. 1.2
+* Ver. 2.0
 *
 */
 
@@ -35,7 +35,7 @@ This program may only be used in conjunction with SwiftRNG devices.
 */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   SwiftRNG entropy-cl-server Ver 1.2  \n");
+	printf("                   SwiftRNG entropy-cl-server Ver 2.0  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     entropy-cl-server - An application server for distributing random bytes \n");

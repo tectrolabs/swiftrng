@@ -1,6 +1,6 @@
 /*
 * entropy-cl-server.h
-* Ver. 1.2
+* Ver. 2.0
 *
 */
 

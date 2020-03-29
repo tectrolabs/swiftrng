@@ -336,7 +336,7 @@ static int swrng_snd_rcv_usb_data(SwrngContext *ctxt, char *snd, int sizeSnd, ch
 	for (retry = 0; retry < SWRNG_USB_READ_MAX_RETRY_CNT; retry++) {
 #ifdef _WIN32
 		if (ctxt->usbComPort->isConnected()) {
-			retval = ctxt->usbComPort->sendCommand(snd, sizeSnd, &actualcCnt);
+			retval = ctxt->usbComPort->sendCommand((unsigned char*)snd, sizeSnd, &actualcCnt);
 		}
 		else {
 #endif
