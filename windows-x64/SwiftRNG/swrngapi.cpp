@@ -389,7 +389,7 @@ int swrngOpen(SwrngContext *ctxt, int devNum) {
 #ifdef _WIN32
 	if (ctxt->usbComPort == NULL) {
 		ctxt->usbComPort = new USBComPort;
-		ctxt->usbComPort->initlalize();
+		ctxt->usbComPort->initilalize();
 	}
 #endif
 

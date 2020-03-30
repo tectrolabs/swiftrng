@@ -10,7 +10,7 @@ Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
-This class implements the access to a SwiftRNG device over CDC USB interface on Windows platform.
+This class implements access to a SwiftRNG device over CDC USB interface on Windows platform.
 
 This class may only be used in conjunction with TectroLabs devices.
 
@@ -43,7 +43,7 @@ private:
 public:
 	USBComPort();
 	~USBComPort();
-	void initlalize();
+	void initilalize();
 	bool isConnected();
 	bool connect(WCHAR *comPort);
 	bool disconnect();

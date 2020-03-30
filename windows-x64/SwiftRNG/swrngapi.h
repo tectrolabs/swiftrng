@@ -203,10 +203,10 @@ int swrngInitializeContext(SwrngContext *ctxt);
 * Open SwiftRNG USB specific device.
 *
 * @param ctxt - pointer to SwrngContext structure
-* @param int deviceNum - device number (0 - for the first device or only one device)
+* @param int devNum - device number (0 - for the first device or only one device)
 * @return int 0 - when open successfully or error code
 */
-int swrngOpen(SwrngContext *ctxt, int deviceNum);
+int swrngOpen(SwrngContext *ctxt, int devNum);
 
 /**
 * Close device if open

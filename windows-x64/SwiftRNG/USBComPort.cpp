@@ -11,7 +11,7 @@ Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
-This class implements the access to a SwiftRNG device over CDC USB interface on Windows platform.
+This class implements access to a SwiftRNG device over CDC USB interface on Windows platform.
 
 This class may only be used in conjunction with TectroLabs devices.
 
@@ -27,7 +27,7 @@ USBComPort::USBComPort()
 	clearErrMsg();
 }
 
-void USBComPort::initlalize() {
+void USBComPort::initilalize() {
 	disconnect();
 }
 
@@ -155,14 +155,14 @@ int USBComPort::sendCommand(unsigned char *snd, int sizeSnd, int *bytesSend) {
 *
 */
 int USBComPort::receiveDeviceData(unsigned char *rcv, int sizeRcv, int *bytesReveived) {
-	DWORD actualButesReceived;
+	DWORD actualBytesReceived;
 	int retStatus = -1;
 	if (!this->isConnected()) {
 		return false;
 	}
 
-	BOOL status = ReadFile(this->cdcUsbDevHandle, (void *)rcv, sizeRcv, &actualButesReceived, NULL);
-	*bytesReveived = (int)actualButesReceived;
+	BOOL status = ReadFile(this->cdcUsbDevHandle, (void *)rcv, sizeRcv, &actualBytesReceived, NULL);
+	*bytesReveived = (int)actualBytesReceived;
 	if (!status || *bytesReveived != sizeRcv) {
 		if (status && *bytesReveived != sizeRcv) {
 			retStatus = -7; // Time out
