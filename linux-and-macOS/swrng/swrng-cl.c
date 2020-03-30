@@ -68,7 +68,7 @@ int displayDevices() {
  */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("             TectroLabs - swrng-cl - cluster download utility Ver 2.4          \n");
+	printf("             TectroLabs - swrng-cl - cluster download utility Ver 3.0          \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng-cl - Download true random bytes from a cluster of SwiftRNG devices\n");

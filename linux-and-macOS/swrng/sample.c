@@ -1,7 +1,7 @@
 #include "stdafx.h"
 /*
  * sample.c
- * Ver. 2.2
+ * Ver. 2.3
  *
  * This is a sample C program that demonstrates how to retrieve random bytes
  * from a SwiftRNG using 'swrngapi' API for C language.

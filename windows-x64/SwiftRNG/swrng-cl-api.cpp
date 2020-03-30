@@ -2,7 +2,7 @@
 
 /*
  * swrng-cl-api.c
- * Ver. 1.11
+ * Ver. 2.0
  *
  */
 

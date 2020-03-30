@@ -202,7 +202,7 @@ static struct usb_data {
 } *usbData;
 
 static struct usb_device_id usb_table[] = {
-		//Product ID 0x8110 is reserved and should only be used with TectroLabs Hardware RNG devices
+		//Product ID 0x8110 and 0x8111 are reserved and should only be used with TectroLabs Hardware RNG devices
 		{ USB_DEVICE(0x1fc9, 0x8110) },
 		{ }
 };

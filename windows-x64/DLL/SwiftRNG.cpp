@@ -1,6 +1,6 @@
 /*
  * SwiftRNG.cpp
- * ver. 1.5
+ * ver. 2.0
  *
  */
 
@@ -114,6 +114,7 @@ static BOOL lockGlobalMutext() {
 	case WAIT_ABANDONED:
 		return FALSE;
 	}
+	return FALSE;
 }
 
 /**
