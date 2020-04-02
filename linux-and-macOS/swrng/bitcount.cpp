@@ -1,6 +1,6 @@
 #include "stdafx.h"
 /*
- * bitcount.c
+ * bitcount.cpp
  * Ver. 3.0
  *
  * A C program for counting '1' and '0' bits retrieved from SwiftRNG device or from a file

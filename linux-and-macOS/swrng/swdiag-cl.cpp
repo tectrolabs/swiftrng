@@ -1,6 +1,6 @@
 #include "stdafx.h"
 /*
- * swdiag-cl.c
+ * swdiag-cl.cpp
  * Ver. 2.0
  *
  */

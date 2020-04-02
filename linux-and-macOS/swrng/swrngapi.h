@@ -35,11 +35,12 @@
 #include <stdio.h>
 #include <errno.h>
 
-#if defined(_WIN32)
+#if defined _WIN32
 	#include "libusb.h"
 	#include "USBComPort.h"
 #else
 	#include <libusb-1.0/libusb.h>
+	#include "USBSerialDevice.h"
 #endif
 
 #define swrngBool int
@@ -180,6 +181,8 @@ typedef struct {
 	int deviceEmbeddedCorrectionMethodId;	// 0 - none, 1 - Linear correction (P. Lacharme)
 #ifdef _WIN32
 	USBComPort *usbComPort;
+#else
+	USBSerialDevice *usbSerialDevice;
 #endif
 
 } SwrngContext;

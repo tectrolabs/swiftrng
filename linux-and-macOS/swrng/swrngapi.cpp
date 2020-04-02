@@ -1,7 +1,7 @@
 #include "stdafx.h"
 
 /*
- * swrngapi.c
+ * swrngapi.cpp
  * ver. 4.0
  *
  */
@@ -44,7 +44,7 @@
 #define SWRNG_LIBUSB_INIT_FAILURE "Failed to initialize libusb"
 #define SWRNG_VENDOR_ID (0x1fc9)
 #define SWRNG_PRODUCT_ID (0x8110)	// This product ID is only to be used with SwiftRNG device
-#define SWRNG_PRODUCT_ID2 (0x8111)	// This product ID is only to be used with SwiftRNG device
+#define SWRNG_CDC_PRODUCT_ID (0x8111)	// This product ID is only to be used with SwiftRNG device
 #define SWRNG_BULK_EP_OUT     0x01
 #define SWRNG_BULK_EP_IN      0x81
 
@@ -189,6 +189,12 @@ int swrngClose(SwrngContext *ctxt) {
 		delete ctxt->usbComPort;
 		ctxt->usbComPort = NULL;
 	}
+#else
+	if (ctxt->usbSerialDevice != NULL) {
+		ctxt->usbSerialDevice->disconnect();
+		delete ctxt->usbSerialDevice;
+		ctxt->usbSerialDevice = NULL;
+	}
 #endif
 	closeUSBLib(ctxt);
 	ctxt->deviceOpen = SWRNG_FALSE;
@@ -202,6 +208,10 @@ static void swrng_contextReset(SwrngContext* ctxt) {
 #ifdef _WIN32
 	if (ctxt->usbComPort != NULL) {
 		ctxt->usbComPort->disconnect();
+	}
+#else
+	if (ctxt->usbSerialDevice != NULL) {
+		ctxt->usbSerialDevice->disconnect();
 	}
 #endif
 	closeUSBLib(ctxt);
@@ -277,9 +287,16 @@ static int swrng_chip_read_data(SwrngContext *ctxt, char *buff, int length, int 
 			retval = ctxt->usbComPort->receiveDeviceData(ctxt->bulk_in_buffer, length, &transferred);
 		}
 		else {
+#else
+		if (ctxt->usbSerialDevice->isConnected()) {
+			retval = ctxt->usbSerialDevice->receiveDeviceData(ctxt->bulk_in_buffer, length, &transferred);
+		}
+		else {
 #endif
 			retval = libusb_bulk_transfer(ctxt->devh, SWRNG_BULK_EP_IN, ctxt->bulk_in_buffer, length, &transferred, SWRNG_USB_BULK_READ_TIMEOUT_MLSECS);
 #ifdef _WIN32
+		}
+#else
 		}
 #endif
 
@@ -339,9 +356,16 @@ static int swrng_snd_rcv_usb_data(SwrngContext *ctxt, char *snd, int sizeSnd, ch
 			retval = ctxt->usbComPort->sendCommand((unsigned char*)snd, sizeSnd, &actualcCnt);
 		}
 		else {
+#else
+		if (ctxt->usbSerialDevice->isConnected()) {
+			retval = ctxt->usbSerialDevice->sendCommand((unsigned char*)snd, sizeSnd, &actualcCnt);
+		}
+		else {
 #endif
 			retval = libusb_bulk_transfer(ctxt->devh, SWRNG_BULK_EP_OUT, (unsigned char*)snd, sizeSnd, &actualcCnt, 100);
 #ifdef _WIN32
+		}
+#else
 		}
 #endif
 		if (retval == SWRNG_SUCCESS && actualcCnt == sizeSnd) {
@@ -389,8 +413,14 @@ int swrngOpen(SwrngContext *ctxt, int devNum) {
 #ifdef _WIN32
 	if (ctxt->usbComPort == NULL) {
 		ctxt->usbComPort = new USBComPort;
-		ctxt->usbComPort->initilalize();
+		ctxt->usbComPort->initialize();
 	}
+#else
+	if (ctxt->usbSerialDevice == NULL) {
+		ctxt->usbSerialDevice = new USBSerialDevice;
+		ctxt->usbSerialDevice->initialize();
+	}
+
 #endif
 
 
@@ -433,6 +463,25 @@ int swrngOpen(SwrngContext *ctxt, int devNum) {
 	else {
 		actualDeviceNum -= portsConnected;
 	}
+#else
+	// Retrieve devices connected as USB CDC in Linux/macOS
+	ctxt->usbSerialDevice->scanForConnectedDevices();
+	int portsConnected = ctxt->usbSerialDevice->getConnectedDeviceCount();
+	if (portsConnected > devNum) {
+		char devicePath[128];
+		ctxt->usbSerialDevice->retrieveConnectedDevice(devicePath, devNum);
+		bool comPortStatus = ctxt->usbSerialDevice->connect(devicePath);
+		if (!comPortStatus) {
+			swrng_printErrorMessage(ctxt, ctxt->usbSerialDevice->getLastErrMsg());
+			return -1;
+		}
+		else {
+			return swrng_handleDeviceVersion(ctxt);
+		}
+	}
+	else {
+		actualDeviceNum -= portsConnected;
+	}
 #endif
 
 	if (ctxt->libusbInitialized == SWRNG_FALSE) {
@@ -462,11 +511,7 @@ int swrngOpen(SwrngContext *ctxt, int devNum) {
 		}
 		uint16_t idVendorCur = desc.idVendor;
 		uint16_t idProductCur = desc.idProduct;
-#if defined(_WIN32)
 		if (idVendorCur == SWRNG_VENDOR_ID && idProductCur == SWRNG_PRODUCT_ID) {
-#else
-		if (idVendorCur == SWRNG_VENDOR_ID && (idProductCur == SWRNG_PRODUCT_ID || idProductCur == SWRNG_PRODUCT_ID2)) {
-#endif
 			if (++curFoundDevNum == actualDeviceNum) {
 				ret = libusb_open(ctxt->dev, &ctxt->devh);
 				switch (ret) {
@@ -490,11 +535,9 @@ int swrngOpen(SwrngContext *ctxt, int devNum) {
 				}
 
 				if (libusb_kernel_driver_active(ctxt->devh, 0) == 1) { //find out if kernel driver is attached
-					if (libusb_detach_kernel_driver(ctxt->devh, 0) != 0) {
-						closeUSBLib(ctxt);
-						swrng_printErrorMessage(ctxt, "Could not detach kernel driver");
-						return -1;
-					}
+					closeUSBLib(ctxt);
+					swrng_printErrorMessage(ctxt, "Device is already in use by kernel driver");
+					return -1;
 				}
 				
 				ret = libusb_claim_interface(ctxt->devh, 0);
@@ -559,16 +602,24 @@ static void swrng_clearReceiverBuffer(SwrngContext *ctxt) {
 	int transferred;
 	int retval;
 	int i;
-	for(i = 0; i < 10; i++) {
+	for(i = 0; i < 3; i++) {
 
 #ifdef _WIN32
 		if (ctxt->usbComPort->isConnected()) {
 			retval = ctxt->usbComPort->receiveDeviceData(ctxt->bulk_in_buffer, SWRNG_RND_IN_BUFFSIZE + 1, &transferred);
 		}
 		else {
+#else
+		if (ctxt->usbSerialDevice->isConnected()) {
+			retval = ctxt->usbSerialDevice->receiveDeviceData(ctxt->bulk_in_buffer, SWRNG_RND_IN_BUFFSIZE + 1, &transferred);
+		}
+		else {
+
 #endif
 			retval = libusb_bulk_transfer(ctxt->devh, SWRNG_BULK_EP_IN, ctxt->bulk_in_buffer, SWRNG_RND_IN_BUFFSIZE + 1, &transferred, SWRNG_USB_BULK_READ_TIMEOUT_MLSECS);
 #ifdef _WIN32
+		}
+#else
 		}
 #endif
 
@@ -946,6 +997,14 @@ int swrngGetDeviceList(SwrngContext *ctxt, DeviceInfoList *devInfoList) {
 	while (portsConnected-- > 0) {
 		swrng_updateDevInfoList(devInfoList, &curFoundDevNum);
 	}
+#else
+	USBSerialDevice usbSerialDevice;
+	// Add devices connected as USB CDC in Linux/macOS
+	usbSerialDevice.scanForConnectedDevices();
+	int portsConnected = usbSerialDevice.getConnectedDeviceCount();
+	while (portsConnected-- > 0) {
+		swrng_updateDevInfoList(devInfoList, &curFoundDevNum);
+	}
 #endif
 
 	ssize_t cnt = libusb_get_device_list(NULL, &devs);
@@ -972,11 +1031,7 @@ int swrngGetDeviceList(SwrngContext *ctxt, DeviceInfoList *devInfoList) {
 		}
 		uint16_t idVendorCur = desc.idVendor;
 		uint16_t idProductCur = desc.idProduct;
-#if defined(_WIN32)
 		if (idVendorCur == SWRNG_VENDOR_ID && idProductCur == SWRNG_PRODUCT_ID) {
-#else
-		if (idVendorCur == SWRNG_VENDOR_ID && (idProductCur == SWRNG_PRODUCT_ID || idProductCur == SWRNG_PRODUCT_ID2)) {
-#endif
 			swrng_updateDevInfoList(devInfoList, &curFoundDevNum);
 		}
 	}

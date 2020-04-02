@@ -28,41 +28,41 @@ SWRNG_PSERVER = run-swrng-pserver.sh
 
 all: $(SWRNG) $(SWRNG_CL) $(SAMPLE_PROGR) $(SWDIAG) $(SWDIAG_CL) $(SWPERFTEST) $(SAMPLE_CL_PROGR) $(SWPERF_CL_TEST) $(BITCOUNT) $(BITCOUNT_CL) $(SWRNGSEQGEN) $(SWRAWRANDOM)
 
-$(SWRNG): swrng.c
-	$(CC) swrng.c swrngapi.c -o $(SWRNG) $(CFLAGS)
+$(SWRNG): swrng.cpp
+	$(CC) swrng.cpp swrngapi.cpp USBSerialDevice.cpp -o $(SWRNG) $(CFLAGS) $(CPPFLAGS)
 
-$(SWRNG_CL): swrng-cl.c
-	$(CC) swrng-cl.c swrngapi.c swrng-cl-api.c -o $(SWRNG_CL) $(CFLAGS) $(CFLAGS_THREAD)
+$(SWRNG_CL): swrng-cl.cpp
+	$(CC) swrng-cl.cpp swrngapi.cpp USBSerialDevice.cpp swrng-cl-api.cpp -o $(SWRNG_CL) $(CFLAGS) $(CFLAGS_THREAD) $(CPPFLAGS)
 
-$(SAMPLE_PROGR): sample.c
-	$(CC) sample.c swrngapi.c -o $(SAMPLE_PROGR) $(CFLAGS)
+$(SAMPLE_PROGR): sample.cpp
+	$(CC) sample.cpp swrngapi.cpp USBSerialDevice.cpp -o $(SAMPLE_PROGR) $(CFLAGS) $(CPPFLAGS)
 
-$(SAMPLE_CL_PROGR): sample-cl.c
-	$(CC) sample-cl.c swrngapi.c swrng-cl-api.c -o $(SAMPLE_CL_PROGR) $(CFLAGS) $(CFLAGS_THREAD)
+$(SAMPLE_CL_PROGR): sample-cl.cpp
+	$(CC) sample-cl.cpp swrngapi.cpp USBSerialDevice.cpp swrng-cl-api.cpp -o $(SAMPLE_CL_PROGR) $(CFLAGS) $(CFLAGS_THREAD) $(CPPFLAGS)
 
-$(SWPERFTEST): swperftest.c
-	$(CC) swperftest.c swrngapi.c -o $(SWPERFTEST) $(CFLAGS)
+$(SWPERFTEST): swperftest.cpp
+	$(CC) swperftest.cpp swrngapi.cpp USBSerialDevice.cpp -o $(SWPERFTEST) $(CFLAGS) $(CPPFLAGS)
 
-$(SWPERF_CL_TEST): swperf-cl-test.c
-	$(CC) swperf-cl-test.c swrngapi.c swrng-cl-api.c -o $(SWPERF_CL_TEST) $(CFLAGS) $(CFLAGS_THREAD)
+$(SWPERF_CL_TEST): swperf-cl-test.cpp
+	$(CC) swperf-cl-test.cpp swrngapi.cpp USBSerialDevice.cpp swrng-cl-api.cpp -o $(SWPERF_CL_TEST) $(CFLAGS) $(CFLAGS_THREAD) $(CPPFLAGS)
 
-$(SWDIAG): swdiag.c
-	$(CC) swdiag.c swrngapi.c -o $(SWDIAG) $(CFLAGS) -lm
+$(SWDIAG): swdiag.cpp
+	$(CC) swdiag.cpp swrngapi.cpp USBSerialDevice.cpp -o $(SWDIAG) $(CFLAGS) -lm $(CPPFLAGS)
 
-$(SWDIAG_CL): swdiag-cl.c
-	$(CC) swdiag-cl.c swrngapi.c swrng-cl-api.c -o $(SWDIAG_CL) $(CFLAGS) $(CFLAGS_THREAD) -lm
+$(SWDIAG_CL): swdiag-cl.cpp
+	$(CC) swdiag-cl.cpp swrngapi.cpp USBSerialDevice.cpp swrng-cl-api.cpp -o $(SWDIAG_CL) $(CFLAGS) $(CFLAGS_THREAD) -lm $(CPPFLAGS)
 
-$(BITCOUNT): bitcount.c
-	$(CC) bitcount.c swrngapi.c -o $(BITCOUNT) $(CFLAGS)
+$(BITCOUNT): bitcount.cpp
+	$(CC) bitcount.cpp swrngapi.cpp USBSerialDevice.cpp -o $(BITCOUNT) $(CFLAGS) $(CPPFLAGS)
 
-$(BITCOUNT_CL): bitcount-cl.c
-	$(CC) bitcount-cl.c swrngapi.c swrng-cl-api.c -o $(BITCOUNT_CL) $(CFLAGS) $(CFLAGS_THREAD)
+$(BITCOUNT_CL): bitcount-cl.cpp
+	$(CC) bitcount-cl.cpp swrngapi.cpp USBSerialDevice.cpp swrng-cl-api.cpp -o $(BITCOUNT_CL) $(CFLAGS) $(CFLAGS_THREAD) $(CPPFLAGS)
 
-$(SWRAWRANDOM): swrawrandom.c
-	$(CC) swrawrandom.c swrngapi.c -o $(SWRAWRANDOM) $(CFLAGS)
+$(SWRAWRANDOM): swrawrandom.cpp
+	$(CC) swrawrandom.cpp swrngapi.cpp USBSerialDevice.cpp -o $(SWRAWRANDOM) $(CFLAGS) $(CPPFLAGS)
 
 $(SWRNGSEQGEN): swrngseqgen.cpp
-	$(CC) swrngseqgen.cpp swrngapi.c SWRNGRandomSeqGenerator.cpp -o $(SWRNGSEQGEN) $(CFLAGS) $(CPPFLAGS)
+	$(CC) swrngseqgen.cpp swrngapi.cpp USBSerialDevice.cpp SWRNGRandomSeqGenerator.cpp -o $(SWRNGSEQGEN) $(CFLAGS) $(CPPFLAGS)
 
 clean:
 	rm -f *.o ; rm $(SWRNG) $(SWRNG_CL) $(SAMPLE_PROGR) $(SWDIAG) $(SWDIAG_CL) $(SWPERFTEST) $(SAMPLE_CL_PROGR) $(SWPERF_CL_TEST) $(BITCOUNT) $(BITCOUNT_CL) $(SWRNGSEQGEN) $(SWRAWRANDOM)
