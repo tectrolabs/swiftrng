@@ -26,6 +26,7 @@
 #include <termios.h>
 #include <string.h>
 #include <sys/types.h>
+#include <ctype.h>
 
 #define MAX_DEVICE_COUNT (25)
 #define MAX_SIZE_DEVICE_NAME (128)

@@ -165,19 +165,23 @@ void USBSerialDevice::scanForConnectedDevices() {
 #ifdef __linux__
 		char *tty = strstr(line, "ttyACM");
 #else
-		char *tty = line;
+		char *tty = strstr(line, "/dev/cu.usbmodemSWRNG");
 #endif
 		if (tty == NULL) {
 			continue;
 		}
 		int sizeTty = strlen(tty);
-		char *lastChar = tty + sizeTty - 1;
-		if (*lastChar == '\n') {
-			*lastChar = '\0';
+		for (int i = 0; i < sizeTty; i++) {
+			if(tty[i] < 33 || tty[i] > 125) {
+				tty[i] = 0;
+			}
 		}
+#ifdef __linux__
 		strcpy(devNames[activeDevCount], "/dev/");
 		strcat(devNames[activeDevCount], tty);
-
+#else
+		strcpy(devNames[activeDevCount], tty);
+#endif
 		activeDevCount++;
 	}
 	pclose(pf);
