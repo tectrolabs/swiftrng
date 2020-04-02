@@ -173,12 +173,16 @@ void USBSerialDevice::scanForConnectedDevices() {
 	while (fgets(line, sizeof(line), pf) && activeDevCount < MAX_DEVICE_COUNT) {
 #ifdef __linux__
 		char *tty = strstr(line, "ttyACM");
-#else
-		char *tty = strstr(line, "/dev/cu.usbmodemSWRNG");
-#endif
 		if (tty == NULL) {
 			continue;
 		}
+#else
+		int cmp  = strncmp(line, "/dev/cu.usbmodemSWRNG", 21);
+		if (cmp != 0) {
+			continue;
+		}
+		char *tty = line;
+#endif
 		int sizeTty = strlen(tty);
 		for (int i = 0; i < sizeTty; i++) {
 			if(tty[i] < 33 || tty[i] > 125) {
