@@ -26,6 +26,7 @@
 #include <termios.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/file.h>
 #include <ctype.h>
 
 #define MAX_DEVICE_COUNT (25)
@@ -34,6 +35,7 @@
 class USBSerialDevice {
 private:
 	int fd;
+	int lock;
 	char devNames[MAX_DEVICE_COUNT][MAX_SIZE_DEVICE_NAME];
 	int activeDevCount;
 	bool deviceConnected;

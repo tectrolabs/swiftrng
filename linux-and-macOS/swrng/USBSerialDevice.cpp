@@ -51,6 +51,14 @@ bool USBSerialDevice::connect(const char *devicePath) {
 		return false;;
 	}
 
+	// Lock the device
+	this->lock = flock(this->fd, LOCK_EX | LOCK_NB);
+	if (this->lock != 0) {
+		sprintf(lastError, "Could not lock device: %s", devicePath);
+		close(fd);
+		return false;
+	}
+
 	purgeComm();
 
 	struct termios opts;
@@ -88,6 +96,7 @@ bool USBSerialDevice::disconnect() {
 	if (!isConnected()) {
 		return false;
 	}
+	flock(this->fd, LOCK_UN);
 	close(fd);
 	this->deviceConnected = false;
 	clearErrMsg();
