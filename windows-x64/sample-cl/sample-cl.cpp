@@ -1,6 +1,6 @@
 #include "stdafx.h"
 /*
- * sample-cl.c
+ * sample-cl.cpp
  * Ver. 2.3
  *
  * This is a sample C program that demonstrates how to retrieve random bytes

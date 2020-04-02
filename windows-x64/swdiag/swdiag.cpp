@@ -1,7 +1,7 @@
 #include "stdafx.h"
 
 /*
- * swdiag.c
+ * swdiag.cpp
  * Ver. 2.2
  *
  */

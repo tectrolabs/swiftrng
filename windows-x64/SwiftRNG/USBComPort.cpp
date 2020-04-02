@@ -23,11 +23,10 @@ This class may only be used in conjunction with TectroLabs devices.
 USBComPort::USBComPort()
 {
 	this->deviceConnected = false;
-	this->lastError = new char[512];
 	clearErrMsg();
 }
 
-void USBComPort::initilalize() {
+void USBComPort::initialize() {
 	disconnect();
 }
 
@@ -124,7 +123,7 @@ int USBComPort::sendCommand(unsigned char *snd, int sizeSnd, int *bytesSend) {
 	DWORD actualBytesSent;
 	int retStatus = -1;
 	if (!this->isConnected()) {
-		return false;
+		return retStatus;
 	}
 
 	BOOL status = WriteFile(this->cdcUsbDevHandle, (void *)snd, sizeSnd, &actualBytesSent, 0);
@@ -158,7 +157,7 @@ int USBComPort::receiveDeviceData(unsigned char *rcv, int sizeRcv, int *bytesRev
 	DWORD actualBytesReceived;
 	int retStatus = -1;
 	if (!this->isConnected()) {
-		return false;
+		return retStatus;
 	}
 
 	BOOL status = ReadFile(this->cdcUsbDevHandle, (void *)rcv, sizeRcv, &actualBytesReceived, NULL);
@@ -338,5 +337,4 @@ USBComPort::~USBComPort()
 	if (this->isConnected()) {
 		disconnect();
 	}
-	delete this->lastError;
 }

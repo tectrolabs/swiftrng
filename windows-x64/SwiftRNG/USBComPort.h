@@ -33,7 +33,7 @@ class USBComPort
 private:
 	HANDLE cdcUsbDevHandle;
 	bool deviceConnected;
-	char *lastError;
+	char lastError[512];
 	COMSTAT commStatus;
 	DWORD commError;
 	void setErrMsg(const char *errMessage);
@@ -43,7 +43,7 @@ private:
 public:
 	USBComPort();
 	~USBComPort();
-	void initilalize();
+	void initialize();
 	bool isConnected();
 	bool connect(WCHAR *comPort);
 	bool disconnect();

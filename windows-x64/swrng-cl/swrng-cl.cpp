@@ -1,7 +1,7 @@
 #include "stdafx.h"
 /*
- * swrng-cl.c
- * ver. 3.0
+ * swrng-cl.cpp
+ * ver. 2.11
  *
  */
 

@@ -1,7 +1,7 @@
 #include "stdafx.h"
 
 /*
- * swperftest.c
+ * swperftest.cpp
  * Ver. 2.0
  *
  */
