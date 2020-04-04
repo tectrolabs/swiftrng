@@ -1,6 +1,8 @@
 # SwiftRNG Software Kit
 
-[SwiftRNG](https://tectrolabs.com/swiftrng/) devices are true random number generators that plug directly into any Windows, Linux, or macOS computer via USB. SwiftRNG random numbers pass top industry statistical test suites such as Diehard, Dieharder, NIST, Rngtest, BigCrush and Ent.
+[SwiftRNG](https://tectrolabs.com/swiftrng/) devices are true random number generators that plug directly into any Windows, Linux, or macOS computer via USB. SwiftRNG random numbers pass top industry statistical test suites such Dieharder, NIST, Rngtest, BigCrush and Ent.
+
+Our latest SwiftRNG devices work with Linux, macOS, Windows 10 (64-bit), and Windows Server 2016/2019 (64-bit), and run in virtual machines using software such as VMware Player, VMware ESXi, VirtualBox, and Parallels.
 
 This repository contains the SwiftRNG Software Kit, which provides everything you need to use SwiftRNG with Linux, macOS, and Windows.
 
