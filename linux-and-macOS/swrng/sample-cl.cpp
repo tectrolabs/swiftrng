@@ -1,7 +1,7 @@
 #include "stdafx.h"
 /*
  * sample-cl.cpp
- * Ver. 2.3
+ * Ver. 2.4
  *
  * This is a sample C program that demonstrates how to retrieve random bytes
  * from a cluster of two SwiftRNG devices using 'swrng-cl-api' API for C language.

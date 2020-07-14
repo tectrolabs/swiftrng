@@ -1,7 +1,7 @@
 #include "stdafx.h"
 /*
  * swrawrandom.cpp
- * Ver. 2.0
+ * Ver. 2.1
  *
  * A C program for retrieving raw (unprocessed) random bytes from SwiftRNG noise sources.
  *

@@ -2,7 +2,7 @@
 
 /*
  * swdiag.cpp
- * Ver. 2.2
+ * Ver. 2.3
  *
  */
 
@@ -66,7 +66,7 @@ int main() {
 	int postProcessingEnabled;
 
 	printf("-------------------------------------------------------------------\n");
-	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.2  ---\n");
+	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.3  ---\n");
 	printf("-------------------------------------------------------------------\n");
 	printf("Searching for devices ------------------ ");
 

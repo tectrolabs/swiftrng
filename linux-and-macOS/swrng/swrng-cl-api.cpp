@@ -2,7 +2,7 @@
 
 /*
  * swrng-cl-api.cpp
- * Ver. 2.0
+ * Ver. 2.1
  *
  */
 

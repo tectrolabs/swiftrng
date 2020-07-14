@@ -1,6 +1,6 @@
 /*
  * swrng-cl-api.h
- * Ver. 2.0
+ * Ver. 2.1
  *
  */
 

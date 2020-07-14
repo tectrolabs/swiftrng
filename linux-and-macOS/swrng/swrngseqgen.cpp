@@ -1,7 +1,7 @@
 #include "stdafx.h"
 /*
  * swrngseqgen.cpp
- * Ver. 2.0
+ * Ver. 2.1
  *
  * A program for generating random sequences of unique integer numbers based
  * on true random bytes produced by a SwiftRNG device.

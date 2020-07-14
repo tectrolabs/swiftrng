@@ -2,7 +2,7 @@
 
 /*
  * swrng.cpp
- * Ver. 3.0
+ * Ver. 3.1
  *
  */
 
@@ -73,7 +73,7 @@ int displayDevices() {
  */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   TectroLabs - swrng - download utility Ver 3.0  \n");
+	printf("                   TectroLabs - swrng - download utility Ver 3.1  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng  - True Random Number Generator SwiftRNG download \n");
