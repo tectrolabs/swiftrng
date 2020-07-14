@@ -162,7 +162,7 @@ void USBSerialDevice::scanForConnectedDevices() {
 #ifdef __linux__
 	char command[] = "/bin/ls -1l /dev/serial/by-id 2>&1 | grep -i \"TectroLabs_SwiftRNG\"";
 #else
-	char command[] = "/bin/ls -1a /dev/cu.usbmodemSWRNG* 2>&1";
+	char command[] = "/bin/ls -1a /dev/cu.usbmodemSWRNG* /dev/cu.usbmodemFD* 2>&1";
 #endif
 	FILE *pf = popen(command,"r");
 	if (pf == NULL) {
@@ -177,8 +177,9 @@ void USBSerialDevice::scanForConnectedDevices() {
 			continue;
 		}
 #else
-		int cmp  = strncmp(line, "/dev/cu.usbmodemSWRNG", 21);
-		if (cmp != 0) {
+		int cmp1  = strncmp(line, "/dev/cu.usbmodemSWRNG", 21);
+		int cmp2  = strncmp(line, "/dev/cu.usbmodemFD", 18);
+		if (cmp1 != 0 && cmp2 != 0 ) {
 			continue;
 		}
 		char *tty = line;
