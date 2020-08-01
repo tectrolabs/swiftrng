@@ -1,8 +1,8 @@
 #include "stdafx.h"
 
 /*
- * swdiag.c
- * Ver. 2.1
+ * swdiag.cpp
+ * Ver. 2.2
  *
  */
 
@@ -67,7 +67,7 @@ int main() {
 	int postProcessingEnabled;
 
 	printf("-------------------------------------------------------------------\n");
-	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.1  ---\n");
+	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.2  ---\n");
 	printf("-------------------------------------------------------------------\n");
 	printf("Searching for devices ------------------ ");
 
