@@ -20,6 +20,7 @@
 #define CMD_ENTROPY_RETRIEVE_ID 0
 #define CMD_DIAG_ID 1
 #define NUM_TEST_THREADS 50
+#define NUM_PIPE_TEST_THREADS 50
 #define PIPENAME_MAX_CHARS 128
 
 typedef struct
@@ -30,10 +31,10 @@ typedef struct
 
 REQCMD reqCmd;
 HANDLE hPipe;
-BOOL   fSuccess = FALSE;
 DWORD  cbRead, cbToWrite, cbWritten, dwMode;
 unsigned char entropyBuffer[ENTROPY_BUFFER_SIZE];
 HANDLE threads[NUM_TEST_THREADS];
+HANDLE pipeThreads[NUM_PIPE_TEST_THREADS];
 time_t start, end;
 HINSTANCE hDLL; // Handle to the DLL
 
@@ -46,6 +47,7 @@ LPGETENTROPY  lpSwrngGetEntropyFromEntropyServer;
 LPSETPIPEEP  lpSwftSetEntropyServerPipeEndpointSynchronized;
 
 volatile BOOL isMultiThreadTestStatusSuccess = TRUE;
+volatile BOOL isPipeMultiThreadTestStatusSuccess = TRUE;
 wchar_t pipeEndPoint[PIPENAME_MAX_CHARS + 1];
 char pipeEndPointASCII[PIPENAME_MAX_CHARS + 1];
 char defaultPipeEndpoint[] = "\\\\.\\pipe\\SwiftRNG";
@@ -74,9 +76,10 @@ int closeNamedPipe();
 * @param commandId - command to send to the entropy server
 * @param rcvBuff buffer for incoming data
 * @param len - number of bytes to receive
+* @param hPipe - pipe handle
 * @return 0 - success
 */
-int readEntropyFromPipe(DWORD commandId, unsigned char *rcvBuff, DWORD len);
+int readEntropyFromPipe(DWORD commandId, unsigned char *rcvBuff, DWORD len, HANDLE hPipe);
 
 /*
 * Retrieve entropy data from the entropy server
