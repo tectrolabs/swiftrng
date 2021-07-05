@@ -1,0 +1,44 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31105.61
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "DLL", "DLL\DLL.vcxproj", "{82F8BD8C-6562-4B39-8BDB-868D3C3EFE0D}"
+	ProjectSection(ProjectDependencies) = postProject
+		{2C7F7B14-4A73-4B9A-A6E9-3B32A4C86F28} = {2C7F7B14-4A73-4B9A-A6E9-3B32A4C86F28}
+	EndProjectSection
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "entropy-server-api", "entropy-server-api\entropy-server-api.vcxproj", "{2C7F7B14-4A73-4B9A-A6E9-3B32A4C86F28}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|x64 = Debug|x64
+		Debug|x86 = Debug|x86
+		Release|x64 = Release|x64
+		Release|x86 = Release|x86
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{82F8BD8C-6562-4B39-8BDB-868D3C3EFE0D}.Debug|x64.ActiveCfg = Debug|x64
+		{82F8BD8C-6562-4B39-8BDB-868D3C3EFE0D}.Debug|x64.Build.0 = Debug|x64
+		{82F8BD8C-6562-4B39-8BDB-868D3C3EFE0D}.Debug|x86.ActiveCfg = Debug|Win32
+		{82F8BD8C-6562-4B39-8BDB-868D3C3EFE0D}.Debug|x86.Build.0 = Debug|Win32
+		{82F8BD8C-6562-4B39-8BDB-868D3C3EFE0D}.Release|x64.ActiveCfg = Release|x64
+		{82F8BD8C-6562-4B39-8BDB-868D3C3EFE0D}.Release|x64.Build.0 = Release|x64
+		{82F8BD8C-6562-4B39-8BDB-868D3C3EFE0D}.Release|x86.ActiveCfg = Release|Win32
+		{82F8BD8C-6562-4B39-8BDB-868D3C3EFE0D}.Release|x86.Build.0 = Release|Win32
+		{2C7F7B14-4A73-4B9A-A6E9-3B32A4C86F28}.Debug|x64.ActiveCfg = Debug|x64
+		{2C7F7B14-4A73-4B9A-A6E9-3B32A4C86F28}.Debug|x64.Build.0 = Debug|x64
+		{2C7F7B14-4A73-4B9A-A6E9-3B32A4C86F28}.Debug|x86.ActiveCfg = Debug|Win32
+		{2C7F7B14-4A73-4B9A-A6E9-3B32A4C86F28}.Debug|x86.Build.0 = Debug|Win32
+		{2C7F7B14-4A73-4B9A-A6E9-3B32A4C86F28}.Release|x64.ActiveCfg = Release|x64
+		{2C7F7B14-4A73-4B9A-A6E9-3B32A4C86F28}.Release|x64.Build.0 = Release|x64
+		{2C7F7B14-4A73-4B9A-A6E9-3B32A4C86F28}.Release|x86.ActiveCfg = Release|Win32
+		{2C7F7B14-4A73-4B9A-A6E9-3B32A4C86F28}.Release|x86.Build.0 = Release|Win32
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1000BB0C-8A30-44A5-A947-CD028DFBDEB6}
+	EndGlobalSection
+EndGlobal

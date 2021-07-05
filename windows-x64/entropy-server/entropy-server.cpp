@@ -2,13 +2,13 @@
 
 /*
 * entropy-server.cpp
-* Ver. 2.0
+* Ver. 2.1
 *
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2020 TectroLabs, http://tectrolabs.com
+Copyright (C) 2014-2021 TectroLabs, http://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -35,7 +35,7 @@ This program may only be used in conjunction with the SwiftRNG device.
 */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   SwiftRNG entropy-server Ver 2.0  \n");
+	printf("                   SwiftRNG entropy-server Ver %d.%d  \n", serverMajorVersion, serverMinorVersion);
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     entropy-server - An application server for distributing random bytes \n");
@@ -44,7 +44,7 @@ void displayUsage() {
 	printf("     entropy-server <options>\n");
 	printf("\n");
 	printf("DESCRIPTION\n");
-	printf("     entropy-serv downloads random bytes from Hardware (True) \n");
+	printf("     entropy-server downloads random bytes from Hardware (True) \n");
 	printf("     Random Number Generator SwiftRNG device and distributes them to \n");
 	printf("     consumer applications using a named pipe.\n");
 	printf("\n");
@@ -154,7 +154,7 @@ int processArguments(int argc, char **argv) {
 					fprintf(stderr, "Invalid post processing method: %s \n", postProcessingMethod);
 					return -1;
 				}
-			} else if (strcmp("-npe", argv[idx]) == 0 || strcmp("--named-pipe-endpoin",
+			} else if (strcmp("-npe", argv[idx]) == 0 || strcmp("--named-pipe-endpoint",
 				argv[idx]) == 0) {
 				if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
 					return -1;
@@ -628,6 +628,74 @@ int fillEntropyForWrite(DWORD i) {
 			}
 		}
 		break;
+	case CMD_NOISE_SRC_ONE_ID:
+		devStatus = retrieveNoiseSourceBytes(i, 0);
+		if (devStatus != SWRNG_SUCCESS) {
+			swrngClose(&ctxt);
+			devStatus = openDevice();
+			if (devStatus == SWRNG_SUCCESS) {
+				devStatus = retrieveNoiseSourceBytes(i, 0);
+			}
+		}
+		break;
+	case CMD_NOISE_SRC_TWO_ID:
+		devStatus = retrieveNoiseSourceBytes(i, 1);
+		if (devStatus != SWRNG_SUCCESS) {
+			swrngClose(&ctxt);
+			devStatus = openDevice();
+			if (devStatus == SWRNG_SUCCESS) {
+				devStatus = retrieveNoiseSourceBytes(i, 1);
+			}
+		}
+		break;
+	case CMD_DEV_MODEL_ID:
+		devStatus = retrieveDeviceModel(i);
+		if (devStatus != SWRNG_SUCCESS) {
+			swrngClose(&ctxt);
+			devStatus = openDevice();
+			if (devStatus == SWRNG_SUCCESS) {
+				devStatus = retrieveDeviceModel(i);
+			}
+		}
+		break;
+	case CMD_DEV_SER_NUM_ID:
+		devStatus = retrieveDeviceIdentifier(i);
+		if (devStatus != SWRNG_SUCCESS) {
+			swrngClose(&ctxt);
+			devStatus = openDevice();
+			if (devStatus == SWRNG_SUCCESS) {
+				devStatus = retrieveDeviceIdentifier(i);
+			}
+		}
+		break;
+	case CMD_DEV_MINOR_VERSION_ID:
+		devStatus = retrieveDeviceMinorVersion(i);
+		if (devStatus != SWRNG_SUCCESS) {
+			swrngClose(&ctxt);
+			devStatus = openDevice();
+			if (devStatus == SWRNG_SUCCESS) {
+				devStatus = retrieveDeviceMinorVersion(i);
+			}
+		}
+		break;
+	case CMD_DEV_MAJOR_VERSION_ID:
+		devStatus = retrieveDeviceMajorVersion(i);
+		if (devStatus != SWRNG_SUCCESS) {
+			swrngClose(&ctxt);
+			devStatus = openDevice();
+			if (devStatus == SWRNG_SUCCESS) {
+				devStatus = retrieveDeviceMajorVersion(i);
+			}
+		}
+		break;
+	case CMD_SERV_MINOR_VERSION_ID:
+		memcpy(Pipe[i].chReply, &serverMinorVersion, sizeof(serverMinorVersion));
+		devStatus = SWRNG_SUCCESS;
+		break;
+	case CMD_SERV_MAJOR_VERSION_ID:
+		memcpy(Pipe[i].chReply, &serverMajorVersion, sizeof(serverMajorVersion));
+		devStatus = SWRNG_SUCCESS;
+		break;
 	case CMD_DIAG_ID:
 		testCounter = 0;
 		for (DWORD t = 0; t < Pipe[i].chRequest.cbReqData; t++) {
@@ -650,6 +718,120 @@ int fillEntropyForWrite(DWORD i) {
 */
 int retrieveEntropy(DWORD i) {
 	return swrngGetEntropy(&ctxt, Pipe[i].chReply, Pipe[i].chRequest.cbReqData);
+}
+
+/**
+* Populate the entropy buffer with random bytes from a noise source
+*
+* @param i - pipe instance index
+* @param noiseSource - 0 for the first noise source, 1 for the second one
+* @return int - 0 when run successfully
+*/
+int retrieveNoiseSourceBytes(DWORD i, int noiseSource) {
+	NoiseSourceRawData rawDataBlock;
+	DWORD blockSizeBytes = sizeof(rawDataBlock.value) - 1;
+	int status = -1;
+	DWORD totalBytesRequested = Pipe[i].chRequest.cbReqData;
+	if (totalBytesRequested >= 1 && totalBytesRequested <= 100000) {
+		DWORD totalBlocks = totalBytesRequested / blockSizeBytes;
+		DWORD remainingBytes = totalBytesRequested % blockSizeBytes;
+		unsigned char* dest = Pipe[i].chReply;
+		for (DWORD idx = 0; idx < totalBlocks; ++idx) {
+			status = swrngGetRawDataBlock(&ctxt, &rawDataBlock, noiseSource);
+			if (status != SWRNG_SUCCESS) {
+				return status;
+			}
+			memcpy(dest, rawDataBlock.value, blockSizeBytes);
+			dest += blockSizeBytes;
+		}
+		if (remainingBytes > 0) {
+			status = swrngGetRawDataBlock(&ctxt, &rawDataBlock, noiseSource);
+			if (status != SWRNG_SUCCESS) {
+				return status;
+			}
+			memcpy(dest, rawDataBlock.value, remainingBytes);
+		}
+	}
+	return status;
+}
+
+/**
+* Populate buffer with device identifier
+*
+* @param i - pipe instance index
+* @return int - 0 when run successfully
+*/
+int retrieveDeviceIdentifier(DWORD i) {
+	DeviceSerialNumber serialNumber;
+	int status = swrngGetSerialNumber(&ctxt, &serialNumber);
+	if (status == SWRNG_SUCCESS) {
+		memcpy(Pipe[i].chReply, serialNumber.value, sizeof(serialNumber.value)-1);
+	}
+	return status;
+}
+
+/**
+* Populate buffer with device minor version
+*
+* @param i - pipe instance index
+* @return int - 0 when run successfully
+*/
+int retrieveDeviceMinorVersion(DWORD i) {
+	DeviceVersion version;
+	int status = swrngGetVersion(&ctxt, &version);
+	if (status == SWRNG_SUCCESS) {
+		std::string version_str(version.value, sizeof(version.value) - 1);
+		size_t pos = 0;
+		status = -1;
+		if ((pos = version_str.find(".")) != std::string::npos) {
+			std::string minor_version_str = version_str.substr(pos + 1);
+			char minor_version_int = (int)stoi(minor_version_str);
+			memcpy(Pipe[i].chReply, &minor_version_int, 1);
+			status = SWRNG_SUCCESS;
+		}
+	}
+	return status;
+}
+
+/**
+* Populate buffer with device major version
+*
+* @param i - pipe instance index
+* @return int - 0 when run successfully
+*/
+int retrieveDeviceMajorVersion(DWORD i) {
+	DeviceVersion version;
+	int status = swrngGetVersion(&ctxt, &version);
+	if (status == SWRNG_SUCCESS) {
+		std::string version_str(version.value, sizeof(version.value) - 1);
+		size_t pos = 0;
+		status = -1;
+		if ((pos = version_str.find(".")) != std::string::npos) {
+			std::string major_version_str = version_str.substr(1, pos - 1);
+			char major_version_int = (int)stoi(major_version_str);
+			memcpy(Pipe[i].chReply, &major_version_int, 1);
+			status = SWRNG_SUCCESS;
+		}
+	}
+	return status;
+}
+
+/**
+* Populate buffer with device model
+*
+* @param i - pipe instance index
+* @return int - 0 when run successfully
+*/
+int retrieveDeviceModel(DWORD i) {
+	DeviceModel model;
+	char resized_model[15];
+	memset(resized_model, ' ', sizeof(resized_model));
+	int status = swrngGetModel(&ctxt, &model);
+	if (status == SWRNG_SUCCESS) {
+		memcpy(resized_model, model.value, sizeof(model.value) - 1);
+		memcpy(Pipe[i].chReply, resized_model, sizeof(resized_model));
+	}
+	return status;
 }
 
 /**
