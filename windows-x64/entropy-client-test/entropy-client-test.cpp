@@ -51,6 +51,58 @@ unsigned int __stdcall testingThread(void*) {
 	return 0;
 }
 
+//
+// Pipe Testing thread 
+//
+unsigned int __stdcall testingPipeThread(void*) {
+	HANDLE hPipe;
+	unsigned char pipeThreadEntropyBuffer[ENTROPY_BUFFER_SIZE];
+	while (1) {
+		hPipe = CreateFile(
+			pipeEndPoint,   // pipe name 
+			GENERIC_READ |  // read and write access 
+			GENERIC_WRITE,
+			0,              // no sharing 
+			NULL,           // default security attributes
+			OPEN_EXISTING,  // opens existing pipe 
+			0,              // default attributes 
+			NULL);          // no template file 
+
+		if (hPipe != INVALID_HANDLE_VALUE) {
+			break;
+		}
+
+		if (GetLastError() != ERROR_PIPE_BUSY) {
+			isPipeMultiThreadTestStatusSuccess = FALSE;
+			return 0;
+		}
+
+		if (!WaitNamedPipe(pipeEndPoint, 20000)) {
+			isPipeMultiThreadTestStatusSuccess = FALSE;
+			return 0;
+		}
+
+	}
+	for (int i = 0; i < 100; i++) {
+		int status = readEntropyFromPipe(CMD_DIAG_ID, pipeThreadEntropyBuffer, ENTROPY_BUFFER_SIZE, hPipe);
+		if (status == 0) {
+			unsigned char testCounter = 0;
+			for (DWORD t = 0; t < ENTROPY_BUFFER_SIZE; t++) {
+				if (pipeThreadEntropyBuffer[t] != testCounter) {
+					isPipeMultiThreadTestStatusSuccess = FALSE;
+					break;
+				}
+				testCounter++;
+			}
+		}
+		else {
+			isPipeMultiThreadTestStatusSuccess = FALSE;
+			break;
+		}
+	}
+	CloseHandle(hPipe);
+	return 0;
+}
 
 /**
 * Main entry
@@ -129,6 +181,32 @@ int main(int argc, char **argv) {
 		printf(" failed\n");
 		return status;
 	}
+
+	//
+	// Step 3.1
+	//
+#if _WIN64
+	printf("Running pipe communication diagnostics using %2d threads .............", NUM_PIPE_TEST_THREADS);
+	for (int i = 0; i < NUM_PIPE_TEST_THREADS; i++) {
+		pipeThreads[i] = (HANDLE)_beginthreadex(0, 0, &testingPipeThread, (void*)0, 0, 0);
+	}
+
+	for (int i = 0; i <  NUM_PIPE_TEST_THREADS; i++) {
+		WaitForSingleObject(pipeThreads[i], INFINITE);
+	}
+
+	for (int i = 0; i <  NUM_PIPE_TEST_THREADS; i++) {
+		CloseHandle(pipeThreads[i]);
+	}
+
+	if (isPipeMultiThreadTestStatusSuccess == TRUE) {
+		printf("SUCCESS\n");
+	}
+	else {
+		printf(" FAILED\n");
+	}
+#endif
+
 
 	//
 	// Step 4
@@ -269,7 +347,7 @@ int main(int argc, char **argv) {
 		printf("SUCCESS\n");
 	}
 	else {
-		printf("FAILED\n");
+		printf(" FAILED\n");
 	}
 #endif
 	//
@@ -323,7 +401,7 @@ int main(int argc, char **argv) {
 int retrieveEntropyFromServer(DWORD commandId, unsigned char *rcvBuff, DWORD len) {
 	int status = openNamedPipe();
 	if (status == 0) {
-		status = readEntropyFromPipe(commandId, rcvBuff, len);
+		status = readEntropyFromPipe(commandId, rcvBuff, len, hPipe);
 	}
 	closeNamedPipe();
 	return status;
@@ -360,7 +438,7 @@ int openNamedPipe() {
 	}
 
 	dwMode = PIPE_READMODE_BYTE;
-	fSuccess = SetNamedPipeHandleState(
+	BOOL fSuccess = SetNamedPipeHandleState(
 		hPipe,    // pipe handle 
 		&dwMode,  // new pipe mode 
 		NULL,     // don't set maximum bytes 
@@ -386,14 +464,15 @@ int closeNamedPipe() {
 * @param commandId - command to send to the entropy server
 * @param rcvBuff buffer for incoming data
 * @param len - number of bytes to receive
+* @param hPipe - pipe handle
 * @return 0 - success
 */
-int readEntropyFromPipe(DWORD commandId, unsigned char *rcvBuff, DWORD len) {
+int readEntropyFromPipe(DWORD commandId, unsigned char *rcvBuff, DWORD len, HANDLE hPipe) {
 	cbToWrite = sizeof(REQCMD);
 	reqCmd.cmd = commandId;
 	reqCmd.cbReqData = len;
 
-	fSuccess = WriteFile(
+	BOOL fSuccess = WriteFile(
 		hPipe,                  // pipe handle 
 		&reqCmd,             // bytes 
 		cbToWrite,              // bytes length 

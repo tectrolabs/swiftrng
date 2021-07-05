@@ -1,12 +1,12 @@
 /*
 * entropy-server.h
-* Ver. 2.0
+* Ver. 2.1
 *
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2020 TectroLabs, http://tectrolabs.com
+Copyright (C) 2014-2021 TectroLabs, http://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -29,6 +29,7 @@ This program may only be used in conjunction with the SwiftRNG device.
 
 #include "swrngapi.h"
 #include <windows.h> 
+#include <string>
 #include <stdio.h>
 #include <tchar.h>
 
@@ -43,6 +44,16 @@ This program may only be used in conjunction with the SwiftRNG device.
 #define WRITE_BUFSIZE 100000
 #define CMD_ENTROPY_RETRIEVE_ID 0
 #define CMD_DIAG_ID 1
+#define CMD_DEV_SER_NUM_ID 2
+#define CMD_DEV_MODEL_ID 3
+#define CMD_DEV_MINOR_VERSION_ID 4
+#define CMD_DEV_MAJOR_VERSION_ID 5
+#define CMD_SERV_MINOR_VERSION_ID 6
+#define CMD_SERV_MAJOR_VERSION_ID 7
+#define CMD_NOISE_SRC_ONE_ID 8
+#define CMD_NOISE_SRC_TWO_ID 9
+
+
 #define PIPENAME_MAX_CHARS 128
 
 
@@ -86,6 +97,8 @@ DeviceModel dm;
 DeviceVersion dv;
 static wchar_t pipeEndPoint[PIPENAME_MAX_CHARS + 1];
 static char defaultPipeEndpoint[] = "\\\\.\\pipe\\SwiftRNG";
+static char serverMajorVersion = 2;
+static char serverMinorVersion = 1;
 size_t numCharConverted;
 char embeddedCorrectionMethodStr[32];
 int embeddedCorrectionMethodId;
@@ -108,5 +121,10 @@ int parsePowerProfileNum(int idx, int argc, char **argv);
 int processServer();
 int fillEntropyForWrite(DWORD i);
 int retrieveEntropy(DWORD i);
+int retrieveDeviceIdentifier(DWORD i);
+int retrieveDeviceModel(DWORD i);
+int retrieveDeviceMinorVersion(DWORD i);
+int retrieveDeviceMajorVersion(DWORD i);
+int retrieveNoiseSourceBytes(DWORD i, int noiseSource);
 
 #endif /* ENTROPY_SERVER_H_ */

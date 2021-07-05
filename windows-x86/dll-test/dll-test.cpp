@@ -2,7 +2,7 @@
 
 /*
 * dll-test.cpp
-* ver. 1.6
+* ver. 2.0
 *
 */
 

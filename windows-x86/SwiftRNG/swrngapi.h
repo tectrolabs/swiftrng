@@ -1,6 +1,6 @@
 /*
  * swrngapi.h
- * ver. 3.7
+ * ver. 4.0
  *
  */
 
@@ -35,10 +35,12 @@
 #include <stdio.h>
 #include <errno.h>
 
-#if defined(_WIN32)
+#if defined _WIN32
 	#include "libusb.h"
+	#include "USBComPort.h"
 #else
 	#include <libusb-1.0/libusb.h>
+	#include "USBSerialDevice.h"
 #endif
 
 #define swrngBool int
@@ -57,6 +59,7 @@
 #define SWRNG_OUT_NUM_WORDS (8)
 #define SWRNG_TRND_OUT_BUFFSIZE (SWRNG_NUM_CHUNKS * SWRNG_OUT_NUM_WORDS * SWRNG_WORD_SIZE_BYTES)
 #define SWRNG_RND_IN_BUFFSIZE (SWRNG_NUM_CHUNKS * SWRNG_MIN_INPUT_NUM_WORDS * SWRNG_WORD_SIZE_BYTES)
+#define SWRNG_MAX_CDC_COM_PORTS (40)
 
  //
  // Structure definitions
@@ -175,8 +178,13 @@ typedef struct {
 	swrngBool statisticalTestsEnabled;
 	int postProcessingMethodId;	// 0 - SHA256 method, 1 - xorshift64 post processing method, 2 - SHA512 method
 	int deviceEmbeddedCorrectionMethodId;	// 0 - none, 1 - Linear correction (P. Lacharme)
-} SwrngContext;
+#ifdef _WIN32
+	USBComPort *usbComPort;
+#else
+	USBSerialDevice *usbSerialDevice;
+#endif
 
+} SwrngContext;
 
 /**
  * Global function declaration section
@@ -197,10 +205,10 @@ int swrngInitializeContext(SwrngContext *ctxt);
 * Open SwiftRNG USB specific device.
 *
 * @param ctxt - pointer to SwrngContext structure
-* @param int deviceNum - device number (0 - for the first device or only one device)
+* @param int devNum - device number (0 - for the first device or only one device)
 * @return int 0 - when open successfully or error code
 */
-int swrngOpen(SwrngContext *ctxt, int deviceNum);
+int swrngOpen(SwrngContext *ctxt, int devNum);
 
 /**
 * Close device if open

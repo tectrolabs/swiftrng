@@ -1,8 +1,8 @@
 #include "stdafx.h"
 
 /*
- * swdiag.c
- * Ver. 2.1
+ * swdiag.cpp
+ * Ver. 2.2
  *
  */
 
@@ -67,7 +67,7 @@ int main() {
 	int postProcessingEnabled;
 
 	printf("-------------------------------------------------------------------\n");
-	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.1  ---\n");
+	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.2  ---\n");
 	printf("-------------------------------------------------------------------\n");
 	printf("Searching for devices ------------------ ");
 
@@ -495,7 +495,7 @@ static int calculate_entropy_score() {
 }
 
 /**
- * Run cgi-squire test
+ * Run chi-squire test
  *
  * @param long idx - test number
  * @return int 0 - successful or error code

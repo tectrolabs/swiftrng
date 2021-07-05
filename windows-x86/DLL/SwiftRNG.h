@@ -1,6 +1,6 @@
 /*
  * SwiftRNG.h
- * ver. 1.5
+ * ver. 2.0
  *
  */
 

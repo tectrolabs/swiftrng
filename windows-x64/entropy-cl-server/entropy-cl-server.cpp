@@ -44,8 +44,8 @@ void displayUsage() {
 	printf("     entropy-cl-server <options>\n");
 	printf("\n");
 	printf("DESCRIPTION\n");
-	printf("     entropy-cl-serv downloads random bytes from two more Hardware (True) \n");
-	printf("     Random Number Generator SwiftRNG devicse and distributes them to \n");
+	printf("     entropy-cl-server downloads random bytes from two more Hardware (True) \n");
+	printf("     Random Number Generator SwiftRNG devices and distributes them to \n");
 	printf("     consumer applications using a named pipe.\n");
 	printf("\n");
 	printf("OPTIONS\n");
@@ -159,7 +159,7 @@ int processArguments(int argc, char **argv) {
 				return -1;
 			}
 		}
-		else if (strcmp("-npe", argv[idx]) == 0 || strcmp("--named-pipe-endpoin",
+		else if (strcmp("-npe", argv[idx]) == 0 || strcmp("--named-pipe-endpoint",
 			argv[idx]) == 0) {
 			if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
 				return -1;
