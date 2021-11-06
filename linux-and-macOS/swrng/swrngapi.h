@@ -1,12 +1,12 @@
 /*
  * swrngapi.h
- * ver. 4.1
+ * ver. 4.2
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2021 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -38,6 +38,9 @@
 #if defined _WIN32
 	#include "libusb.h"
 	#include "USBComPort.h"
+#elif defined __FreeBSD__
+	#include <libusb.h>
+    #include "USBSerialDevice.h"
 #else
 	#include <libusb-1.0/libusb.h>
 	#include "USBSerialDevice.h"

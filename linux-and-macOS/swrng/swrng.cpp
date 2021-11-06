@@ -2,13 +2,13 @@
 
 /*
  * swrng.cpp
- * Ver. 3.1
+ * Ver. 3.2
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2021 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -73,7 +73,7 @@ int displayDevices() {
  */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   TectroLabs - swrng - download utility Ver 3.1  \n");
+	printf("                   TectroLabs - swrng - download utility Ver 3.2  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng  - True Random Number Generator SwiftRNG download \n");
