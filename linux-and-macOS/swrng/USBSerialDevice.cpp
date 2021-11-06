@@ -160,7 +160,7 @@ USBSerialDevice::~USBSerialDevice() {
 void USBSerialDevice::scanForConnectedDevices() {
 	activeDevCount = 0;
 #if defined __FreeBSD__
-	char command[] = "usbconfig show_ifdrv | grep -E \"TectroLabs SwiftRNG|VCOM\" | paste -d \" \"  - - | cut -d ':'  -f 3 | cut -d ' ' -f 2 | cut -d 'm' -f 3 | grep -v VCOM | grep -E '[0-9]'";
+	char command[] = "usbconfig show_ifdrv | grep -E \"TectroLabs SwiftRNG|VCOM\" | grep -vi \"(tectrolabs)\" | paste -d \" \"  - - | cut -d ':'  -f 3 | cut -d ' ' -f 2 | cut -d 'm' -f 3 | grep -v VCOM | grep -E '[0-9]'";
 #elif defined __linux__
 	char command[] = "/bin/ls -1l /dev/serial/by-id 2>&1 | grep -i \"TectroLabs_SwiftRNG\"";
 #else
