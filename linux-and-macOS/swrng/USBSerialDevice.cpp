@@ -157,11 +157,11 @@ USBSerialDevice::~USBSerialDevice() {
 	}
 }
 
+
+#ifndef __FreeBSD__
 void USBSerialDevice::scanForConnectedDevices() {
 	activeDevCount = 0;
-#if defined __FreeBSD__
-	char command[] = "usbconfig show_ifdrv | grep -E \"TectroLabs SwiftRNG|VCOM\" | grep -vi \"(tectrolabs)\" | paste -d \" \"  - - | cut -d ':'  -f 3 | cut -d ' ' -f 2 | cut -d 'm' -f 3 | grep -v VCOM | grep -E '[0-9]'";
-#elif defined __linux__
+#ifdef __linux__
 	char command[] = "/bin/ls -1l /dev/serial/by-id 2>&1 | grep -i \"TectroLabs_SwiftRNG\"";
 #else
 	char command[] = "/bin/ls -1a /dev/cu.usbmodemSWRNG* /dev/cu.usbmodemFD* 2>&1";
@@ -173,9 +173,7 @@ void USBSerialDevice::scanForConnectedDevices() {
 
 	char line[512];
 	while (fgets(line, sizeof(line), pf) && activeDevCount < MAX_DEVICE_COUNT) {
-#if defined __FreeBSD__
-		// Do nothing
-#elif defined __linux__
+#ifdef __linux__
 		char *tty = strstr(line, "ttyACM");
 		if (tty == NULL) {
 			continue;
@@ -188,28 +186,13 @@ void USBSerialDevice::scanForConnectedDevices() {
 		}
 		char *tty = line;
 #endif
-
-#ifndef __FreeBSD__
 		int sizeTty = strlen(tty);
 		for (int i = 0; i < sizeTty; i++) {
 			if(tty[i] < 33 || tty[i] > 125) {
 				tty[i] = 0;
-				break;
 			}
 		}
-#endif
-
-#if defined __FreeBSD__
-                int size_dev_num = strlen(line);
-                for (int i = 0; i < size_dev_num; i++) {
-                        if (line[i] < '0' || line[i] > '9') {
-                                line[i] = 0;
-                                break;
-                        }
-                }
-                strcpy(devNames[activeDevCount], "/dev/cuaU");
-                strcat(devNames[activeDevCount], line);
-#elif defined __linux__
+#ifdef __linux__
 		strcpy(devNames[activeDevCount], "/dev/");
 		strcat(devNames[activeDevCount], tty);
 #else
@@ -218,8 +201,47 @@ void USBSerialDevice::scanForConnectedDevices() {
 		activeDevCount++;
 	}
 	pclose(pf);
-
 }
+#endif
+
+#ifdef __FreeBSD__
+void USBSerialDevice::scanForConnectedDevices() {
+	activeDevCount = 0;
+	int device_candidate = false;
+	char command[] = "usbconfig show_ifdrv | grep -E \"TectroLabs SwiftRNG|VCOM\" | grep -vi \"(tectrolabs)\"";
+	FILE *pf = popen(command,"r");
+	if (pf == nullptr) {
+		return;
+	}
+
+	char line[512];
+	while (fgets(line, sizeof(line), pf) && activeDevCount < MAX_DEVICE_COUNT) {
+		if (device_candidate == false && strstr(line, "SwiftRNG") != nullptr) {
+			device_candidate = true;
+			continue;
+		}
+		if (device_candidate) {
+			if (strstr(line, "VCOM") != nullptr && strstr(line, "umodem") != nullptr) {
+				// Found VCOM description. Extract 'cuaU' number.
+				char *p = strstr(line, "umodem");
+				if (p == nullptr) {
+					continue;
+				}
+				char *tkn = strtok(p + strlen("umodem"), ":");
+				if (tkn != nullptr) {
+					strcpy(devNames[activeDevCount], "/dev/cuaU");
+					strcat(devNames[activeDevCount], tkn);
+					activeDevCount++;
+					device_candidate = false;
+				}
+			} else {
+				device_candidate = false;
+			}
+		}
+	}
+	pclose(pf);
+}
+#endif
 
 int USBSerialDevice::getConnectedDeviceCount() {
 	return activeDevCount;
