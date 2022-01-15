@@ -1895,29 +1895,32 @@ static bool acm_lock_device(void)
  */
 static bool acm_set_tty_termios_flags(void)
 {
-   int op_status;
+   bool successStatus = true;
 
    acmCtxt->tty = tty_kopen(acmCtxt->devt);
    if (IS_ERR(acmCtxt->tty)) {
       pr_info("tty_kopen() failed for %s\n", acmCtxt->dev_name);
       return false;
-   } else {
-      acmCtxt->opts.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-      acmCtxt->opts.c_iflag &= ~(INLCR | IGNCR | ICRNL | IXON | IXOFF);
-      acmCtxt->opts.c_oflag &= ~(ONLCR | OCRNL);
-
-      // Set time out to 100 milliseconds for read serial device operations
-      acmCtxt->opts.c_cc[VTIME] = 1;
-      acmCtxt->opts.c_cc[VMIN] = 0;
-      op_status = tty_set_termios(acmCtxt->tty, &acmCtxt->opts);
-      if (op_status != 0) {
-         pr_info("tty_set_termios() failed for %s\n", acmCtxt->dev_name);
-         tty_kclose(acmCtxt->tty);
-         return false;
-      }
-      tty_kclose(acmCtxt->tty);
    }
-   return true;
+
+   acmCtxt->opts.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
+   acmCtxt->opts.c_iflag &= ~(INLCR | IGNCR | ICRNL | IXON | IXOFF);
+   acmCtxt->opts.c_oflag &= ~(ONLCR | OCRNL);
+
+   // Set time out to 100 milliseconds for read serial device operations
+   acmCtxt->opts.c_cc[VTIME] = 1;
+   acmCtxt->opts.c_cc[VMIN] = 0;
+
+   if (tty_set_termios(acmCtxt->tty, &acmCtxt->opts) != 0) {
+      pr_info("tty_set_termios() failed for %s\n", acmCtxt->dev_name);
+      successStatus = false;
+      goto close_free_tty;
+   }
+
+close_free_tty:
+   tty_kclose(acmCtxt->tty);
+   kfree(acmCtxt->tty);
+   return successStatus;
 }
 
 /**
