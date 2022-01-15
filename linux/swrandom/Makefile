@@ -1,8 +1,13 @@
-obj-m += swrandom.o
+obj-m		+= swrandom.o 
+KERN_SRC	:= /lib/modules/$(shell uname -r)/build/
+PWD			:= $(shell pwd)
 
+modules:
+	make -C $(KERN_SRC) M=$(PWD) modules
 
-all:
-	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) modules
+install:
+	make -C $(KERN_SRC) M=$(PWD) modules_install
+	depmod -a
 
 clean:
-	make -C /lib/modules/$(shell uname -r)/build M=$(PWD) clean
+	make -C $(KERN_SRC) M=$(PWD) clean

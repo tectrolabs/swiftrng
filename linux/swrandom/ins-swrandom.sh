@@ -11,7 +11,6 @@
 #
 module=swrandom
 
-/sbin/insmod ./$module.ko $* || exit 1
-major="$(awk "\$2==\"$module\" {print \$1}" /proc/devices)"
-echo "Module $module loaded with major number $major"
+insmod ./$module.ko $* || exit 1
+echo "Module $module loaded"
 
