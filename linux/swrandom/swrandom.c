@@ -1598,20 +1598,12 @@ acm_ctxt_mem_err:
  */
 static int acm_read(struct file *file, unsigned char *data, int size)
 {
-   mm_segment_t oldfs;
-   int ret;
    unsigned long long offset = 0;
    if (file == NULL) {
       return -1;
    }
 
-   oldfs = get_fs();
-   set_fs(KERNEL_DS);
-
-   ret = kernel_read(file, data, size, &offset);
-
-   set_fs(oldfs);
-   return ret;
+   return kernel_read(file, data, size, &offset);
 }
 
 /**
@@ -1661,21 +1653,13 @@ static int acm_full_read(unsigned char *data, int size, int *bytesTransfered)
  */
 static int acm_write(struct file *file, unsigned char *data, int size)
 {
-   mm_segment_t oldfs;
-   int ret;
    unsigned long long offset = 0;
 
    if (file == NULL) {
       return -1;
    }
 
-   oldfs = get_fs();
-   set_fs(KERNEL_DS);
-
-   ret = kernel_write(file, data, size, &offset);
-
-   set_fs(oldfs);
-   return ret;
+   return kernel_write(file, data, size, &offset);
 }
 
 /**
@@ -1702,12 +1686,7 @@ static void acm_close(struct file *file)
 static struct file *acm_open(const char *path, int flags, int rights)
 {
    struct file *filp = NULL;
-   mm_segment_t oldfs;
-
-   oldfs = get_fs();
-   set_fs(KERNEL_DS);
    filp = filp_open(path, flags, rights);
-   set_fs(oldfs);
    if (IS_ERR(filp)) {
       return NULL;
    }
