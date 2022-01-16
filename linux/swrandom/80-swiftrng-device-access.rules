@@ -1,2 +1,3 @@
 KERNEL=="swrandom", MODE="0644"
+SUBSYSTEM=="tty", ATTRS{idVendor}=="1fc9", ATTRS{idProduct}=="8111", MODE="0666"
 

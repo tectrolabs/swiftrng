@@ -1677,16 +1677,15 @@ static void acm_close(struct file *file)
 /**
  * Open an ACM device
  *
- * @param rights - for example: S_IRWXU, S_IRWXG
  * @param flags - for example: O_RDWR
  * @param path - path to the device
  *
  * @return pointer to a file structure o NULL when error
  */
-static struct file *acm_open(const char *path, int flags, int rights)
+static struct file *acm_open(const char *path, int flags)
 {
    struct file *filp = NULL;
-   filp = filp_open(path, flags, rights);
+   filp = filp_open(path, flags, 0);
    if (IS_ERR(filp)) {
       return NULL;
    }
@@ -1859,7 +1858,7 @@ static bool acm_device_probe(void)
  */
 static bool acm_open_device(void)
 {
-   acmCtxt->filed = acm_open(acmCtxt->dev_name, O_RDWR | O_NOCTTY | O_SYNC, S_IRWXU | S_IRWXG);
+   acmCtxt->filed = acm_open(acmCtxt->dev_name, O_RDWR | O_NOCTTY | O_SYNC);
    if (acmCtxt->filed == NULL) {
       pr_info("Could not open tty device: %s", acmCtxt->dev_name);
       return false;

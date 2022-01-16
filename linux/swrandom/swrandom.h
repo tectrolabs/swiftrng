@@ -188,6 +188,7 @@ static void acm_clean_up(void);
 static bool acm_set_tty_termios_flags(void);
 static bool acm_open_device(void);
 static bool acm_lock_device(void);
+static struct file *acm_open(const char *path, int flags);
 
 //
 // Data section
