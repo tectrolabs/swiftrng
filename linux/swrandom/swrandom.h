@@ -75,6 +75,9 @@
 #include <linux/cdev.h>
 #include <linux/device.h>
 #include <linux/mutex.h>
+#include <linux/kthread.h>
+#include <linux/completion.h>
+
 
 #include <linux/tty.h>
 #include <linux/path.h>
@@ -107,13 +110,16 @@
 #define ACM_DEV_NAME_LENGTH_LIMIT (386)
 #define ACM_DEV_NAME_BY_ID_LENGTH_LIMIT (256)
 
+// Max amount of entropy bytes that user can request at a time.
+#define MAX_BYTES_USER_CAN_REQUEST (30000)
+
 
 typedef int (*acm_readdir_t)(void *, const char *, int, loff_t, u64, unsigned);
 
 //
 // Function declarations
 //
-static ssize_t device_read(struct file *, char *, size_t, loff_t *);
+static ssize_t device_read(struct file *file, char __user *buffer, size_t length, loff_t * offset);
 static int get_entropy_bytes(void);
 static int rcv_rnd_bytes(void);
 static int usb_probe(struct usb_interface *interface, const struct usb_device_id *id);
@@ -131,7 +137,10 @@ static int get_device_model(void);
 static int get_device_sn(void);
 static bool is_post_processing_enabled(void);
 static void probe_init(void);
-static void print_welcome_message(void);
+static void log_device_connect_message(void);
+int thread_function(void *data);
+static ssize_t thread_device_read(char *buffer, size_t length);
+static void clear_receive_buffer(int opTimeoutSecs);
 
 static void sha256_initialize(void);
 static void sha256_stampSerialNumber(void *inputBlock);
@@ -210,6 +219,37 @@ static struct usb_data {
    __u8 bulk_out_endpointAddr;
 } *usbData;
 
+static struct kthread_data {
+   /*
+    * Command sent to thread function.
+    * Valid commands are:
+    * 'r' - requesting entropy bytes
+    * 'e' - module is unloading
+    */
+   char command;
+   /*
+    * Status returned from the thread function.
+    * 0 - for successful operation
+    * non zero value - error number
+    */
+   ssize_t status;
+
+   struct task_struct *drv_thread;
+   /*
+    * A buffer for storing entropy bytes to be delivered to user space.
+    */
+   char k_buffer[MAX_BYTES_USER_CAN_REQUEST];
+   /*
+    * Actual amount of entropy bytes to be delivered which can be less than amount requested from the user space.
+    * It must be <= MAX_BYTES_USER_CAN_REQUEST
+    */
+   size_t k_length;
+
+   struct completion to_thread_event;
+   struct completion from_thread_event;
+
+} *threadData;
+
 static struct ctrl_data {
    unsigned char bulk_in_buffer[USB_BUFFER_SIZE];
    unsigned char bulk_out_buffer[1];
@@ -222,6 +262,7 @@ static struct ctrl_data {
    bool isVersionRetrieved;
    bool isModelRetrieved;
    bool isSNRetrieved;
+   char receiveClearBuff[1024];
 } *ctrlData;
 
 static struct usb_device_id usb_table[] = {

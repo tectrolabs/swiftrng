@@ -97,18 +97,18 @@ static int usb_probe(struct usb_interface *interface, const struct usb_device_id
    int retval = SUCCESS;
 
    if (mutex_lock_killable(&dataOpLock) != SUCCESS) {
-      pr_err( "Could not lock the mutex\n");
+      pr_err( "usb_probe(): Could not lock the mutex\n");
       return -EPERM;
    }
 
    if (isEntropySrcRdy || usbData != NULL) {
-      pr_info( "A SwiftRNG device already connected\n");
+      pr_info( "usb_probe: A SwiftRNG device already connected\n");
       mutex_unlock(&dataOpLock);
       return -EPERM;
    }
 
    if (isShutDown) {
-      pr_info( "Cannot register USB device (%04X:%04X) while module is being removed from the kernel\n", id->idVendor, id->idProduct);
+      pr_info( "usb_probe(): Cannot register USB device (%04X:%04X) while module is being removed from the kernel\n", id->idVendor, id->idProduct);
       mutex_unlock(&dataOpLock);
       return -EPERM;
    }
@@ -117,7 +117,7 @@ static int usb_probe(struct usb_interface *interface, const struct usb_device_id
 
    usbData = kmalloc(sizeof(struct usb_data), GFP_KERNEL);
    if (usbData == NULL) {
-      pr_err( "Out of memory\n");
+      pr_err( "usb_probe(): Out of memory\n");
       mutex_unlock(&dataOpLock);
       return -ENOMEM;
    }
@@ -141,13 +141,13 @@ static int usb_probe(struct usb_interface *interface, const struct usb_device_id
    }
 
    if (retval == SUCCESS && !(usbData->bulk_in_endpointAddr && usbData->bulk_out_endpointAddr)) {
-      pr_info( "Could not find both bulk-in and bulk-out endpoints");
+      pr_info( "usb_probe(): Could not find both bulk-in and bulk-out endpoints");
       retval = -EPERM;
    }
    if (retval != SUCCESS) {
       clean_up_usb();
    } else {
-      print_welcome_message();
+      log_device_connect_message();
       if (debugMode) {
          pr_info( "Device is using IN bulk address %02X, OUT bulk address %02X\n", usbData->bulk_in_endpointAddr, usbData->bulk_out_endpointAddr);
       }
@@ -168,12 +168,12 @@ static int usb_probe(struct usb_interface *interface, const struct usb_device_id
 static void usb_disconnect(struct usb_interface *interface)
 {
    if (mutex_lock_killable(&dataOpLock) != SUCCESS) {
-      pr_info( "Could not lock the mutex\n");
+      pr_info("usb_disconnect(): Could not lock the mutex\n");
    }
 
    isEntropySrcRdy = false;
    clean_up_usb();
-   pr_info( "USB device disconnected\n");
+   pr_info( "usb_disconnect(): USB device disconnected\n");
    mutex_unlock(&dataOpLock);
 }
 
@@ -186,6 +186,57 @@ static void clean_up_usb(void)
       kfree(usbData);
       usbData = NULL;
    }
+}
+
+static ssize_t thread_device_read(char *buffer, size_t length)
+{
+   ssize_t retval = SUCCESS;
+   size_t act;
+   size_t total;
+
+   if (isShutDown) {
+      return -ENODATA;
+   }
+
+   if (!isEntropySrcRdy) {
+      // No USB device has been probed.
+      // Probe for an ACM device.
+      if (!acm_device_probe()) {
+         // No ACM device has been found
+         retval = -ENODATA;
+      }
+   }
+
+   if (isEntropySrcRdy) {
+      total = 0;
+      do {
+         retval = get_entropy_bytes();
+         if (retval == SUCCESS) {
+            act = TRND_OUT_BUFFSIZE - curTrngOutIdx;
+            if (act > (length - total)) {
+               act = (length - total);
+            }
+            memcpy(buffer + total, buffTRndOut + curTrngOutIdx, act);
+            curTrngOutIdx += act;
+            total += act;
+            retval = total;
+         } else {
+            if (acmCtxt->device_locked) {
+               acm_clean_up();
+            }
+            break;
+         }
+      } while (total < length);
+      if (debugMode) {
+         if (total > length) {
+            pr_err( "thread_device_read(): Expected %d bytes to read and actually got %d \n", (int)length, (int)total);
+         }
+      }
+   } else {
+      retval = -ENODATA;
+   }
+
+   return retval;
 }
 
 /**
@@ -201,67 +252,106 @@ static void clean_up_usb(void)
 static ssize_t device_read(struct file *file, char __user *buffer, size_t length, loff_t * offset)
 {
    ssize_t retval = SUCCESS;
-   size_t act;
-   size_t total;
+   unsigned long waitStatus;
+
+   if (isShutDown) {
+      return -ENODATA;
+   }
+
+   if (length == 0) {
+      return 0;
+   }
 
    if (mutex_lock_killable(&dataOpLock) != SUCCESS) {
-      pr_err( "Could not lock the mutex\n");
+      pr_err( "device_read(): Could not lock the mutex\n");
       return -EPERM;
    }
 
-   if (isShutDown) {
-      retval = -ENODATA;
+   isDeviceOpPending = true;
+
+   // Create thread command
+   threadData->command = 'r';
+   threadData->status = -ETIMEDOUT;
+   if (length > MAX_BYTES_USER_CAN_REQUEST) {
+      // Limit the amount of entropy bytes that can be retrieved at one tiem
+      threadData->k_length = MAX_BYTES_USER_CAN_REQUEST;
+   } else {
+      threadData->k_length = length;
    }
 
-   if (!isEntropySrcRdy) {
-      // No USB device has been probed.
-      // Probe for an ACM device.
-      if (!acm_device_probe()) {
-         // No ACM device has been found
-         retval = -ENODATA;
-      }
+   if (!completion_done(&threadData->to_thread_event)) {
+      complete(&threadData->to_thread_event);
+   } else {
+      retval = -EBUSY;
+      goto return_lable;
    }
 
-   if (isEntropySrcRdy) {
-      isDeviceOpPending = true;
-      total = 0;
-      do {
-         retval = get_entropy_bytes();
-         if (retval == SUCCESS) {
-            act = TRND_OUT_BUFFSIZE - curTrngOutIdx;
-            if (act > (length - total)) {
-               act = (length - total);
-            }
-            if (copy_to_user(buffer + total, buffTRndOut + curTrngOutIdx, act)) {
-               retval = -EFAULT;
-               break;
-            } else {
-               curTrngOutIdx += act;
-               total += act;
-               retval = total;
-            }
-         } else {
-            if (acmCtxt->device_locked) {
-               acm_clean_up();
-            }
-            break;
-         }
-      } while (total < length);
+   waitStatus = wait_for_completion_timeout(&threadData->from_thread_event, msecs_to_jiffies(2000));
+   if (waitStatus == 0) {
       if (debugMode) {
-         if (total > length) {
-            pr_err( "Expected %d bytes to read and actually got %d \n", (int)length, (int)total);
+         pr_err("device_read(): thread timeout reached when processing request\n");
+      }
+      retval = -ETIMEDOUT;
+   } else {
+      retval = threadData->status;
+      if (retval > 0 && retval > MAX_BYTES_USER_CAN_REQUEST) {
+         pr_err("device_read(): BUG: invalid return value %d\n", (int)retval);
+         retval = -EFAULT;
+      } else if (retval > 0 && retval <= MAX_BYTES_USER_CAN_REQUEST) {
+         if (copy_to_user(buffer, threadData->k_buffer, retval)) {
+            retval = -EFAULT;
          }
       }
    }
+
+return_lable:
    isDeviceOpPending = false;
    mutex_unlock(&dataOpLock);
+
    return retval;
+}
+
+/**
+ * This is a thread function for handling device commands invoked from the user space.
+ * For security reasons command handling logic is executed in a dedicated kernel thread.
+ *
+ * @return 0 when shutting down
+ */
+int thread_function(void *data)
+{
+   unsigned long waitStatus;
+   struct kthread_data *thData = (struct kthread_data *)data;
+
+   while (!isShutDown) {
+      waitStatus = wait_for_completion_timeout(&threadData->to_thread_event, msecs_to_jiffies(1000));
+      if (waitStatus == 0) {
+         continue;
+      }
+
+      switch(thData->command) {
+      case 'e':
+         // Module is unloading, exit the thread.
+         return 0;
+      case 'r':
+         thData->status = thread_device_read(thData->k_buffer, thData->k_length);
+         complete(&threadData->from_thread_event);
+         break;
+      default:
+         // Ignore any unexpected commands
+         if (debugMode) {
+            pr_err("thread_function() unexpected command %c\n", thData->command);
+         }
+         break;
+      }
+
+   }
+   return 0;
 }
 
 /**
  * Print a notification when SwiftRNG device is initialized
  */
-static void print_welcome_message(void)
+static void log_device_connect_message(void)
 {
    pr_info( "-------------------------------\n");
    pr_info( "-- SwiftRNG device connected --\n");
@@ -452,6 +542,8 @@ static int rcv_rnd_bytes(void)
    retval = SUCCESS;
 
    if (ctrlData->isPowerProfileSet == false) {
+      // Clear the receive buffer before initializing the device
+      clear_receive_buffer(USB_READ_TIMEOUT_SECS);
       retval = set_device_power_profile();
       if (retval == SUCCESS) {
          ctrlData->isPowerProfileSet = true;
@@ -557,10 +649,10 @@ static int rcv_rnd_bytes(void)
          }
          curTrngOutIdx = TRND_OUT_BUFFSIZE - bytesPerSample;
          if (rct.statusByte != SUCCESS) {
-            pr_err( "Repetition Count Test failure\n");
+            pr_err( "rcv_rnd_bytes(): Repetition Count Test failure\n");
             retval = -EPERM;
          } else if (apt.statusByte != SUCCESS) {
-            pr_err( "Adaptive Proportion Test failure\n");
+            pr_err( "rcv_rnd_bytes(): Adaptive Proportion Test failure\n");
             retval = -EPERM;
          }
       }
@@ -610,22 +702,35 @@ static int snd_rcv_usb_data(char *snd, int sizeSnd, char *rcv, int sizeRcv, int 
          if (retval == SUCCESS) {
             if (rcv[sizeRcv] != 0) {
                retval = -EFAULT;
-               pr_err( "SW RNG internal failure: received device status code %d\n", rcv[sizeRcv]);
+               clear_receive_buffer(opTimeoutSecs);
+               if (debugMode) {
+                  pr_err( "SwiftRNG RNG: received device status code %d\n", rcv[sizeRcv]);
+               }
             } else {
                break;
             }
          }
       } else {
+         clear_receive_buffer(opTimeoutSecs);
          if (debugMode) {
-            pr_info( "It was an error during data communication. Cleaning up the receiving queue and continue.\n");
+            pr_err( "snd_rcv_usb_data(): It was an error during data communication. Cleaning up the receiving queue and continue.\n");
          }
-         chip_read_data(rcv, sizeRcv + 1, opTimeoutSecs);
       }
    }
    if (retry >= USB_READ_MAX_RETRY_CNT) {
       retval = -ETIMEDOUT;
    }
    return retval;
+}
+
+/**
+ * Function for clearing the receive buffer.
+  *
+ * @param opTimeoutSecs - device read time out value in seconds
+ */
+static void clear_receive_buffer(int opTimeoutSecs)
+{
+   while (chip_read_data(ctrlData->receiveClearBuff, sizeof(ctrlData->receiveClearBuff), opTimeoutSecs) == SUCCESS );
 }
 
 /**
@@ -669,7 +774,7 @@ static int chip_read_data(char *buff, int length, int opTimeoutSecs)
       }
 
       if (transferred > USB_BUFFER_SIZE) {
-         pr_err( "Received unexpected bytes when processing USB device request\n");
+         pr_err( "chip_read_data(): Received unexpected bytes when processing USB device request\n");
          return -EFAULT;
       }
 
@@ -710,7 +815,7 @@ static int init_char_dev(void)
 
    error = alloc_chrdev_region(&dev, 0, 1, DEVICE_NAME);
    if (error < 0) {
-      pr_err( "alloc_chrdev_region() call failed with error: %d\n", error);
+      pr_err( "init_char_dev(): alloc_chrdev_region() call failed with error: %d\n", error);
       return error;
    }
    major = MAJOR(dev);
@@ -758,13 +863,13 @@ static int create_device(void)
    cdv->owner = THIS_MODULE;
    error = cdev_add(cdv, devno, 1);
    if (error) {
-      pr_err( "cdev_add() call failed with error: %d\n", error);
+      pr_err( "create_device(): cdev_add() call failed with error: %d\n", error);
       return error;
    }
    device = device_create(dev_class, NULL, devno, NULL, DEVICE_NAME);
    if (IS_ERR(device)) {
       error = PTR_ERR(device);
-      pr_err( "device_create() failed with error: %d\n", error);
+      pr_err( "create_device(): device_create() failed with error: %d\n", error);
       return error;
    }
 
@@ -1470,9 +1575,9 @@ static void apt_restart(void)
 }
 
 /*
- * A function for handling module loading event and allocating resources.
+ * A function for handling module loading event and for allocating resources.
  *
- * @return greater than 0 - number of bytes actually read, otherwise the error code (a negative number)
+ * @return 0 - for successful operation
  */
 static int __init init_swrandom(void)
 {
@@ -1484,18 +1589,16 @@ static int __init init_swrandom(void)
    buffRndIn = NULL;
    buffTRndOut = NULL;
 
-   mutex_init(&dataOpLock);
-
    rct_initialize();
    apt_initialize();
 
    if (bytesPerSample <= 0 || bytesPerSample > TRND_OUT_BUFFSIZE) {
-      pr_err( "Bytes per second parameter %d is not valid, it must be between 1 and 16000\n", bytesPerSample);
+      pr_err( "init_swrandom(): Bytes per second parameter %d is not valid, it must be between 1 and 16000\n", bytesPerSample);
       return -EINVAL;
    }
 
    if (powerProfile < 0 || powerProfile > 9) {
-      pr_err( "Power profile parameter %d is not valid, it must be between 0 and 9\n", (int)powerProfile);
+      pr_err( "init_swrandom(): Power profile parameter %d is not valid, it must be between 0 and 9\n", (int)powerProfile);
       return -EINVAL;
    }
 
@@ -1506,29 +1609,29 @@ static int __init init_swrandom(void)
    } else if (!strcmp("xorshift64", postProcessingMethod)) {
       postProcessingMethodId = XORSHIFT64_PP_METHOD;
    } else {
-      pr_err( "Post processing method %s is not valid\n", postProcessingMethod);
+      pr_err( "init_swrandom(): Post processing method %s is not valid\n", postProcessingMethod);
       return -EINVAL;
    }
 
    sha256_initializeSerialNumber(413145);
    if (sha256_selfTest() != SUCCESS) {
-      pr_err( "Post processing logic SHA256 failed the self-test\n");
+      pr_err( "init_swrandom(): Post processing logic SHA256 failed the self-test\n");
       return -EPERM;
    }
 
    if (sha512_selfTest() != SUCCESS) {
-      pr_err( "Post processing logic SHA512 failed the self-test\n");
+      pr_err( "init_swrandom(): Post processing logic SHA512 failed the self-test\n");
       return -EPERM;
    }
 
    if (xorshift64_selfTest() != SUCCESS) {
-      pr_err( "Post processing logic xorshift64 failed the self-test\n");
+      pr_err("init_swrandom(): Post processing logic xorshift64 failed the self-test\n");
       return -EPERM;
    }
 
    err = init_char_dev();
    if (err != SUCCESS) {
-      pr_err( "Could not initialize char device %s\n", DEVICE_NAME);
+      pr_err( "init_swrandom(): Could not initialize char device %s\n", DEVICE_NAME);
       return err;
    }
 
@@ -1536,44 +1639,67 @@ static int __init init_swrandom(void)
 
    acmCtxt = kmalloc(sizeof(struct acm_context), GFP_KERNEL);
    if (acmCtxt == NULL) {
-      pr_err( "Could not allocate bytes for the acm_context structure\n");
+      pr_err( "init_swrandom(): Could not allocate bytes for the acm_context structure\n");
       err = -ENOMEM;
       goto acm_ctxt_mem_err;
    }
 
    buffRndIn = kmalloc(RND_IN_BUFFSIZE + 1, GFP_KERNEL);
    if (buffRndIn == NULL) {
-      pr_err( "Could not allocate %d kernel bytes for the random input buffer\n", RND_IN_BUFFSIZE);
+      pr_err( "init_swrandom(): Could not allocate kernel bytes for the random input buffer\n");
       err = -ENOMEM;
       goto in_buff_mem_err;
    }
 
    buffTRndOut = kmalloc(TRND_OUT_BUFFSIZE, GFP_KERNEL);
    if (buffTRndOut == NULL) {
-      pr_err( "Could not allocate %d kernel bytes for the random output buffer\n", TRND_OUT_BUFFSIZE);
+      pr_err( "init_swrandom(): Could not allocate kernel bytes for the random output buffer\n");
       err = -ENOMEM;
       goto out_buff_mem_err;
    }
 
    ctrlData = kmalloc(sizeof(struct ctrl_data), GFP_KERNEL);
    if (ctrlData == NULL) {
-      pr_err( "Could not allocate %d kernel bytes for control data\n", TRND_OUT_BUFFSIZE);
+      pr_err( "init_swrandom(): Could not allocate kernel bytes for the control data\n");
       err = -ENOMEM;
       goto ctrl_mem_err;
    }
 
+   threadData = kzalloc(sizeof(struct kthread_data), GFP_KERNEL);
+   if (threadData == NULL) {
+      pr_err( "init_swrandom(): Could not allocate kernel bytes for the kthread data\n");
+      err = -ENOMEM;
+      goto thread_mem_err;
+   }
+
    usb_result = usb_register(&usb_driver);
    if (usb_result < 0) {
-      pr_err( "Could not register usb driver, error number %d\n", usb_result);
+      pr_err( "init_swrandom(): Could not register usb driver, error number %d\n", usb_result);
       err = usb_result;
       goto usb_register_err;
    }
+
+   threadData->drv_thread = kthread_run(thread_function, threadData, "SwiftRNG driver thread");
+   if (threadData->drv_thread) {
+      init_completion(&threadData->to_thread_event);
+      init_completion(&threadData->from_thread_event);
+   } else {
+      pr_err( "init_swrandom(): Could not create a SwiftRNG driver kernel thread\n");
+      err = -EPERM;
+      goto thread_create_err;
+   }
+
+   mutex_init(&dataOpLock);
 
    pr_info( "Char device %s registered successfully, module version: %s\n", DEVICE_NAME, DRIVER_VERSION);
 
    return SUCCESS;
 
+thread_create_err:
+   usb_deregister(&usb_driver);
 usb_register_err:
+   kfree(threadData);
+thread_mem_err:
    kfree(ctrlData);
 ctrl_mem_err:
    kfree(buffTRndOut);
@@ -1626,7 +1752,7 @@ static int acm_full_read(unsigned char *data, int size, int *bytesTransfered)
    while (totalBytesReceived < size) {
       bytesReceived = acm_read(acmCtxt->filed, data + totalBytesReceived, size - totalBytesReceived);
       if (bytesReceived < 0) {
-         pr_err("Could not receive data from ACM device");
+         pr_err("acm_full_read(): Could not receive data from ACM device");
          return -EPERM;
       }
       if (bytesReceived == 0) {
@@ -1730,11 +1856,11 @@ static int acm_readdir(const char* path, acm_readdir_t filler, void* context)
 static int acm_filldir_callback(void* data, const char *name, int nameLength, loff_t offset, u64 ino, unsigned int dType)
 {
    if (nameLength >= ACM_DEV_NAME_BY_ID_LENGTH_LIMIT - 1) {
-      pr_err("ACM device name too long\n");
+      pr_err("acm_filldir_callback(): ACM device name too long\n");
       return 0;
    }
    if (acmCtxt->devices_found >= MAX_ACM_DEVICES_TO_PROBE) {
-      pr_err("Exceeding max number of ACM devices\n");
+      pr_err("acm_filldir_callback(): Exceeding max number of ACM devices\n");
       return 0;
    }
    memcpy(acmCtxt->dev_name_by_id[acmCtxt->devices_found], name, nameLength);
@@ -1754,7 +1880,7 @@ static bool acm_search_for_device(void)
 {
    acm_readdir(dev_serial_by_id_path, acm_filldir_callback, (void*) 1);
    if (!acmCtxt->devices_found) {
-      pr_info("no SwiftRNG device found\n");
+      pr_info("No SwiftRNG device found\n");
       return false;
    }
    return true;
@@ -1817,7 +1943,7 @@ static bool acm_device_probe(void)
 
       op_status = kern_path(acmCtxt->dev_name, LOOKUP_FOLLOW, &acmCtxt->path);
       if (op_status) {
-         pr_err("kern_path() failed for %s\n", acmCtxt->dev_name);
+         pr_err("acm_device_probe(): kern_path() failed for %s\n", acmCtxt->dev_name);
          continue;
       }
       acmCtxt->inode = acmCtxt->path.dentry->d_inode;
@@ -1843,7 +1969,7 @@ static bool acm_device_probe(void)
       }
       isEntropySrcRdy = true;
 
-      print_welcome_message();
+      log_device_connect_message();
 
       return true;
    }
@@ -1860,7 +1986,7 @@ static bool acm_open_device(void)
 {
    acmCtxt->filed = acm_open(acmCtxt->dev_name, O_RDWR | O_NOCTTY | O_SYNC);
    if (acmCtxt->filed == NULL) {
-      pr_info("Could not open tty device: %s", acmCtxt->dev_name);
+      pr_info("acm_open_device(): Could not open tty device: %s", acmCtxt->dev_name);
       return false;
    }
    acmCtxt->device_open = true;
@@ -1880,7 +2006,7 @@ static bool acm_lock_device(void)
    acmCtxt->fl.fl_type = LOCK_READ | LOCK_WRITE;
    op_status = locks_lock_inode_wait(acmCtxt->inode, &acmCtxt->fl);
    if (op_status != 0) {
-      pr_info("Could not lock device %s\n", acmCtxt->dev_name);
+      pr_info("acm_lock_device(): Could not lock device %s\n", acmCtxt->dev_name);
       return false;
    }
    acmCtxt->device_locked = true;
@@ -1911,7 +2037,7 @@ static bool acm_set_tty_termios_flags(void)
    acmCtxt->opts.c_cc[VMIN] = 0;
 
    if (tty_set_termios(acmCtxt->tty, &acmCtxt->opts) != 0) {
-      pr_info("tty_set_termios() failed for %s\n", acmCtxt->dev_name);
+      pr_info("acm_set_tty_termios_flags(): tty_set_termios() failed for %s\n", acmCtxt->dev_name);
       successStatus = false;
       goto close_free_tty;
    }
@@ -1938,11 +2064,11 @@ static void acm_clean_up(void)
       acmCtxt->fl.fl_type = F_UNLCK;
       op_status = locks_lock_inode_wait(acmCtxt->inode, &acmCtxt->fl);
       if (op_status != 0) {
-         pr_info("Could not unlock %s\n", acmCtxt->dev_name);
+         pr_info("acm_clean_up(): Could not unlock %s\n", acmCtxt->dev_name);
       }
       acmCtxt->device_locked = false;
       if (debugMode) {
-         pr_info("locks_lock_inode_wait() returned: %d\n", op_status);
+         pr_info("acm_clean_up(): locks_lock_inode_wait() returned: %d\n", op_status);
       }
    }
 
@@ -1957,23 +2083,31 @@ static void acm_clean_up(void)
 }
 
 /*
- * A function to handle event for module unloading
+ * A function to handle module unloading event
  */
 static void __exit exit_swrandom(void)
 {
    isEntropySrcRdy = false;
    isShutDown = true;
-   msleep(2000);
+
+   if (!completion_done(&threadData->to_thread_event)) {
+      threadData->command = 'e';
+      complete(&threadData->to_thread_event);
+   }
+
+   msleep(1000);
    wait_for_pending_ops();
    acm_clean_up();
    usb_deregister(&usb_driver);
    uninit_char_dev();
+   clean_up_usb();
    kfree(buffRndIn);
    kfree(buffTRndOut);
    kfree(acmCtxt);
    kfree(ctrlData);
+   kfree(threadData);
    mutex_destroy(&dataOpLock);
-   pr_info( "Char device %s unregistered successfully\n", DEVICE_NAME);
+   pr_info( "exit_swrandom(): Char device %s unregistered successfully\n", DEVICE_NAME);
 }
 
 module_init( init_swrandom);
