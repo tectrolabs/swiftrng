@@ -286,7 +286,7 @@ static ssize_t device_read(struct file *file, char __user *buffer, size_t length
       goto return_lable;
    }
 
-   waitStatus = wait_for_completion_timeout(&threadData->from_thread_event, msecs_to_jiffies(2000));
+   waitStatus = wait_for_completion_timeout(&threadData->from_thread_event, msecs_to_jiffies(10000));
    if (waitStatus == 0) {
       if (debugMode) {
          pr_err("device_read(): thread timeout reached when processing request\n");
@@ -687,7 +687,7 @@ static int snd_rcv_usb_data(char *snd, int sizeSnd, char *rcv, int sizeRcv, int 
       if (acmCtxt->device_locked == false) {
          // Send command to the USB device
          retval = usb_bulk_msg(usbData->udev, usb_sndbulkpipe(usbData->udev, usbData->bulk_out_endpointAddr), snd,
-               sizeSnd, &actualcCnt, HZ * 10);
+               sizeSnd, &actualcCnt, msecs_to_jiffies(100));
       } else {
          // Send command to the ACM device
          actualcCnt = acm_write(acmCtxt->filed, snd, sizeSnd);
@@ -761,7 +761,7 @@ static int chip_read_data(char *buff, int length, int opTimeoutSecs)
       if (acmCtxt->device_locked == false) {
          // Retrieve data from the USB device
          retval = usb_bulk_msg(usbData->udev, usb_rcvbulkpipe(usbData->udev, usbData->bulk_in_endpointAddr),
-               ctrlData->bulk_in_buffer, length, &transferred, HZ * 20);
+               ctrlData->bulk_in_buffer, length, &transferred, msecs_to_jiffies(200));
       } else {
          // Retrieve data from the ACM device
          retval = acm_full_read(ctrlData->bulk_in_buffer, length, &transferred);
