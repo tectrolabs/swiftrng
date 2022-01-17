@@ -52,7 +52,7 @@
  *
  * Alternatively you can download the random byte stream into a file using
  * the following command:
- * dd if=/dev/swrandom of=download.bin bs=12000000 count=10
+ * sudo dd if=/dev/swrandom of=download.bin bs=30000 count=10
  *
  */
 #include "swrandom.h"
@@ -286,7 +286,7 @@ static ssize_t device_read(struct file *file, char __user *buffer, size_t length
       goto return_lable;
    }
 
-   waitStatus = wait_for_completion_timeout(&threadData->from_thread_event, msecs_to_jiffies(10000));
+   waitStatus = wait_for_completion_timeout(&threadData->from_thread_event, msecs_to_jiffies(5000));
    if (waitStatus == 0) {
       if (debugMode) {
          pr_err("device_read(): thread timeout reached when processing request\n");

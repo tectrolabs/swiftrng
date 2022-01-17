@@ -52,7 +52,7 @@
  *
  * Alternatively you can download the random byte stream into a file using
  * the following command:
- * dd if=/dev/swrandom of=download.bin bs=12000000 count=10
+ * sudo dd if=/dev/swrandom of=download.bin bs=30000 count=10
  *
  */
 #ifndef SWRANDOM_H_
