@@ -51,7 +51,7 @@
  * sudo rngd -r /dev/swrandom
  *
  * Alternatively you can download the random byte stream into a file using
- * the following command:
+ * the following command (the block size 'bs' should not be larger than 30000 bytes):
  * sudo dd if=/dev/swrandom of=download.bin bs=30000 count=10
  *
  */
@@ -88,6 +88,8 @@
 #define SUCCESS 0
 #define DEVICE_NAME "swrandom"
 #define DRIVER_VERSION "2.0"
+#define DRIVER_NAME "SWRNG"
+
 
 #define WORD_SIZE_BYTES (4)
 #define MIN_INPUT_NUM_WORDS (8)
@@ -273,7 +275,7 @@ static struct usb_device_id usb_table[] = {
 
 MODULE_DEVICE_TABLE( usb, usb_table);
 static struct usb_driver usb_driver = {
-		.name = "SWRNG",
+		.name = DRIVER_NAME,
 		.id_table = usb_table,
 		.probe = usb_probe,
 		.disconnect = usb_disconnect };
