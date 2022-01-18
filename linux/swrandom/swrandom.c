@@ -1882,7 +1882,7 @@ static bool acm_search_for_device(void)
 {
    acm_readdir(dev_serial_by_id_path, acm_filldir_callback, (void*) 1);
    if (!acmCtxt->devices_found) {
-      pr_info("No SwiftRNG device found\n");
+      pr_info("%s: No SwiftRNG CDC/ACM device found\n", DRIVER_NAME);
       return false;
    }
    return true;
@@ -1990,7 +1990,7 @@ static bool acm_open_device(void)
 {
    acmCtxt->filed = acm_open(acmCtxt->dev_name, O_RDWR | O_NOCTTY | O_SYNC);
    if (acmCtxt->filed == NULL) {
-      pr_info("acm_open_device(): Could not open tty device: %s", acmCtxt->dev_name);
+      pr_info("%s: acm_open_device(): Could not open tty device: %s", DRIVER_NAME, acmCtxt->dev_name);
       return false;
    }
    acmCtxt->device_open = true;
@@ -2010,7 +2010,7 @@ static bool acm_lock_device(void)
    acmCtxt->fl.fl_type = LOCK_READ | LOCK_WRITE;
    op_status = locks_lock_inode_wait(acmCtxt->inode, &acmCtxt->fl);
    if (op_status != 0) {
-      pr_info("acm_lock_device(): Could not lock device %s\n", acmCtxt->dev_name);
+      pr_info("%s: acm_lock_device(): Could not lock device %s\n", DRIVER_NAME, acmCtxt->dev_name);
       return false;
    }
    acmCtxt->device_locked = true;
@@ -2028,7 +2028,7 @@ static bool acm_set_tty_termios_flags(void)
 
    acmCtxt->tty = tty_kopen(acmCtxt->devt);
    if (IS_ERR(acmCtxt->tty)) {
-      pr_info("tty_kopen() failed for %s\n", acmCtxt->dev_name);
+      pr_info("%s: tty_kopen() failed for %s\n", DRIVER_NAME, acmCtxt->dev_name);
       return false;
    }
 
@@ -2041,7 +2041,7 @@ static bool acm_set_tty_termios_flags(void)
    acmCtxt->opts.c_cc[VMIN] = 0;
 
    if (tty_set_termios(acmCtxt->tty, &acmCtxt->opts) != 0) {
-      pr_info("acm_set_tty_termios_flags(): tty_set_termios() failed for %s\n", acmCtxt->dev_name);
+      pr_info("%s: acm_set_tty_termios_flags(): tty_set_termios() failed for %s\n", DRIVER_NAME, acmCtxt->dev_name);
       successStatus = false;
       goto close_free_tty;
    }
