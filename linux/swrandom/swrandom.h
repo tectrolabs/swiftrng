@@ -51,8 +51,8 @@
  * sudo rngd -r /dev/swrandom
  *
  * Alternatively you can download the random byte stream into a file using
- * the following command (the block size 'bs' should not be larger than 30000 bytes):
- * sudo dd if=/dev/swrandom of=download.bin bs=30000 count=10
+ * the following command (the block size 'bs' should not be larger than 100,000 bytes):
+ * sudo dd if=/dev/swrandom of=download.bin bs=100000 count=10
  *
  */
 #ifndef SWRANDOM_H_
@@ -113,7 +113,7 @@
 #define ACM_DEV_NAME_BY_ID_LENGTH_LIMIT (256)
 
 // Max amount of entropy bytes that user can request at a time.
-#define MAX_BYTES_USER_CAN_REQUEST (30000)
+#define MAX_BYTES_USER_CAN_REQUEST (100000)
 
 
 typedef int (*acm_readdir_t)(void *, const char *, int, loff_t, u64, unsigned);

@@ -51,8 +51,8 @@
  * sudo rngd -r /dev/swrandom
  *
  * Alternatively you can download the random byte stream into a file using
- * the following command (the block size 'bs' should not be larger than 30000 bytes):
- * sudo dd if=/dev/swrandom of=download.bin bs=30000 count=10
+ * the following command (the block size 'bs' should not be larger than 100,000 bytes):
+ * sudo dd if=/dev/swrandom of=download.bin bs=100000 count=10
  *
  */
 #include "swrandom.h"
@@ -96,19 +96,16 @@ static int usb_probe(struct usb_interface *interface, const struct usb_device_id
    int i;
    int retval = SUCCESS;
 
-   if (mutex_lock_killable(&dataOpLock) != SUCCESS) {
-      pr_err("%s: usb_probe(): Could not lock the mutex\n", DRIVER_NAME);
-      return -EPERM;
-   }
+   mutex_lock(&dataOpLock);
 
    if (isEntropySrcRdy || usbData != NULL) {
-      pr_info( "usb_probe: A SwiftRNG device already connected\n");
+      pr_info("%s: usb_probe: A SwiftRNG device already connected\n", DRIVER_NAME);
       mutex_unlock(&dataOpLock);
       return -EPERM;
    }
 
    if (isShutDown) {
-      pr_info( "usb_probe(): Cannot register USB device (%04X:%04X) while module is being removed from the kernel\n", id->idVendor, id->idProduct);
+      pr_info("%s: usb_probe(): Cannot register USB device (%04X:%04X) while module is being removed from the kernel\n", DRIVER_NAME, id->idVendor, id->idProduct);
       mutex_unlock(&dataOpLock);
       return -EPERM;
    }
@@ -140,7 +137,7 @@ static int usb_probe(struct usb_interface *interface, const struct usb_device_id
    }
 
    if (retval == SUCCESS && !(usbData->bulk_in_endpointAddr && usbData->bulk_out_endpointAddr)) {
-      pr_info( "usb_probe(): Could not find both bulk-in and bulk-out endpoints");
+      pr_err("%s: usb_probe(): Could not find both bulk-in and bulk-out endpoints\n", DRIVER_NAME);
       retval = -EPERM;
    }
    if (retval != SUCCESS) {
@@ -148,7 +145,7 @@ static int usb_probe(struct usb_interface *interface, const struct usb_device_id
    } else {
       log_device_connect_message();
       if (debugMode) {
-         pr_info( "Device is using IN bulk address %02X, OUT bulk address %02X\n", usbData->bulk_in_endpointAddr, usbData->bulk_out_endpointAddr);
+         pr_info("Device is using IN bulk address %02X, OUT bulk address %02X\n", usbData->bulk_in_endpointAddr, usbData->bulk_out_endpointAddr);
       }
       isEntropySrcRdy = true;
 
@@ -166,13 +163,11 @@ static int usb_probe(struct usb_interface *interface, const struct usb_device_id
  */
 static void usb_disconnect(struct usb_interface *interface)
 {
-   if (mutex_lock_killable(&dataOpLock) != SUCCESS) {
-      pr_info("usb_disconnect(): Could not lock the mutex\n");
-   }
+   mutex_lock(&dataOpLock);
 
    isEntropySrcRdy = false;
    clean_up_usb();
-   pr_info( "usb_disconnect(): USB device disconnected\n");
+   pr_info("%s: usb_disconnect(): USB device disconnected\n", DRIVER_NAME);
    mutex_unlock(&dataOpLock);
 }
 
@@ -265,7 +260,9 @@ static ssize_t device_read(struct file *file, char __user *buffer, size_t length
    }
 
    if (mutex_lock_killable(&dataOpLock) != SUCCESS) {
-      pr_err("%s: device_read(): Could not lock the mutex\n", DRIVER_NAME);
+      if(debugMode) {
+         pr_err("%s: device_read(): Could not lock the mutex\n", DRIVER_NAME);
+      }
       return -EPERM;
    }
 
@@ -355,9 +352,9 @@ int thread_function(void *data)
  */
 static void log_device_connect_message(void)
 {
-   pr_info( "-------------------------------\n");
-   pr_info( "-- SwiftRNG device connected --\n");
-   pr_info( "-------------------------------\n");
+   pr_info("-------------------------------\n");
+   pr_info("-- SwiftRNG device connected --\n");
+   pr_info("-------------------------------\n");
 }
 
 /**
@@ -549,7 +546,7 @@ static int rcv_rnd_bytes(void)
       retval = set_device_power_profile();
       if (retval == SUCCESS) {
          ctrlData->isPowerProfileSet = true;
-         pr_info( "SwiftRNG device power profile: %d \n", powerProfile);
+         pr_info("SwiftRNG device power profile: %d \n", powerProfile);
       } else {
          retval = -EPERM;
       }
@@ -559,7 +556,7 @@ static int rcv_rnd_bytes(void)
       retval = get_device_model();
       if (retval == SUCCESS) {
          ctrlData->isModelRetrieved = true;
-         pr_info( "SwiftRNG device model: %s\n", ctrlData->deviceModel);
+         pr_info("SwiftRNG device model: %s\n", ctrlData->deviceModel);
       } else {
          retval = -EPERM;
       }
@@ -569,7 +566,7 @@ static int rcv_rnd_bytes(void)
       retval = get_device_sn();
       if (retval == SUCCESS) {
          ctrlData->isSNRetrieved = true;
-         pr_info( "SwiftRNG device serial number: %s\n", ctrlData->deviceSN);
+         pr_info("SwiftRNG device serial number: %s\n", ctrlData->deviceSN);
       } else {
          retval = -EPERM;
       }
@@ -582,26 +579,26 @@ static int rcv_rnd_bytes(void)
       apt_initialize();
       if (retval == SUCCESS) {
          ctrlData->isVersionRetrieved = true;
-         pr_info( "SwiftRNG device version: %s.%s \n", ctrlData->deviceVersion + 1, ctrlData->deviceVersion + 3);
+         pr_info("SwiftRNG device version: %s.%s \n", ctrlData->deviceVersion + 1, ctrlData->deviceVersion + 3);
          if (is_post_processing_enabled() == true) {
-            pr_info( "SwiftRNG post processing: enabled\n");
+            pr_info("SwiftRNG post processing: enabled\n");
             if (is_xorshift64_enabled() == true) {
-               pr_info( "SwiftRNG post processing method: Marsaglia's Xorshift64\n");
+               pr_info("SwiftRNG post processing method: Marsaglia's Xorshift64\n");
             } else if (postProcessingMethodId == SHA512_PP_METHOD) {
-               pr_info( "SwiftRNG post processing method: SHA-512\n");
+               pr_info("SwiftRNG post processing method: SHA-512\n");
             } else {
-               pr_info( "SwiftRNG post processing method: SHA-256\n");
+               pr_info("SwiftRNG post processing method: SHA-256\n");
             }
          } else {
-            pr_info( "SwiftRNG post processing: disabled\n");
+            pr_info("SwiftRNG post processing: disabled\n");
          }
       } else {
          retval = -EPERM;
       }
       if (disableStatisticalTests) {
-         pr_info( "SwiftRNG statistical tests: disabled\n");
+         pr_info("SwiftRNG statistical tests: disabled\n");
       } else {
-         pr_info( "SwiftRNG statistical tests: enabled\n");
+         pr_info("SwiftRNG statistical tests: enabled\n");
       }
 
       configure_tests();
@@ -769,7 +766,7 @@ static int chip_read_data(char *buff, int length, int opTimeoutSecs)
          retval = acm_full_read(ctrlData->bulk_in_buffer, length, &transferred);
       }
       if (debugMode) {
-         pr_info( "chip_read_data retval %d transferred %d, length %d\n", retval, transferred, length);
+         pr_info("chip_read_data retval %d transferred %d, length %d\n", retval, transferred, length);
       }
       if (retval) {
          return retval;
@@ -791,7 +788,7 @@ static int chip_read_data(char *buff, int length, int opTimeoutSecs)
 
    if (cnt != length) {
       if (debugMode) {
-         pr_info( "timeout received, cnt %d\n", cnt);
+         pr_info("timeout received, cnt %d\n", cnt);
       }
       return -ETIMEDOUT;
    }
@@ -1483,7 +1480,7 @@ static void test_samples(void)
                }
                if (debugMode) {
                   if (rct.failureCount >= 1) {
-                     pr_info( "rct.failureCount: %d value: %d\n", rct.failureCount, value);
+                     pr_info("rct.failureCount: %d value: %d\n", rct.failureCount, value);
                   }
                }
             }
@@ -1514,7 +1511,7 @@ static void test_samples(void)
                }
                if (debugMode) {
                   if (apt.cycleFailures >= 1) {
-                     pr_info( "apt.cycleFailures: %d value: %d\n", apt.cycleFailures, value);
+                     pr_info("apt.cycleFailures: %d value: %d\n", apt.cycleFailures, value);
                   }
                }
 
@@ -1673,6 +1670,9 @@ static int __init init_swrandom(void)
       err = -ENOMEM;
       goto thread_mem_err;
    }
+
+   // Give priority to ACM/CDC type when probing for SwiftRNG devices.
+   acm_device_probe();
 
    usb_result = usb_register(&usb_driver);
    if (usb_result < 0) {
@@ -1945,7 +1945,9 @@ static bool acm_device_probe(void)
 
       op_status = kern_path(acmCtxt->dev_name, LOOKUP_FOLLOW, &acmCtxt->path);
       if (op_status) {
-         pr_err("%s: acm_device_probe(): kern_path() failed for %s\n", DRIVER_NAME, acmCtxt->dev_name);
+         if (debugMode) {
+            pr_err("%s: acm_device_probe(): kern_path() failed for %s\n", DRIVER_NAME, acmCtxt->dev_name);
+         }
          continue;
       }
       acmCtxt->inode = acmCtxt->path.dentry->d_inode;
@@ -2046,7 +2048,7 @@ static bool acm_set_tty_termios_flags(void)
 
 close_free_tty:
    tty_kclose(acmCtxt->tty);
-   kfree(acmCtxt->tty);
+   tty_kref_put(acmCtxt->tty);
    return successStatus;
 }
 
@@ -2109,7 +2111,7 @@ static void __exit exit_swrandom(void)
    kfree(ctrlData);
    kfree(threadData);
    mutex_destroy(&dataOpLock);
-   pr_info( "exit_swrandom(): Char device %s unregistered successfully\n", DEVICE_NAME);
+   pr_info("%s: exit_swrandom(): Char device %s unregistered successfully\n", DRIVER_NAME, DEVICE_NAME);
 }
 
 module_init( init_swrandom);
