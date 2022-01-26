@@ -1,6 +1,6 @@
 /*
  * swrandom.c
- * ver. 2.0
+ * ver. 2.1
  *
  */
 
@@ -19,40 +19,13 @@
  * SwiftRNG Z
  * SwiftRNG LE
  *
- * Once the module is successfully built with 'make', it can be loaded
- * into the kernel by using the ins-swrandom.sh script:
- * sudo ./ins-swrandom.sh
- *
- * Use the following command to load the module with a different SwiftRNG
- * power profile number (in this example it will use power profile number 5):
- * sudo ./ins-swrandom.sh powerProfile=5
- *
- * For devices with versions 1.2 and up the post processing can be disabled.
- * To disable post processing use the following command:
- * sudo ./ins-swrandom.sh disablePostProcessing
- *
- * For devices with versions 1.2 and up Marsaglia's Xorshift64 method can be used
- * as a post processing method.
- * To enable Marsaglia's Xorshift64 use the following command:
- * sudo ./ins-swrandom.sh postProcessingMethod=xorshift64
- *
- * To enable SHA-512 post processing use the following command:
- * sudo ./ins-swrandom.sh postProcessingMethod=SHA512
- *
- * 'Repetition Count' and 'Adaptive Proportion' statistical tests can be disabled
- * with the following command:
- * sudo ./ins-swrandom.sh disableStatisticalTests
- *
  * After the module is successfully loaded by the kernel, the random bytes
- * will be available for download from the /dev/swrandom device.
+ * will be available through /dev/swrandom device.
  *
- * It can be used to feed the 'rngd' daemon with random data generated
- * by a SwiftRNG device using the following command:
- * sudo rngd -r /dev/swrandom
+ * To test, simply plug a SwiftRNG device into one of the available USB ports
+ * and run the following command:
  *
- * Alternatively you can download the random byte stream into a file using
- * the following command (the block size 'bs' should not be larger than 100,000 bytes):
- * sudo dd if=/dev/swrandom of=download.bin bs=100000 count=10
+ * sudo dd if=/dev/swrandom of=/dev/null bs=100000 count=10
  *
  */
 #include "swrandom.h"
@@ -82,11 +55,11 @@ MODULE_PARM_DESC(debugMode, "Use this flag to enable debug mode");
 
 
 /**
- * A function to handle the event when the expected USB device is plugged in or connected
+ * A function to handle the event when a SwiftRNG device (type USB) is plugged in or connected
  *
  * @param interface - pointer to the usb_interface structure associated with the device
  * @param id -  pointer to the usb_device_id
- * @return 0 - successfully, otherwise the error code (a negative number)
+ * @return 0 - successful operation, otherwise the error code (a negative number)
  *
  */
 static int usb_probe(struct usb_interface *interface, const struct usb_device_id *id)
@@ -99,7 +72,7 @@ static int usb_probe(struct usb_interface *interface, const struct usb_device_id
    mutex_lock(&dataOpLock);
 
    if (isEntropySrcRdy || usbData != NULL) {
-      pr_info("%s: usb_probe: A SwiftRNG device already connected\n", DRIVER_NAME);
+      pr_info("%s: usb_probe(): A SwiftRNG device already connected\n", DRIVER_NAME);
       mutex_unlock(&dataOpLock);
       return -EPERM;
    }
@@ -156,7 +129,7 @@ static int usb_probe(struct usb_interface *interface, const struct usb_device_id
 }
 
 /**
- * A function to handle the event when the USB device is unplugged in or disconnected
+ * A function to handle the event when the SwiftRNG device (type USB) is unplugged or disconnected
  *
  * @param interface - pointer to the usb_interface structure associated with the device
  *
@@ -185,6 +158,15 @@ static void clean_up_usb(void)
    }
 }
 
+/**
+ * A function called from a thread to read from either USB or ACM device
+ *
+ * @param buffer - pointer for destination bytes
+ * @param length - how many bytes to read
+ *
+ * @return 0 - successful operation, otherwise the error code (a negative number)
+ *
+ */
 static ssize_t thread_device_read(char *buffer, size_t length)
 {
    ssize_t retval = SUCCESS;
@@ -272,7 +254,7 @@ static ssize_t device_read(struct file *file, char __user *buffer, size_t length
    threadData->command = 'r';
    threadData->status = -ETIMEDOUT;
    if (length > MAX_BYTES_USER_CAN_REQUEST) {
-      // Limit the amount of entropy bytes that can be retrieved at one tiem
+      // Limit the amount of entropy bytes that can be retrieved at a time
       threadData->k_length = MAX_BYTES_USER_CAN_REQUEST;
    } else {
       threadData->k_length = length;
@@ -313,6 +295,8 @@ return_lable:
 /**
  * This is a thread function for handling device commands invoked from the user space.
  * For security reasons command handling logic is executed in a dedicated kernel thread.
+ *
+ * @param data - a pointer to thread private data
  *
  * @return 0 when shutting down
  */
@@ -439,7 +423,7 @@ static int get_device_version(void)
    long highVersion;
    long lowVersion;
 
-   // get device version
+   // Get device version
    ctrlData->bulk_out_buffer[0] = 'v';
    retval = snd_rcv_usb_data(ctrlData->bulk_out_buffer, 1, ctrlData->deviceVersion, sizeof(ctrlData->deviceVersion) - 1,
          10);
@@ -662,7 +646,7 @@ static int rcv_rnd_bytes(void)
 }
 
 /**
- * Send a SW device command and receive response
+ * Send command to device and receive response
  *
  * @param snd -  a pointer to the command
  * @param sizeSnd - how many bytes in command
@@ -733,7 +717,8 @@ static void clear_receive_buffer(int opTimeoutSecs)
 }
 
 /**
- * A function to handle SW device receive command
+ * A function to handle device read request
+ *
  * @param buff - a pointer to the data receive buffer
  * @param length - how many bytes expected to receive
  * @param opTimeoutSecs - device read time out value in seconds
@@ -766,7 +751,7 @@ static int chip_read_data(char *buff, int length, int opTimeoutSecs)
          retval = acm_full_read(ctrlData->bulk_in_buffer, length, &transferred);
       }
       if (debugMode) {
-         pr_info("chip_read_data retval %d transferred %d, length %d\n", retval, transferred, length);
+         pr_info("chip_read_data() retval %d transferred %d, length %d\n", retval, transferred, length);
       }
       if (retval) {
          return retval;
@@ -799,7 +784,7 @@ static int chip_read_data(char *buff, int length, int opTimeoutSecs)
 /**
  * Initialize the character device
  *
- * $return SUCCESS or error number
+ * @return 0 - successful operation, otherwise the error code (a negative number)
  *
  */
 static int init_char_dev(void)
@@ -847,7 +832,7 @@ fail:
 /**
  * Create the device
  *
- * $return SUCCESS or error number
+ * @return 0 - successful operation, otherwise the error code (a negative number)
  */
 static int create_device(void)
 {
@@ -881,7 +866,6 @@ static int create_device(void)
  */
 static void uninit_char_dev(void)
 {
-   // Get rid of the device
    if (cdv) {
       device_destroy(dev_class, MKDEV(major, minor));
       cdev_del(cdv);
@@ -894,7 +878,8 @@ static void uninit_char_dev(void)
 }
 
 /**
- * A function to wait a little for any pending operations used when unloading the module
+ * A function to wait a little for any pending operations.
+ * Used when unloading the module.
  *
  */
 static void wait_for_pending_ops(void)
@@ -950,7 +935,7 @@ static void sha512_initialize(void)
  * @param inputBlock pointer to the input hashing block
  *
  */
-static void sha256_stampSerialNumber(void *inputBlock)
+static void sha256_stampSerialNumber(const void *inputBlock)
 {
    uint32_t *inw = (uint32_t*) inputBlock;
    inw[MIN_INPUT_NUM_WORDS] = sd.blockSerialNumber++;
@@ -977,7 +962,7 @@ static void sha256_initializeSerialNumber(uint32_t initValue)
  * @return int 0 for successful operation, -1 for invalid parameters
  *
  */
-static int sha256_generateHash(uint32_t *src, int16_t len, uint32_t *dst)
+static int sha256_generateHash(const uint32_t *src, int16_t len, uint32_t *dst)
 {
 
    uint16_t blockNum;
@@ -1119,10 +1104,10 @@ static void sha256_hashCurrentBlock(void)
  * @param x pointer to variable x
  * @param y pointer to variable y
  * @param z pointer to variable z
- * $return Ch value
+ * @return Ch value
  *
  */
-static uint32_t sha256_ch(uint32_t *x, uint32_t *y, uint32_t *z)
+static uint32_t sha256_ch(const uint32_t *x, const uint32_t *y, const uint32_t *z)
 {
    return ((*x) & (*y)) ^ (~(*x) & (*z));
 }
@@ -1133,10 +1118,10 @@ static uint32_t sha256_ch(uint32_t *x, uint32_t *y, uint32_t *z)
  * @param x pointer to variable x
  * @param y pointer to variable y
  * @param z pointer to variable z
- * $return Maj value
+ * @return Maj value
  *
  */
-static uint32_t sha256_maj(uint32_t *x, uint32_t *y, uint32_t *z)
+static uint32_t sha256_maj(const uint32_t *x, const uint32_t *y, const uint32_t *z)
 {
    return ((*x) & (*y)) ^ ((*x) & (*z)) ^ ((*y) & (*z));
 }
@@ -1145,10 +1130,10 @@ static uint32_t sha256_maj(uint32_t *x, uint32_t *y, uint32_t *z)
  * FIPS PUB 180-4 section 4.1.2 formula (4.4)
  *
  * @param x pointer to variable x
- * $return Sum0 value
+ * @return Sum0 value
  *
  */
-static uint32_t sha256_sum0(uint32_t *x)
+static uint32_t sha256_sum0(const uint32_t *x)
 {
    return ROTR(2, *x) ^ ROTR(13, *x) ^ ROTR(22, *x);
 }
@@ -1157,10 +1142,10 @@ static uint32_t sha256_sum0(uint32_t *x)
  * FIPS PUB 180-4 section 4.1.2 formula (4.5)
  *
  * @param x pointer to variable x
- * $returnSum1 value
+ * @return Sum1 value
  *
  */
-static uint32_t sha256_sum1(uint32_t *x)
+static uint32_t sha256_sum1(const uint32_t *x)
 {
    return ROTR(6, *x) ^ ROTR(11, *x) ^ ROTR(25, *x);
 }
@@ -1169,10 +1154,10 @@ static uint32_t sha256_sum1(uint32_t *x)
  * FIPS PUB 180-4 section 4.1.2 formula (4.6)
  *
  * @param x pointer to variable x
- * $return sigma0 value
+ * @return sigma0 value
  *
  */
-static uint32_t sha256_sigma0(uint32_t *x)
+static uint32_t sha256_sigma0(const uint32_t *x)
 {
    return ROTR(7, *x) ^ ROTR(18, *x) ^ ((*x) >> 3);
 }
@@ -1181,10 +1166,10 @@ static uint32_t sha256_sigma0(uint32_t *x)
  * FIPS PUB 180-4 section 4.1.2 formula (4.7)
  *
  * @param x pointer to variable x
- * $return sigma1 value
+ * @return sigma1 value
  *
  */
-static uint32_t sha256_sigma1(uint32_t *x)
+static uint32_t sha256_sigma1(const uint32_t *x)
 {
    return ROTR(17, *x) ^ ROTR(19, *x) ^ ((*x) >> 10);
 }
@@ -1195,10 +1180,10 @@ static uint32_t sha256_sigma1(uint32_t *x)
  * @param x pointer to variable x
  * @param y pointer to variable y
  * @param z pointer to variable z
- * $return ch value
+ * @return ch value
  *
  */
-static uint64_t sha512_ch(uint64_t *x, uint64_t *y, uint64_t *z)
+static uint64_t sha512_ch(const uint64_t *x, const uint64_t *y, const uint64_t *z)
 {
    return ((*x) & (*y)) ^ (~(*x) & (*z));
 }
@@ -1209,10 +1194,10 @@ static uint64_t sha512_ch(uint64_t *x, uint64_t *y, uint64_t *z)
  * @param x pointer to variable x
  * @param y pointer to variable y
  * @param z pointer to variable z
- * $return maj value
+ * @return maj value
  *
  */
-static uint64_t sha512_maj(uint64_t *x, uint64_t *y, uint64_t *z)
+static uint64_t sha512_maj(const uint64_t *x, const uint64_t *y, const uint64_t *z)
 {
    return ((*x) & (*y)) ^ ((*x) & (*z)) ^ ((*y) & (*z));
 }
@@ -1221,10 +1206,10 @@ static uint64_t sha512_maj(uint64_t *x, uint64_t *y, uint64_t *z)
  * FIPS PUB 180-4 section 4.1.3 formula (4.10)
  *
  * @param x pointer to variable x
- * $return sum0 value
+ * @return sum0 value
  *
  */
-static uint64_t sha512_sum0(uint64_t *x)
+static uint64_t sha512_sum0(const uint64_t *x)
 {
    return ROTR64(28, *x) ^ ROTR64(34, *x) ^ ROTR64(39, *x);
 }
@@ -1233,10 +1218,10 @@ static uint64_t sha512_sum0(uint64_t *x)
  * FIPS PUB 180-4 section 4.1.3 formula (4.11)
  *
  * @param x pointer to variable x
- * $return sum1 value
+ * @return sum1 value
  *
  */
-static uint64_t sha512_sum1(uint64_t *x)
+static uint64_t sha512_sum1(const uint64_t *x)
 {
    return ROTR64(14, *x) ^ ROTR64(18, *x) ^ ROTR64(41, *x);
 }
@@ -1245,10 +1230,10 @@ static uint64_t sha512_sum1(uint64_t *x)
  * FIPS PUB 180-4 section 4.1.3 formula (4.12)
  *
  * @param x pointer to variable x
- * $return sigma0 value
+ * @return sigma0 value
  *
  */
-static uint64_t sha512_sigma0(uint64_t *x)
+static uint64_t sha512_sigma0(const uint64_t *x)
 {
    return ROTR64(1, *x) ^ ROTR64(8, *x) ^ ((*x) >> 7);
 }
@@ -1257,10 +1242,10 @@ static uint64_t sha512_sigma0(uint64_t *x)
  * FIPS PUB 180-4 section 4.1.3 formula (4.13)
  *
  * @param x pointer to variable x
- * $return sigma1 value
+ * @return sigma1 value
  *
  */
-static uint64_t sha512_sigma1(uint64_t *x)
+static uint64_t sha512_sigma1(const uint64_t *x)
 {
    return ROTR64(19, *x) ^ ROTR64(61, *x) ^ ((*x) >> 6);
 }
@@ -1313,7 +1298,7 @@ static int sha512_selfTest(void)
  * @return 0 for successful operation, -1 for invalid parameters
  *
  */
-static int sha512_generateHash(uint64_t *src, int16_t len, uint64_t *dst)
+static int sha512_generateHash(const uint64_t *src, int16_t len, uint64_t *dst)
 {
    int i;
 
@@ -1413,7 +1398,7 @@ static int xorshift64_selfTest(void)
 }
 
 /**
- * @param buffer - pointer to input data buffer
+ * @param buffer - pointer to data buffer
  * @param numElements - number of elements in the input buffer
  */
 static void xorshift64_postProcess(uint8_t *buffer, int numElements)
@@ -1423,7 +1408,7 @@ static void xorshift64_postProcess(uint8_t *buffer, int numElements)
 
 /**
  *
- * @param buffer - pointer to input data buffer
+ * @param buffer - pointer to data buffer
  * @param numElements - number of elements in the input buffer
  */
 static void xorshift64_postProcessWords(uint64_t *buffer, int numElements)
@@ -1576,7 +1561,7 @@ static void apt_restart(void)
 /*
  * A function for handling module loading event and for allocating resources.
  *
- * @return 0 - for successful operation
+ * @return 0 - successful operation, otherwise the error code (a negative number)
  */
 static int __init init_swrandom(void)
 {
@@ -1779,7 +1764,7 @@ static int acm_full_read(unsigned char *data, int size, int *bytesTransfered)
  * @return if >= 0 then number of bytes written, a negative number indicates an error
  *
  */
-static int acm_write(struct file *file, unsigned char *data, int size)
+static int acm_write(struct file *file, const unsigned char *data, int size)
 {
    unsigned long long offset = 0;
 
@@ -1808,7 +1793,7 @@ static void acm_close(struct file *file)
  * @param flags - for example: O_RDWR
  * @param path - path to the device
  *
- * @return pointer to a file structure o NULL when error
+ * @return pointer to a file structure or NULL when error
  */
 static struct file *acm_open(const char *path, int flags)
 {
@@ -2026,7 +2011,12 @@ static bool acm_set_tty_termios_flags(void)
 {
    bool successStatus = true;
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(5,11,22)
    acmCtxt->tty = tty_kopen(acmCtxt->devt);
+#else
+   acmCtxt->tty = tty_kopen_exclusive(acmCtxt->devt);
+#endif
+
    if (IS_ERR(acmCtxt->tty)) {
       pr_info("%s: tty_kopen() failed for %s\n", DRIVER_NAME, acmCtxt->dev_name);
       return false;
