@@ -1,6 +1,6 @@
 /*
  * swrandom.h
- * ver. 2.0
+ * ver. 2.1
  *
  */
 
@@ -87,7 +87,7 @@
 
 #define SUCCESS 0
 #define DEVICE_NAME "swrandom"
-#define DRIVER_VERSION "2.0"
+#define DRIVER_VERSION "2.1"
 #define DRIVER_NAME "SWRNG"
 
 

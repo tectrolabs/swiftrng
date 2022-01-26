@@ -1,6 +1,6 @@
 /*
  * swrandom.c
- * ver. 2.0
+ * ver. 2.1
  *
  */
 
@@ -1808,7 +1808,7 @@ static void acm_close(struct file *file)
  * @param flags - for example: O_RDWR
  * @param path - path to the device
  *
- * @return pointer to a file structure o NULL when error
+ * @return pointer to a file structure or NULL when error
  */
 static struct file *acm_open(const char *path, int flags)
 {
@@ -2026,7 +2026,12 @@ static bool acm_set_tty_termios_flags(void)
 {
    bool successStatus = true;
 
+#if LINUX_VERSION_CODE <= KERNEL_VERSION(5,11,22)
    acmCtxt->tty = tty_kopen(acmCtxt->devt);
+#else
+   acmCtxt->tty = tty_kopen_exclusive(acmCtxt->devt);
+#endif
+
    if (IS_ERR(acmCtxt->tty)) {
       pr_info("%s: tty_kopen() failed for %s\n", DRIVER_NAME, acmCtxt->dev_name);
       return false;
