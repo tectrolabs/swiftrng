@@ -129,7 +129,7 @@ static int usb_probe(struct usb_interface *interface, const struct usb_device_id
 }
 
 /**
- * A function to handle the event when the SwiftRNG device (type USB) is unplugged in or disconnected
+ * A function to handle the event when the SwiftRNG device (type USB) is unplugged or disconnected
  *
  * @param interface - pointer to the usb_interface structure associated with the device
  *
