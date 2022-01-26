@@ -19,40 +19,13 @@
  * SwiftRNG Z
  * SwiftRNG LE
  *
- * Once the module is successfully built with 'make', it can be loaded
- * into the kernel by using the ins-swrandom.sh script:
- * sudo ./ins-swrandom.sh
- *
- * Use the following command to load the module with a different SwiftRNG
- * power profile number (in this example it will use power profile number 5):
- * sudo ./ins-swrandom.sh powerProfile=5
- *
- * For devices with versions 1.2 and up the post processing can be disabled.
- * To disable post processing use the following command:
- * sudo ./ins-swrandom.sh disablePostProcessing
- *
- * For devices with versions 1.2 and up Marsaglia's Xorshift64 method can be used
- * as a post processing method.
- * To enable Marsaglia's Xorshift64 use the following command:
- * sudo ./ins-swrandom.sh postProcessingMethod=xorshift64
- *
- * To enable SHA-512 post processing use the following command:
- * sudo ./ins-swrandom.sh postProcessingMethod=SHA512
- *
- * 'Repetition Count' and 'Adaptive Proportion' statistical tests can be disabled
- * with the following command:
- * sudo ./ins-swrandom.sh disableStatisticalTests
- *
  * After the module is successfully loaded by the kernel, the random bytes
- * will be available for download from the /dev/swrandom device.
+ * will be available through /dev/swrandom device.
  *
- * It can be used to feed the 'rngd' daemon with random data generated
- * by a SwiftRNG device using the following command:
- * sudo rngd -r /dev/swrandom
+ * To test, simply plug a SwiftRNG device into one of the available USB ports
+ * and run the following command:
  *
- * Alternatively you can download the random byte stream into a file using
- * the following command (the block size 'bs' should not be larger than 100,000 bytes):
- * sudo dd if=/dev/swrandom of=download.bin bs=100000 count=10
+ * sudo dd if=/dev/swrandom of=/dev/null bs=100000 count=10
  *
  */
 #ifndef SWRANDOM_H_
@@ -145,27 +118,27 @@ static ssize_t thread_device_read(char *buffer, size_t length);
 static void clear_receive_buffer(int opTimeoutSecs);
 
 static void sha256_initialize(void);
-static void sha256_stampSerialNumber(void *inputBlock);
+static void sha256_stampSerialNumber(const void *inputBlock);
 static void sha256_initializeSerialNumber(uint32_t initValue);
-static int sha256_generateHash(uint32_t *src, int16_t len, uint32_t *dst);
+static int sha256_generateHash(const uint32_t *src, int16_t len, uint32_t *dst);
 static void sha256_hashCurrentBlock(void);
-static uint32_t sha256_ch(uint32_t *x, uint32_t *y, uint32_t *z);
-static uint32_t sha256_maj(uint32_t *x, uint32_t *y, uint32_t *z);
-static uint32_t sha256_sum0(uint32_t *x);
-static uint32_t sha256_sum1(uint32_t *x);
-static uint32_t sha256_sigma0(uint32_t *x);
-static uint32_t sha256_sigma1(uint32_t *x);
+static uint32_t sha256_ch(const uint32_t *x, const uint32_t *y, const uint32_t *z);
+static uint32_t sha256_maj(const uint32_t *x, const uint32_t *y, const uint32_t *z);
+static uint32_t sha256_sum0(const uint32_t *x);
+static uint32_t sha256_sum1(const uint32_t *x);
+static uint32_t sha256_sigma0(const uint32_t *x);
+static uint32_t sha256_sigma1(const uint32_t *x);
 static int sha256_selfTest(void);
 
 static void sha512_initialize(void);
-static int sha512_generateHash(uint64_t *src, int16_t len, uint64_t *dst);
+static int sha512_generateHash(const uint64_t *src, int16_t len, uint64_t *dst);
 static void sha512_hashCurrentBlock(void);
-static uint64_t sha512_ch(uint64_t *x, uint64_t *y, uint64_t *z);
-static uint64_t sha512_maj(uint64_t *x, uint64_t *y, uint64_t *z);
-static uint64_t sha512_sum0(uint64_t *x);
-static uint64_t sha512_sum1(uint64_t *x);
-static uint64_t sha512_sigma0(uint64_t *x);
-static uint64_t sha512_sigma1(uint64_t *x);
+static uint64_t sha512_ch(const uint64_t *x, const uint64_t *y, const uint64_t *z);
+static uint64_t sha512_maj(const uint64_t *x, const uint64_t *y, const uint64_t *z);
+static uint64_t sha512_sum0(const uint64_t *x);
+static uint64_t sha512_sum1(const uint64_t *x);
+static uint64_t sha512_sigma0(const uint64_t *x);
+static uint64_t sha512_sigma1(const uint64_t *x);
 static int sha512_selfTest(void);
 
 static int xorshift64_selfTest(void);
@@ -189,7 +162,7 @@ static void apt_restart(void);
 static bool acm_device_probe(void);
 static int acm_read(struct file *file, unsigned char *data, int size);
 static int acm_full_read(unsigned char *data, int size, int *bytesTransfered);
-static int acm_write(struct file *file, unsigned char *data, int size);
+static int acm_write(struct file *file, const unsigned char *data, int size);
 static void acm_close(struct file *file);
 static int acm_iterate_dir_callback(struct dir_context *ctx, const char *name, int nameLength, loff_t offset, u64 ino,
       unsigned int dType);
