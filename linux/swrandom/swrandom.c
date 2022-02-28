@@ -1,6 +1,6 @@
 /*
  * swrandom.c
- * ver. 2.1
+ * ver. 2.2
  *
  */
 
@@ -293,6 +293,90 @@ return_lable:
 }
 
 /**
+ * A function to handle the event when caller requests a /proc/swrandom read operation
+ *
+ * @param file - pointer to the file structure of the caller
+ * @param buffer - pointer to the buffer in the user space
+ * @param length - size in bytes for the read operation
+ * @param offset
+ * @return greater than 0 - number of bytes actually read, otherwise the error code (a negative number)
+ *
+ */
+static ssize_t proc_read(struct file *file, char __user *buffer, size_t length, loff_t * offset)
+{
+   ssize_t len = 0;
+   char *msg = NULL;
+
+   if (isShutDown) {
+      return -ENODATA;
+   }
+
+   if (length == 0) {
+      return 0;
+   }
+
+   if (mutex_lock_killable(&dataOpLock) != SUCCESS) {
+      if(debugMode) {
+         pr_err("%s: proc_read(): Could not lock the mutex\n", DRIVER_NAME);
+      }
+      return -EPERM;
+   }
+   isProcOpPending = true;
+
+   if (proc_ready_to_read_flag) {
+      if (isEntropySrcRdy == false) {
+         // No device has been detected
+         len = 30;
+         copy_to_user(buffer, "No SwiftRNG information found\n", len);
+      } else {
+         if (ctrlData->isVersionRetrieved == true) {
+            // Retrieve device information and statistics
+            msg = kasprintf(GFP_KERNEL,
+                  "SwiftRNG device model: %s\n"
+                  "SwiftRNG device serial number: %s\n"
+                  "SwiftRNG device version: %s.%s \n"
+                  "SwiftRNG post processing method: %s\n"
+                  "SwiftRNG statistical tests: %s\n"
+                  "maximum RCT failures per block: %d\n"
+                  "maximum APT failures per block: %d\n"
+                  "total RCT failures for current device: %lld\n"
+                  "total APT failures for current device: %lld\n"
+                  ,ctrlData->deviceModel
+                  ,ctrlData->deviceSN
+                  ,ctrlData->deviceVersion + 1, ctrlData->deviceVersion + 3
+                  ,!is_post_processing_enabled() ? "disabled" : is_xorshift64_enabled() ? "Marsaglia's Xorshift64" : postProcessingMethodId == SHA512_PP_METHOD ? "SHA-512" : "SHA-256"
+                  ,disableStatisticalTests ? "disabled" : "enabled"
+                  ,maxRctFailuresPerBlock
+                  ,maxAptFailuresPerBlock
+                  ,totalRctFailuresForCurrentDevice
+                  ,totalAptFailuresForCurrentDevice);
+            if (msg != NULL) {
+               len = strlen(msg);
+               copy_to_user(buffer, msg, len);
+               kfree(msg);
+            } else {
+               pr_err("proc_read: Could not allocate memory for generating device information\n");
+            }
+         } else {
+            // No device has been initialized
+            len = 39;
+            copy_to_user(buffer, "The SwiftRNG device wasn't initialized\n", len);
+         }
+      }
+   } else {
+      // Device information and statistics already retrieved
+      len = 0;
+   }
+
+   proc_ready_to_read_flag ^= true;
+
+   isProcOpPending = false;
+   mutex_unlock(&dataOpLock);
+
+   return len;
+}
+
+/**
  * This is a thread function for handling device commands invoked from the user space.
  * For security reasons command handling logic is executed in a dedicated kernel thread.
  *
@@ -376,6 +460,11 @@ static void configure_tests(void)
       numFailuresThreshold = 4;
       break;
    }
+   maxRctFailuresPerBlock = 0;
+   maxAptFailuresPerBlock = 0;
+   totalRctFailuresForCurrentDevice = 0;
+   totalAptFailuresForCurrentDevice = 0;
+
 }
 
 /**
@@ -861,6 +950,24 @@ static int create_device(void)
 }
 
 /**
+ * Create the proc
+ *
+ * @return 0 - successful operation, otherwise the error code (a negative number)
+ */
+static int create_proc(void)
+{
+   // Create a directory under /proc
+   proc_parent_dir = proc_mkdir(DEVICE_NAME, NULL);
+   if (proc_parent_dir == NULL) {
+      return -EPERM;
+   }
+
+   // Create the proc entry
+   proc_create(PROC_NAME, 0444, proc_parent_dir, &proc_fops);
+   return SUCCESS;
+}
+
+/**
  * Un-initialize the character device
  *
  */
@@ -878,6 +985,17 @@ static void uninit_char_dev(void)
 }
 
 /**
+ * Remove proc directory from /proc
+ */
+static void remove_proc(void)
+{
+   if (proc_parent_dir != NULL) {
+      proc_remove(proc_parent_dir);
+      proc_parent_dir = NULL;
+   }
+}
+
+/**
  * A function to wait a little for any pending operations.
  * Used when unloading the module.
  *
@@ -885,7 +1003,7 @@ static void uninit_char_dev(void)
 static void wait_for_pending_ops(void)
 {
    int cnt;
-   for (cnt = 0; cnt < 100 && (isDeviceOpPending == true || isUsbOpPending == true); cnt++) {
+   for (cnt = 0; cnt < 100 && (isDeviceOpPending == true || isProcOpPending == true || isUsbOpPending == true); cnt++) {
       msleep(500);
    }
 }
@@ -1458,11 +1576,18 @@ static void test_samples(void)
             rct.curRepetitions++;
             if (rct.curRepetitions >= rct.maxRepetitions) {
                rct.curRepetitions = 1;
+               totalRctFailuresForCurrentDevice++;
                if (++rct.failureCount > numFailuresThreshold) {
                   if (rct.statusByte == 0) {
                      rct.statusByte = rct.signature;
                   }
                }
+
+               if (rct.failureCount > maxRctFailuresPerBlock) {
+                  // Record the maximum failures per block for reporting
+                  maxRctFailuresPerBlock = rct.failureCount;
+               }
+
                if (debugMode) {
                   if (rct.failureCount >= 1) {
                      pr_info("rct.failureCount: %d value: %d\n", rct.failureCount, value);
@@ -1489,11 +1614,18 @@ static void test_samples(void)
             apt.isInitialized = false;
             if (apt.curRepetitions > apt.cutoffValue) {
                // Check to see if we have reached the failure threshold
+               totalAptFailuresForCurrentDevice++;
                if (++apt.cycleFailures > numFailuresThreshold) {
                   if (apt.statusByte == 0) {
                      apt.statusByte = apt.signature;
                   }
                }
+
+               if (apt.cycleFailures > maxAptFailuresPerBlock) {
+                  // Record the maximum failures per block for reporting
+                  maxAptFailuresPerBlock = apt.cycleFailures;
+               }
+
                if (debugMode) {
                   if (apt.cycleFailures >= 1) {
                      pr_info("apt.cycleFailures: %d value: %d\n", apt.cycleFailures, value);
@@ -1613,9 +1745,16 @@ static int __init init_swrandom(void)
       return -EPERM;
    }
 
+   err = create_proc();
+   if (err != SUCCESS) {
+      pr_err("init_swrandom: could not create /proc/%s directory\n", DEVICE_NAME);
+      return err;
+   }
+
    err = init_char_dev();
    if (err != SUCCESS) {
       pr_err("%s: init_swrandom(): Could not initialize char device %s\n", DRIVER_NAME, DEVICE_NAME);
+      remove_proc();
       return err;
    }
 
@@ -1695,6 +1834,7 @@ out_buff_mem_err:
 in_buff_mem_err:
    kfree(acmCtxt);
 acm_ctxt_mem_err:
+   remove_proc();
    uninit_char_dev();
    return err;
 }
@@ -2093,6 +2233,7 @@ static void __exit exit_swrandom(void)
    wait_for_pending_ops();
    acm_clean_up();
    usb_deregister(&usb_driver);
+   remove_proc();
    uninit_char_dev();
    clean_up_usb();
    kfree(buffRndIn);
