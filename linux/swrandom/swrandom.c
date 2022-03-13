@@ -337,10 +337,14 @@ static ssize_t proc_read(struct file *file, char __user *buffer, size_t length, 
                   "SwiftRNG device version: %s.%s \n"
                   "SwiftRNG post processing method: %s\n"
                   "SwiftRNG statistical tests: %s\n"
-                  "maximum RCT failures per block: %d\n"
-                  "maximum APT failures per block: %d\n"
-                  "total RCT failures for current device: %lld\n"
-                  "total APT failures for current device: %lld\n"
+                  "maximum RCT failures per block for device: %d\n"
+                  "maximum APT failures per block for device: %d\n"
+                  "total RCT failures for device: %llu\n"
+                  "total APT failures for device: %llu\n"
+                  "RCT status byte for device: %d\n"
+                  "APT status byte for device: %d\n"
+                  "last known device status byte: %d\n"
+                  "number of requests handled by device: %llu\n"
                   ,ctrlData->deviceModel
                   ,ctrlData->deviceSN
                   ,ctrlData->deviceVersion + 1, ctrlData->deviceVersion + 3
@@ -349,7 +353,11 @@ static ssize_t proc_read(struct file *file, char __user *buffer, size_t length, 
                   ,maxRctFailuresPerBlock
                   ,maxAptFailuresPerBlock
                   ,totalRctFailuresForCurrentDevice
-                  ,totalAptFailuresForCurrentDevice);
+                  ,totalAptFailuresForCurrentDevice
+                  ,rct.statusByte
+                  ,apt.statusByte
+                  ,(int)deviceStatusByte
+                  ,deviceTotalRequestsHandled);
             if (msg != NULL) {
                len = strlen(msg);
                copy_to_user(buffer, msg, len);
@@ -464,6 +472,8 @@ static void configure_tests(void)
    maxAptFailuresPerBlock = 0;
    totalRctFailuresForCurrentDevice = 0;
    totalAptFailuresForCurrentDevice = 0;
+   deviceStatusByte = 0;
+   deviceTotalRequestsHandled = 0;
 
 }
 
@@ -771,7 +781,9 @@ static int snd_rcv_usb_data(char *snd, int sizeSnd, char *rcv, int sizeRcv, int 
       }
       if (retval == SUCCESS && actualcCnt == sizeSnd) {
          retval = chip_read_data(rcv, sizeRcv + 1, opTimeoutSecs);
+         deviceTotalRequestsHandled++;
          if (retval == SUCCESS) {
+            deviceStatusByte = (uint8_t)rcv[sizeRcv];
             if (rcv[sizeRcv] != 0) {
                retval = -EFAULT;
                clear_receive_buffer(opTimeoutSecs);

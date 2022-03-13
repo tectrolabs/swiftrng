@@ -347,11 +347,16 @@ static uint16_t maxRctFailuresPerBlock;
 static uint16_t maxAptFailuresPerBlock;
 
 // Total number of repetition count test failures encountered for current device
-static int64_t totalRctFailuresForCurrentDevice;
+static uint64_t totalRctFailuresForCurrentDevice;
 
 // Total number of adaptive proportion test failures encountered for current device
-static int64_t totalAptFailuresForCurrentDevice;
+static uint64_t totalAptFailuresForCurrentDevice;
 
+// Last known device status byte
+static uint8_t deviceStatusByte = 0;
+
+// Total number of requests handled by device
+static uint64_t deviceTotalRequestsHandled = 0;
 
 
 //.................
