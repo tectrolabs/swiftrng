@@ -1,6 +1,6 @@
 /*
  * swrandom.h
- * ver. 2.1
+ * ver. 2.2
  *
  */
 
@@ -34,6 +34,7 @@
 
 #include <linux/kernel.h>
 #include <linux/module.h>
+#include <linux/proc_fs.h>
 #include <linux/init.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
@@ -60,7 +61,8 @@
 
 #define SUCCESS 0
 #define DEVICE_NAME "swrandom"
-#define DRIVER_VERSION "2.1"
+#define PROC_NAME "info"
+#define DRIVER_VERSION "2.2"
 #define DRIVER_NAME "SWRNG"
 
 
@@ -95,6 +97,7 @@ typedef int (*acm_readdir_t)(void *, const char *, int, loff_t, u64, unsigned);
 // Function declarations
 //
 static ssize_t device_read(struct file *file, char __user *buffer, size_t length, loff_t * offset);
+static ssize_t proc_read(struct file *file, char __user *buffer, size_t length, loff_t * offset);
 static int get_entropy_bytes(void);
 static int rcv_rnd_bytes(void);
 static int usb_probe(struct usb_interface *interface, const struct usb_device_id *id);
@@ -106,6 +109,8 @@ static int snd_rcv_usb_data(char *snd, int sizeSnd, char *rcv, int sizeRcv, int 
 static int init_char_dev(void);
 static void uninit_char_dev(void);
 static int create_device(void);
+static int create_proc(void);
+static void remove_proc(void);
 static int set_device_power_profile(void);
 static int get_device_version(void);
 static int get_device_model(void);
@@ -187,6 +192,12 @@ struct cdev *cdv = NULL;
 // Reference to the character device class
 static struct class *dev_class = NULL;
 
+// Reference to the proc parent directory
+static struct proc_dir_entry *proc_parent_dir = NULL;
+
+// A flag indication that the proc info can be retrieved
+static bool proc_ready_to_read_flag = true;
+
 
 static struct usb_data {
    struct usb_device *udev;
@@ -263,6 +274,14 @@ static struct file_operations fops = {
       .owner = THIS_MODULE,
       .read = device_read};
 
+#if LINUX_VERSION_CODE < KERNEL_VERSION(5,05,00)
+static struct file_operations proc_fops = {
+      .read = proc_read};
+#else
+static struct proc_ops proc_fops = {
+      .proc_read = proc_read};
+#endif
+
 // Pointer to the random input buffer
 static char *buffRndIn;
 
@@ -280,6 +299,9 @@ static volatile bool isEntropySrcRdy = false;
 
 // A flag indicating when there are pending device operations like read or write
 static volatile bool isDeviceOpPending = false;
+
+// A flag indicating when there are pending proc operations like read or write
+static volatile bool isProcOpPending = false;
 
 // A flag indicating when there are pending USB operations like read or write
 static volatile bool isUsbOpPending = false;
@@ -317,6 +339,25 @@ static char *postProcessingMethod = "";
 
 // Post processing method used
 static int postProcessingMethodId = SHA256_PP_METHOD;
+
+// Max number of repetition count test failures encountered per data block
+static uint16_t maxRctFailuresPerBlock;
+
+// Max number of adaptive proportion test failures encountered per data block
+static uint16_t maxAptFailuresPerBlock;
+
+// Total number of repetition count test failures encountered for current device
+static uint64_t totalRctFailuresForCurrentDevice;
+
+// Total number of adaptive proportion test failures encountered for current device
+static uint64_t totalAptFailuresForCurrentDevice;
+
+// Last known device status byte
+static uint8_t deviceStatusByte = 0;
+
+// Total number of requests handled by device
+static uint64_t deviceTotalRequestsHandled = 0;
+
 
 //.................
 // ACM related data
