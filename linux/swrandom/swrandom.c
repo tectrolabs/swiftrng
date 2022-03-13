@@ -304,8 +304,9 @@ return_lable:
  */
 static ssize_t proc_read(struct file *file, char __user *buffer, size_t length, loff_t * offset)
 {
-   ssize_t len = 0;
+   int len = 0;
    char *msg = NULL;
+   int bytesNotCopied = 0;
 
    if (isShutDown) {
       return -ENODATA;
@@ -327,7 +328,10 @@ static ssize_t proc_read(struct file *file, char __user *buffer, size_t length, 
       if (isEntropySrcRdy == false) {
          // No device has been detected
          len = 30;
-         copy_to_user(buffer, "No SwiftRNG information found\n", len);
+         bytesNotCopied = (int)copy_to_user(buffer, "No SwiftRNG information found\n", len);
+         if (bytesNotCopied != 0) {
+            pr_err("%s: proc_read(): copy_to_user(): Could not copy %d bytes out of %d \n", DRIVER_NAME, bytesNotCopied, len);
+         }
       } else {
          if (ctrlData->isVersionRetrieved == true) {
             // Retrieve device information and statistics
@@ -360,7 +364,10 @@ static ssize_t proc_read(struct file *file, char __user *buffer, size_t length, 
                   ,deviceTotalRequestsHandled);
             if (msg != NULL) {
                len = strlen(msg);
-               copy_to_user(buffer, msg, len);
+               bytesNotCopied = (int)copy_to_user(buffer, msg, len);
+               if (bytesNotCopied != 0) {
+                  pr_err("%s: proc_read(): copy_to_user(): Could not copy %d bytes out of %d to user space\n", DRIVER_NAME, bytesNotCopied, len);
+               }
                kfree(msg);
             } else {
                pr_err("proc_read: Could not allocate memory for generating device information\n");
@@ -368,7 +375,11 @@ static ssize_t proc_read(struct file *file, char __user *buffer, size_t length, 
          } else {
             // No device has been initialized
             len = 39;
-            copy_to_user(buffer, "The SwiftRNG device wasn't initialized\n", len);
+            bytesNotCopied = (int)copy_to_user(buffer, "The SwiftRNG device wasn't initialized\n", len);
+            if (bytesNotCopied != 0) {
+               pr_err("%s: proc_read(): copy_to_user(): failed to copy %d bytes out of %d to user space\n", DRIVER_NAME, bytesNotCopied, len);
+            }
+
          }
       }
    } else {
