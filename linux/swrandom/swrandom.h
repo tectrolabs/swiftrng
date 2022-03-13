@@ -278,7 +278,7 @@ static struct file_operations fops = {
 static struct file_operations proc_fops = {
       .read = proc_read};
 #else
-static struct file_operations proc_fops = {
+static struct proc_ops proc_fops = {
       .proc_read = proc_read};
 #endif
 
