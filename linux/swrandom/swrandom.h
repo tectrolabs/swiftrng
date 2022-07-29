@@ -1,6 +1,6 @@
 /*
  * swrandom.h
- * ver. 2.2
+ * ver. 2.3
  *
  */
 
@@ -62,7 +62,7 @@
 #define SUCCESS 0
 #define DEVICE_NAME "swrandom"
 #define PROC_NAME "info"
-#define DRIVER_VERSION "2.2"
+#define DRIVER_VERSION "2.3"
 #define DRIVER_NAME "SWRNG"
 
 
@@ -118,7 +118,7 @@ static int get_device_sn(void);
 static bool is_post_processing_enabled(void);
 static void probe_init(void);
 static void log_device_connect_message(void);
-int thread_function(void *data);
+static int thread_function(void *data);
 static ssize_t thread_device_read(char *buffer, size_t length);
 static void clear_receive_buffer(int opTimeoutSecs);
 
@@ -187,7 +187,7 @@ static struct file *acm_open(const char *path, int flags);
 static struct mutex dataOpLock;
 
 // Reference to the character device
-struct cdev *cdv = NULL;
+static struct cdev *cdv = NULL;
 
 // Reference to the character device class
 static struct class *dev_class = NULL;

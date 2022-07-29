@@ -1,6 +1,6 @@
 /*
  * swrandom.c
- * ver. 2.2
+ * ver. 2.3
  *
  */
 
