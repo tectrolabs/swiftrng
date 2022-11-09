@@ -1,13 +1,13 @@
 #include "stdafx.h"
 /*
  * swdiag-cl.cpp
- * Ver. 2.2
+ * Ver. 2.3
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2021 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2022 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -57,7 +57,7 @@ int main(int argc, char **argv) {
 	int clusterSize = 2;
 
 	printf("------------------------------------------------------------------------------\n");
-	printf("--- TectroLabs - swdiag-cl - SwiftRNG cluster diagnostics utility Ver 2.2  ---\n");
+	printf("--- TectroLabs - swdiag-cl - SwiftRNG cluster diagnostics utility Ver 2.3  ---\n");
 	printf("------------------------------------------------------------------------------\n");
 
 	setbuf(stdout, NULL);

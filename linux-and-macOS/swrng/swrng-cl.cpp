@@ -1,13 +1,13 @@
 #include "stdafx.h"
 /*
  * swrng-cl.cpp
- * ver. 3.2
+ * ver. 3.3
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2021 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2022 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -68,7 +68,7 @@ int displayDevices() {
  */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("             TectroLabs - swrng-cl - cluster download utility Ver 3.2          \n");
+	printf("             TectroLabs - swrng-cl - cluster download utility Ver 3.3          \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng-cl - Download true random bytes from a cluster of SwiftRNG devices\n");
