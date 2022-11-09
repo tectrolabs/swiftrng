@@ -1,11 +1,11 @@
 /*
  * USBSerialDevice.cpp
- * Ver 1.2
+ * Ver 1.3
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2021 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2022 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -47,14 +47,14 @@ bool USBSerialDevice::connect(const char *devicePath) {
 
 	this->fd = open(devicePath, O_RDWR | O_NOCTTY);
 	if (this->fd == -1) {
-		sprintf(lastError, "Could not open serial device: %s", devicePath);
+		snprintf(lastError, sizeof(lastError), "Could not open serial device: %s", devicePath);
 		return false;;
 	}
 
 	// Lock the device
 	this->lock = flock(this->fd, LOCK_EX | LOCK_NB);
 	if (this->lock != 0) {
-		sprintf(lastError, "Could not lock device: %s", devicePath);
+		snprintf(lastError, sizeof(lastError), "Could not lock device: %s", devicePath);
 		close(fd);
 		return false;
 	}
@@ -64,7 +64,7 @@ bool USBSerialDevice::connect(const char *devicePath) {
 	struct termios opts;
 	int retVal = tcgetattr(fd, &opts);
 	if (retVal) {
-		sprintf(lastError, "Could not retrieve configuration from serial device: %s", devicePath);
+		snprintf(lastError, sizeof(lastError), "Could not retrieve configuration from serial device: %s", devicePath);
 		close(fd);
 		return false;
 	}
@@ -79,7 +79,7 @@ bool USBSerialDevice::connect(const char *devicePath) {
 
 	retVal = tcsetattr(fd, TCSANOW, &opts);
 	if (retVal) {
-		sprintf(lastError, "Could not set configuration for serial device: %s", devicePath);
+		snprintf(lastError, sizeof(lastError), "Could not set configuration for serial device: %s", devicePath);
 		close(fd);
 		return false;
 	}
