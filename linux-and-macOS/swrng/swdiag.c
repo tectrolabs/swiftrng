@@ -302,13 +302,14 @@ int main() {
 			printf("(Acceptable)\n");
 		}
 		printf("Closing device -------------------------------------------- ");
-		swrngDestroyContext(&ctxt);
+		swrngClose(&ctxt);
 		printf("Success\n");
 
 	}
 
 	printf("-------------------------------------------------------------------\n");
 	printf("----------------- All tests passed successfully -------------------\n");
+	swrngDestroyContext(&ctxt);
 	return 0;
 }
 

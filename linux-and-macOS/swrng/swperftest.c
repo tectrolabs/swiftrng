@@ -194,11 +194,12 @@ int main() {
 		}
 
 		printf("Closing device -------------------------------------------- ");
-		swrngDestroyContext(&ctxt);
+		swrngClose(&ctxt);
 		printf("Success\n");
 
 	}
 
+	swrngDestroyContext(&ctxt);
 	printf("\n");
 	printf("-------------------------------------------------------------------\n");
 	return 0;
