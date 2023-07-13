@@ -1263,7 +1263,7 @@ int SwiftRngApi::get_entropy(unsigned char *buffer, long length) {
 	if (length > c_max_request_size_bytes || length < 0) {
 		retval = -EPERM;
 	} else if (!m_device_open) {
-		retval = -ENODATA;
+		retval = -ENODEV;
 	} else {
 		total = 0;
 		do {

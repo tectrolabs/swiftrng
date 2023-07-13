@@ -193,7 +193,7 @@ int swrngGetCLEntropy(SwrngCLContext *ctxt, unsigned char *buffer, long length) 
 
 	if (swrngIsCLOpen(ctxt) != c_cl_api_true) {
 		printCLErrorMessage(ctxt, clusterNotOpenErrMsg);
-		return -ENODATA;
+		return -ENODEV;
 	}
 
 	total = 0;

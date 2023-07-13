@@ -32,6 +32,7 @@
 #include <swrngapi.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdlib.h>
 
 
 #ifndef _WIN32

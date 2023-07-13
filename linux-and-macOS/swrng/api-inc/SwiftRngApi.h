@@ -25,6 +25,7 @@
 #include <cstring>
 #include <iostream>
 #include <sstream>
+#include <cerrno>
 
 #include <ApiStructs.h>
 
