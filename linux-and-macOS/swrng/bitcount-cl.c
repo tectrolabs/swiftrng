@@ -1,6 +1,5 @@
-#include "stdafx.h"
 /*
- * bitcount-cl.cpp
+ * bitcount-cl.c
  * Ver. 2.2
  *
  * A C program for counting '1' and '0' bits retrieved from a SwiftRNG device cluster
@@ -8,7 +7,7 @@
  *
  */
 
-#include "swrng-cl-api.h"
+#include <swrng-cl-api.h>
 
 #define BLOCK_SIZE (16000)
 
@@ -16,7 +15,7 @@ static uint8_t buffer[BLOCK_SIZE];
 static uint8_t byteValueToOneBitCount[256];
 
 static void count_one_bits(uint8_t byte, uint8_t *ones);
-static void initializeStatData(void);
+static void init_stats_data(void);
 
 
 /**
@@ -80,21 +79,21 @@ int main(int argc, char **argv) {
 		return(1);
 	}
 
-	// Initialize the context
+	/* Initialize the context */
 	if (swrngInitializeCLContext(&ctxt) != SWRNG_SUCCESS) {
 		printf("Could not initialize context\n");
 		return(1);
 	}
 
-	initializeStatData();
+	init_stats_data();
 
-	// Open the cluster if any SwiftRNG device if available
+	/* Open the cluster if any SwiftRNG device if available */
 	if (swrngCLOpen(&ctxt, clusterSize) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
 		return(1);
 	}
 
-	// Set post processing method if provided
+	/* Set post processing method if provided */
 	if (postProcessingMethod != -1) {
 		if (swrngEnableCLPostProcessing(&ctxt, postProcessingMethod) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
@@ -110,7 +109,7 @@ int main(int argc, char **argv) {
 	totalZeros = 0;
 	for (l = 0; l < totalBlocks; l++) {
 		if (swrngGetCLEntropy(&ctxt, buffer, BLOCK_SIZE) != SWRNG_SUCCESS) {
-			printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
+			printf("Could not retrieve entropy from device cluster. %s\n", swrngGetCLLastErrorMessage(&ctxt));
 			swrngCLClose(&ctxt);
 			return (1);
 		}
@@ -139,7 +138,7 @@ int main(int argc, char **argv) {
  * @param uint8_t *ones - pointer to the 'ones' counter
  */
 
-void count_one_bits(uint8_t byte, uint8_t *ones) {
+static void count_one_bits(uint8_t byte, uint8_t *ones) {
 	int i;
 	uint8_t val = byte;
 	for (i = 0; i < 8; i++) {
@@ -153,7 +152,7 @@ void count_one_bits(uint8_t byte, uint8_t *ones) {
 /**
  * Initialize statistical data
  */
-static void initializeStatData(void) {
+static void init_stats_data(void) {
 	uint8_t oneCounter;
 	int i;
 	for (i = 0; i < 256; i++) {

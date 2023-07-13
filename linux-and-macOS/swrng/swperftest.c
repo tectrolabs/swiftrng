@@ -1,14 +1,6 @@
-#include "stdafx.h"
-
-/*
- * swperftest.cpp
- * Ver. 2.2
- *
- */
-
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2022 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -19,20 +11,28 @@
 
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
+/*
+ * swperftest.c
+ * Ver. 2.3
+ *
+ */
+#include <stdio.h>
+#include <swrngapi.h>
 
-#include "swrngapi.h"
+/* Number of random bytes per block to retrieve */
+#define SAMPLES (100000)
 
-#define SAMPLES (100000)		// Number of random bytes per block to retrieve
-#define NUM_BLOCKS (5000)		// Total blocks to read
+/* Total blocks to read */
+#define NUM_BLOCKS (5000)
 
-static unsigned char randonbuffer[SAMPLES];
+static unsigned char rnd_buffer[SAMPLES];
 static SwrngContext ctxt;
 static DeviceInfoList dil;
 
 static int status;
 static time_t start, end;
 static long l;
-static int embeddedCorrectionMethodId;
+static int emb_corr_method_id;
 
 
 /**
@@ -40,22 +40,22 @@ static int embeddedCorrectionMethodId;
  * @return 0 - if successful, error otherwise
  */
 int runPerfTest() {
-	// Wake up the device for best performance
-	status = swrngGetEntropy(&ctxt, randonbuffer, SAMPLES);
+	/* Wake up the device for best performance */
+	status = swrngGetEntropy(&ctxt, rnd_buffer, SAMPLES);
 	if (status != SWRNG_SUCCESS) {
 		printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-		swrngClose(&ctxt);
+		swrngDestroyContext(&ctxt);
 		return status;
 	}
 
 	printf("Performance ------- in progress ------------------ ");
 	start = time(NULL);
 	for (l = 0; l < NUM_BLOCKS; l++) {
-		// Retrieve random bytes from the device
-		status = swrngGetEntropy(&ctxt, randonbuffer, SAMPLES);
+		/* Retrieve random bytes from the device */
+		status = swrngGetEntropy(&ctxt, rnd_buffer, SAMPLES);
 		if ( status != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-			swrngClose(&ctxt);
+			swrngDestroyContext(&ctxt);
 			return status;
 		}
 	}
@@ -85,7 +85,7 @@ int main() {
 
 	setbuf(stdout, NULL);
 
-	// Initialize the context
+	/* Initialize the context */
 	status = swrngInitializeContext(&ctxt);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Could not initialize context\n");
@@ -126,18 +126,18 @@ int main() {
 		status = swrngSetPowerProfile(&ctxt, 9);
 		if (status != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-			swrngClose(&ctxt);
+			swrngDestroyContext(&ctxt);
 			return status;
 		}
 		printf("Success\n");
 
-		if (swrngGetEmbeddedCorrectionMethod(&ctxt, &embeddedCorrectionMethodId) != SWRNG_SUCCESS) {
+		if (swrngGetEmbeddedCorrectionMethod(&ctxt, &emb_corr_method_id) != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-			swrngClose(&ctxt);
+			swrngDestroyContext(&ctxt);
 			return status;
 		}
 
-		switch (embeddedCorrectionMethodId) {
+		switch (emb_corr_method_id) {
 		case 0:
 			printf("Embedded correction algorithm -------------------------------- none");
 			break;
@@ -155,7 +155,7 @@ int main() {
 			printf("\n");
 			printf("Post processing  ----------------------------------------- disabled \n");
 			if (runPerfTest()) {
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 
@@ -166,7 +166,7 @@ int main() {
 			printf("\n");
 			printf("Post processing  ------------------------------------------- SHA256 \n");
 			if (runPerfTest()) {
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 
@@ -177,7 +177,7 @@ int main() {
 			printf("\n");
 			printf("Post processing  ------------------------------------------- SHA512 \n");
 			if (runPerfTest()) {
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 
@@ -188,13 +188,13 @@ int main() {
 			printf("\n");
 			printf("Post processing  --------------------------------------- xorshift64 \n");
 			if (runPerfTest()) {
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 		}
 
 		printf("Closing device -------------------------------------------- ");
-		swrngClose(&ctxt);
+		swrngDestroyContext(&ctxt);
 		printf("Success\n");
 
 	}

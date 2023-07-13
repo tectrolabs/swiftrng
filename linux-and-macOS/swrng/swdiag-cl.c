@@ -1,13 +1,12 @@
-#include "stdafx.h"
 /*
- * swdiag-cl.cpp
- * Ver. 2.3
+ * swdiag-cl.c
+ * Ver. 2.4
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2022 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -18,11 +17,15 @@
 
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
-#include "swrng-cl-api.h"
+#include <swrng-cl-api.h>
 #include <math.h>
 
-#define SAMPLES (10000)		// Number of random bytes per block to retrieve
-#define NUM_BLOCKS (1000)		// Total blocks to read
+/* Number of random bytes per block to retrieve */
+#define SAMPLES (10000)
+
+/* Total blocks to read */
+#define NUM_BLOCKS (1000)
+
 #define EXTLOOPS (5)
 #define ENTROPY_SCORE_BYTES (24000000)
 #define MAX_CHUNK_SIZE_BYTES (100000)
@@ -33,16 +36,16 @@ static int run_chi_squire_test(long idx);
 static int calculate_entropy_score(void);
 
 
-static double actOnes;
-static double actZeros;
-static double expctOnes = 4 * SAMPLES;
-static double expctZeros = 4 * SAMPLES;
-static double chiSquare;
-static double chiSquareSum;
+static double act_ones;
+static double act_zeros;
+static double expct_ones = 4 * SAMPLES;
+static double expct_zeros = 4 * SAMPLES;
+static double chi_square;
+static double chi_square_sum;
 
-static unsigned char randonbuffer[SAMPLES];
-static unsigned char entropybuffer[ENTROPY_SCORE_BYTES];
-static unsigned long entropyfreqbuff[256];
+static unsigned char rnd_buffer[SAMPLES];
+static unsigned char entropy_buffer[ENTROPY_SCORE_BYTES];
+static unsigned long entropy_freq_buff[256];
 
 SwrngCLContext ctxt;
 
@@ -54,22 +57,22 @@ int main(int argc, char **argv) {
 	long l, k;
 	long p;
 	int status;
-	int clusterSize = 2;
+	int cluster_size = 2;
 
 	printf("------------------------------------------------------------------------------\n");
-	printf("--- TectroLabs - swdiag-cl - SwiftRNG cluster diagnostics utility Ver 2.3  ---\n");
+	printf("--- TectroLabs - swdiag-cl - SwiftRNG cluster diagnostics utility Ver 2.4  ---\n");
 	printf("------------------------------------------------------------------------------\n");
 
 	setbuf(stdout, NULL);
 
 	if (argc > 1) {
-		clusterSize = atoi(argv[1]);
+		cluster_size = atoi(argv[1]);
 	} else {
 		printf("Usage: swdiag-cl <cluster size>\n");
 	}
 
 
-	// Initialize the context
+	/* Initialize the context */
 	if (swrngInitializeCLContext(&ctxt) != SWRNG_SUCCESS) {
 		printf("Could not initialize context\n");
 		return (1);
@@ -77,8 +80,8 @@ int main(int argc, char **argv) {
 
 	printf("Opening cluster--------------- ");
 
-	// Open the cluster if any SwiftRNG device if available
-	if (swrngCLOpen(&ctxt, clusterSize) != SWRNG_SUCCESS) {
+	/* Open the cluster if any SwiftRNG device if available */
+	if (swrngCLOpen(&ctxt, cluster_size) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
 		return (1);
 	}
@@ -93,13 +96,12 @@ int main(int argc, char **argv) {
 		return status;
 	}
 
-	printf(
-			"-------- Running APT, RCT and device built-in tests ---------------\n");
+	printf("-------- Running APT, RCT and device built-in tests ---------------\n");
 	printf("Retrieving %d blocks of %6d random bytes each -------- ",
 			NUM_BLOCKS, SAMPLES);
 	for (l = 0; l < NUM_BLOCKS; l++) {
-		// Retrieve random bytes from device
-		status = swrngGetCLEntropy(&ctxt, randonbuffer, SAMPLES);
+		/* Retrieve random bytes from device */
+		status = swrngGetCLEntropy(&ctxt, rnd_buffer, SAMPLES);
 		if (status != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetCLLastErrorMessage(&ctxt));
 			swrngCLClose(&ctxt);
@@ -116,7 +118,7 @@ int main(int argc, char **argv) {
 			swrngCLClose(&ctxt);
 			return status;
 		}
-		status = swrngGetCLEntropy(&ctxt, randonbuffer, SAMPLES);
+		status = swrngGetCLEntropy(&ctxt, rnd_buffer, SAMPLES);
 		if (status != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetCLLastErrorMessage(&ctxt));
 			swrngCLClose(&ctxt);
@@ -124,10 +126,10 @@ int main(int argc, char **argv) {
 		}
 		printf("Success\n");
 
-		// Retrieve random data for entropy score
+		/* Retrieve random data for entropy score */
 		printf("Entropy score for %8d bytes -------------------------- ", ENTROPY_SCORE_BYTES);
 		for (k = 0; k < ENTROPY_SCORE_BYTES; k+=MAX_CHUNK_SIZE_BYTES)
-		status = swrngGetCLEntropy(&ctxt, entropybuffer + k, MAX_CHUNK_SIZE_BYTES);
+		status = swrngGetCLEntropy(&ctxt, entropy_buffer + k, MAX_CHUNK_SIZE_BYTES);
 		if (status != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetCLLastErrorMessage(&ctxt));
 			swrngCLClose(&ctxt);
@@ -189,9 +191,9 @@ void chi_sqrd_count_bits(uint8_t byte, double *ones, double *zeros) {
  * @return double - calculated chi-squire value
  */
 double chi_sqrd_calculate() {
-	double val1 = (actOnes - expctOnes);
-	double val2 = (actZeros - expctZeros);
-	return val1 * val1 / expctOnes + val2 * val2 / expctZeros;
+	double val1 = (act_ones - expct_ones);
+	double val2 = (act_zeros - expct_zeros);
+	return val1 * val1 / expct_ones + val2 * val2 / expct_zeros;
 }
 
 /**
@@ -203,17 +205,17 @@ static int calculate_entropy_score() {
 	double p, score;
 
 	for(i = 0; i < 256; i++) {
-		entropyfreqbuff[i] = 0;
+		entropy_freq_buff[i] = 0;
 	}
 
 	for(i = 0; i < ENTROPY_SCORE_BYTES; i++) {
-		entropyfreqbuff[entropybuffer[i]] ++;
+		entropy_freq_buff[entropy_buffer[i]] ++;
 	}
 
 	score = 0;
 	for(i = 0; i < 256; i++) {
-		if (entropyfreqbuff[i] > 0) {
-			p = (double)entropyfreqbuff[i] / (double)ENTROPY_SCORE_BYTES;
+		if (entropy_freq_buff[i] > 0) {
+			p = (double)entropy_freq_buff[i] / (double)ENTROPY_SCORE_BYTES;
 			score -= p * log2(p);
 		}
 	}
@@ -243,24 +245,24 @@ int run_chi_squire_test(long idx) {
 
 	printf("Average chi-square for test %3ld --------------------------- ",
 			idx + 1);
-	chiSquareSum = 0;
+	chi_square_sum = 0;
 	for (l = 0; l < NUM_BLOCKS; l++) {
-		// Retrieve random bytes from device
-		status = swrngGetCLEntropy(&ctxt, randonbuffer, SAMPLES);
+		/* Retrieve random bytes from device */
+		status = swrngGetCLEntropy(&ctxt, rnd_buffer, SAMPLES);
 		if (status != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetCLLastErrorMessage(&ctxt));
 			return status;
 		}
-		actOnes = 0;
-		actZeros = 0;
+		act_ones = 0;
+		act_zeros = 0;
 		int i = 0;
 		for (i = 0; i < SAMPLES; i++) {
-			chi_sqrd_count_bits(randonbuffer[i], &actOnes, &actZeros);
+			chi_sqrd_count_bits(rnd_buffer[i], &act_ones, &act_zeros);
 		}
-		chiSquare = chi_sqrd_calculate();
-		chiSquareSum += chiSquare;
+		chi_square = chi_sqrd_calculate();
+		chi_square_sum += chi_square;
 	}
-	double avgSquare = chiSquareSum / NUM_BLOCKS;
+	double avgSquare = chi_square_sum / NUM_BLOCKS;
 	printf("%f ", avgSquare);
 	if (avgSquare > 3.84) {
 		printf("(Not acceptable)\n");

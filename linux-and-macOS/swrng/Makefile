@@ -1,95 +1,171 @@
 CC=gcc
-SWRNG_FLAGS=-D_FILE_OFFSET_BITS=64
-CFLAGS= -lusb-1.0 -O2 -Wall -Wextra
-CPPFLAGS=-lstdc++
-CFLAGS_THREAD=-lpthread
+GPP=g++
+IDIR =./api-inc
+SDIR =./api-src
 
 PREFIX = $(DESTDIR)/usr/local
 BINDIR = $(PREFIX)/bin
 
+CFLAGS_THREAD = -lpthread
+CFLAGS = -O2 -I$(IDIR) -Wall -Wextra
+CPPFLAGS = $(CFLAGS) -std=c++11
+#CLANGSTD = -std=c89
+LDFLAGS = -lusb-1.0
+LDCPPFLAGS = $(LDFLAGS) -lstdc++
+
+
+OBJECTS = SwiftRngApi.o USBSerialDevice.o SwiftRngApiCWrapper.o RandomSeqGenerator.o
+CLOBJECTS = swrng-cl-api.o
+
 OS:=$(shell uname -s)
 ifeq ($(OS),Darwin)
-CFLAGS += -L/usr/local/lib/ -I /usr/local/include/ 
+CPPFLAGS += -L/usr/local/lib/ -I /usr/local/include/ 
 endif
 
-SWRNG = swrng
-SWRNG_CL = swrng-cl
-SAMPLE_PROGR = sample
-SAMPLE_CL_PROGR = sample-cl
+
+
 SWDIAG = swdiag
-SWDIAG_CL = swdiag-cl
 SWPERFTEST = swperftest
-SWPERF_CL_TEST = swperf-cl-test
+SWPERFTEST_CL = swperf-cl-test
 BITCOUNT = bitcount
 BITCOUNT_CL = bitcount-cl
+SWRNG = swrng
+SWRNG_CL = swrng-cl
+SWDIAG_CL = swdiag-cl
 SWRAWRANDOM = swrawrandom
 SWRNGSEQGEN = swrngseqgen
-SWRNG_PSERVER = run-swrng-pserver.sh
+SAMPLE = sample
+SAMPLE_CL = sample-cl
 
-all: $(SWRNG) $(SWRNG_CL) $(SAMPLE_PROGR) $(SWDIAG) $(SWDIAG_CL) $(SWPERFTEST) $(SAMPLE_CL_PROGR) $(SWPERF_CL_TEST) $(BITCOUNT) $(BITCOUNT_CL) $(SWRNGSEQGEN) $(SWRAWRANDOM)
 
-$(SWRNG): swrng.cpp
-	$(CC) swrng.cpp swrngapi.cpp USBSerialDevice.cpp -o $(SWRNG) $(CFLAGS) $(CPPFLAGS)
+all: $(SAMPLE) $(SWDIAG) $(SWPERFTEST) $(BITCOUNT) $(SWRNG) $(SWRAWRANDOM) $(SWRNGSEQGEN) $(SAMPLE_CL) $(BITCOUNT_CL) $(SWDIAG_CL) $(SWPERFTEST_CL) $(SWRNG_CL)
 
-$(SWRNG_CL): swrng-cl.cpp
-	$(CC) swrng-cl.cpp swrngapi.cpp USBSerialDevice.cpp swrng-cl-api.cpp -o $(SWRNG_CL) $(CFLAGS) $(CFLAGS_THREAD) $(CPPFLAGS)
+$(SAMPLE): $(SAMPLE).c $(OBJECTS)
+	@echo
+	@echo "Creating $(SAMPLE) ..."
+	@echo
+	$(CC) -c $(SAMPLE).c $(CFLAGS) $(CLANGSTD)
+	$(GPP) $(SAMPLE).o $(OBJECTS) -o $(SAMPLE) $(LDFLAGS)
 
-$(SAMPLE_PROGR): sample.cpp
-	$(CC) sample.cpp swrngapi.cpp USBSerialDevice.cpp -o $(SAMPLE_PROGR) $(CFLAGS) $(CPPFLAGS)
+$(SWDIAG): $(SWDIAG).c $(OBJECTS)
+	@echo
+	@echo "Creating $(SWDIAG) ..."
+	@echo
+	$(CC) -c $(SWDIAG).c $(CFLAGS) $(CLANGSTD)
+	$(GPP) $(SWDIAG).o $(OBJECTS) -o $(SWDIAG) $(LDFLAGS)
 
-$(SAMPLE_CL_PROGR): sample-cl.cpp
-	$(CC) sample-cl.cpp swrngapi.cpp USBSerialDevice.cpp swrng-cl-api.cpp -o $(SAMPLE_CL_PROGR) $(CFLAGS) $(CFLAGS_THREAD) $(CPPFLAGS)
+$(SWDIAG_CL): $(SWDIAG_CL).c $(OBJECTS) $(CLOBJECTS)
+	@echo
+	@echo "Creating $(SWDIAG_CL) ..."
+	@echo
+	$(CC) -c $(SWDIAG_CL).c $(CFLAGS) $(CLANGSTD)
+	$(GPP) $(SWDIAG_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SWDIAG_CL) $(LDFLAGS)
 
-$(SWPERFTEST): swperftest.cpp
-	$(CC) swperftest.cpp swrngapi.cpp USBSerialDevice.cpp -o $(SWPERFTEST) $(CFLAGS) $(CPPFLAGS)
+$(SWPERFTEST): $(SWPERFTEST).c $(OBJECTS)
+	@echo
+	@echo "Creating $(SWPERFTEST) ..."
+	@echo
+	$(CC) -c $(SWPERFTEST).c $(CFLAGS) $(CLANGSTD)
+	$(GPP) $(SWPERFTEST).o $(OBJECTS) -o $(SWPERFTEST) $(LDFLAGS)
 
-$(SWPERF_CL_TEST): swperf-cl-test.cpp
-	$(CC) swperf-cl-test.cpp swrngapi.cpp USBSerialDevice.cpp swrng-cl-api.cpp -o $(SWPERF_CL_TEST) $(CFLAGS) $(CFLAGS_THREAD) $(CPPFLAGS)
+$(SWPERFTEST_CL): $(SWPERFTEST_CL).c $(OBJECTS) $(CLOBJECTS)
+	@echo
+	@echo "Creating $(SWPERFTEST_CL) ..."
+	@echo
+	$(CC) -c $(SWPERFTEST_CL).c $(CFLAGS) $(CLANGSTD)
+	$(GPP) $(SWPERFTEST_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SWPERFTEST_CL) $(LDFLAGS)
 
-$(SWDIAG): swdiag.cpp
-	$(CC) swdiag.cpp swrngapi.cpp USBSerialDevice.cpp -o $(SWDIAG) $(CFLAGS) -lm $(CPPFLAGS)
+$(BITCOUNT): $(BITCOUNT).c $(OBJECTS)
+	@echo
+	@echo "Creating $(BITCOUNT) ..."
+	@echo
+	$(CC) -c $(BITCOUNT).c $(CFLAGS) $(CLANGSTD)
+	$(GPP) $(BITCOUNT).o $(OBJECTS) -o $(BITCOUNT) $(LDFLAGS)
 
-$(SWDIAG_CL): swdiag-cl.cpp
-	$(CC) swdiag-cl.cpp swrngapi.cpp USBSerialDevice.cpp swrng-cl-api.cpp -o $(SWDIAG_CL) $(CFLAGS) $(CFLAGS_THREAD) -lm $(CPPFLAGS)
+$(BITCOUNT_CL): $(BITCOUNT_CL).c $(OBJECTS) $(CLOBJECTS)
+	@echo
+	@echo "Creating $(BITCOUNT_CL) ..."
+	@echo
+	$(CC) -c $(BITCOUNT_CL).c $(CFLAGS) $(CLANGSTD)
+	$(GPP) $(BITCOUNT_CL).o $(OBJECTS) $(CLOBJECTS) -o $(BITCOUNT_CL) $(LDFLAGS)
 
-$(BITCOUNT): bitcount.cpp
-	$(CC) bitcount.cpp swrngapi.cpp USBSerialDevice.cpp -o $(BITCOUNT) $(CFLAGS) $(CPPFLAGS)
+$(SWRNG): $(SWRNG).c $(OBJECTS)
+	@echo
+	@echo "Creating $(SWRNG) ..."
+	@echo
+	$(CC) -c $(SWRNG).c $(CFLAGS) $(CLANGSTD)
+	$(GPP) $(SWRNG).o $(OBJECTS) -o $(SWRNG) $(LDFLAGS)
 
-$(BITCOUNT_CL): bitcount-cl.cpp
-	$(CC) bitcount-cl.cpp swrngapi.cpp USBSerialDevice.cpp swrng-cl-api.cpp -o $(BITCOUNT_CL) $(CFLAGS) $(CFLAGS_THREAD) $(CPPFLAGS)
+$(SWRNG_CL): $(SWRNG_CL).c $(OBJECTS) $(CLOBJECTS)
+	@echo
+	@echo "Creating $(SWRNG_CL) ..."
+	@echo
+	$(CC) -c $(SWRNG_CL).c $(CFLAGS) $(CLANGSTD)
+	$(GPP) $(SWRNG_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SWRNG_CL) $(LDFLAGS)
 
-$(SWRAWRANDOM): swrawrandom.cpp
-	$(CC) swrawrandom.cpp swrngapi.cpp USBSerialDevice.cpp -o $(SWRAWRANDOM) $(CFLAGS) $(CPPFLAGS)
+$(SWRAWRANDOM): $(SWRAWRANDOM).c $(OBJECTS)
+	@echo
+	@echo "Creating $(SWRAWRANDOM) ..."
+	@echo
+	$(CC) -c $(SWRAWRANDOM).c $(CFLAGS) $(CLANGSTD)
+	$(GPP) $(SWRAWRANDOM).o $(OBJECTS) -o $(SWRAWRANDOM) $(LDFLAGS)
 
-$(SWRNGSEQGEN): swrngseqgen.cpp
-	$(CC) swrngseqgen.cpp swrngapi.cpp USBSerialDevice.cpp SWRNGRandomSeqGenerator.cpp -o $(SWRNGSEQGEN) $(CFLAGS) $(CPPFLAGS)
+$(SWRNGSEQGEN): $(SWRNGSEQGEN).cpp $(OBJECTS)
+	@echo
+	@echo "Creating $(SWRNGSEQGEN) ..."
+	@echo
+	$(GPP) -c $(SWRNGSEQGEN).cpp $(CPPFLAGS)
+	$(GPP) $(SWRNGSEQGEN).o $(OBJECTS) -o $(SWRNGSEQGEN) $(LDCPPFLAGS)
+
+$(SAMPLE_CL): $(SAMPLE_CL).c $(OBJECTS) $(CLOBJECTS)
+	@echo
+	@echo "Creating $(SAMPLE_CL) ..."
+	@echo
+	$(CC) -c $(SAMPLE_CL).c $(CFLAGS) $(CLANGSTD)
+	$(GPP) $(SAMPLE_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SAMPLE_CL) $(LDFLAGS)
+
+
+SwiftRngApi.o:
+	$(GPP) -c $(SDIR)/SwiftRngApi.cpp $(CPPFLAGS)
+	
+USBSerialDevice.o:
+	$(GPP) -c $(SDIR)/USBSerialDevice.cpp $(CPPFLAGS)
+
+SwiftRngApiCWrapper.o:
+	$(GPP) -c $(SDIR)/SwiftRngApiCWrapper.cpp $(CPPFLAGS)
+
+RandomSeqGenerator.o:
+	$(GPP) -c $(SDIR)/RandomSeqGenerator.cpp $(CPPFLAGS)
+
+swrng-cl-api.o:
+	$(CC) -c $(SDIR)/swrng-cl-api.c $(CFLAGS)
+
+
 
 clean:
-	rm -f *.o ; rm $(SWRNG) $(SWRNG_CL) $(SAMPLE_PROGR) $(SWDIAG) $(SWDIAG_CL) $(SWPERFTEST) $(SAMPLE_CL_PROGR) $(SWPERF_CL_TEST) $(BITCOUNT) $(BITCOUNT_CL) $(SWRNGSEQGEN) $(SWRAWRANDOM)
+	rm -f *.o ; rm -fr $(SAMPLE) $(SWDIAG) $(SWPERFTEST) $(BITCOUNT) $(SWRNG) $(SWRAWRANDOM) $(SWRNGSEQGEN) $(SAMPLE_CL) $(BITCOUNT_CL) $(SWDIAG_CL) $(SWPERFTEST_CL) $(SWRNG_CL)
 
 install:
-	install $(SWRNG) $(BINDIR)/$(SWRNG)
-	install $(SWRNG_CL) $(BINDIR)/$(SWRNG_CL)
 	install $(SWDIAG) $(BINDIR)/$(SWDIAG)
 	install $(SWDIAG_CL) $(BINDIR)/$(SWDIAG_CL)
 	install $(SWPERFTEST) $(BINDIR)/$(SWPERFTEST)
-	install $(SWPERF_CL_TEST) $(BINDIR)/$(SWPERF_CL_TEST)
-	install $(SWRNGSEQGEN) $(BINDIR)/$(SWRNGSEQGEN)
+	install $(SWPERFTEST_CL) $(BINDIR)/$(SWPERFTEST_CL)
 	install $(BITCOUNT) $(BINDIR)/$(BITCOUNT)
 	install $(BITCOUNT_CL) $(BINDIR)/$(BITCOUNT_CL)
+	install $(SWRNG) $(BINDIR)/$(SWRNG)
+	install $(SWRNG_CL) $(BINDIR)/$(SWRNG_CL)
 	install $(SWRAWRANDOM) $(BINDIR)/$(SWRAWRANDOM)
-	cp $(SWRNG_PSERVER) $(BINDIR)/$(SWRNG_PSERVER)
-	chmod a+x $(BINDIR)/$(SWRNG_PSERVER)
+	install $(SWRNGSEQGEN) $(BINDIR)/$(SWRNGSEQGEN)
 
 uninstall:
-	rm $(BINDIR)/$(SWRNG)
-	rm $(BINDIR)/$(SWRNG_CL)
 	rm $(BINDIR)/$(SWDIAG)
 	rm $(BINDIR)/$(SWDIAG_CL)
 	rm $(BINDIR)/$(SWPERFTEST)
-	rm $(BINDIR)/$(SWPERF_CL_TEST)
-	rm $(BINDIR)/$(SWRNGSEQGEN)
+	rm $(BINDIR)/$(SWPERFTEST_CL)
 	rm $(BINDIR)/$(BITCOUNT)
 	rm $(BINDIR)/$(BITCOUNT_CL)
+	rm $(BINDIR)/$(SWRNG)
+	rm $(BINDIR)/$(SWRNG_CL)
 	rm $(BINDIR)/$(SWRAWRANDOM)
-	rm $(BINDIR)/$(SWRNG_PSERVER)
+	rm $(BINDIR)/$(SWRNGSEQGEN)
+	

@@ -1,19 +1,24 @@
-#include "stdafx.h"
 /*
- * swrawrandom.cpp
- * Ver. 2.2
+ * swrawrandom.c
+ * Ver. 2.3
  *
  * A C program for retrieving raw (unprocessed) random bytes from SwiftRNG noise sources.
  *
  */
 
-#include "swrngapi.h"
+#include <swrngapi.h>
+#include <stdio.h>
+#include <stdlib.h>
 
 #define BLOCK_SIZE (16000)
 
-static NoiseSourceRawData noiseSourceOneRawData;
-static char *filePathName = NULL; // File name for recording the random bytes (a command line argument)
-static FILE *pOutputFile = NULL; // Output file handle
+static NoiseSourceRawData noise_source_one_raw_data;
+
+/* File name for recording the random bytes (a command line argument) */
+static char *file_path_name = NULL;
+
+/* Output file handle */
+static FILE *p_output_file = NULL;
 
 
 /**
@@ -21,8 +26,8 @@ static FILE *pOutputFile = NULL; // Output file handle
  * @return int 0 - successful or error code
  */
 int main(int argc, char **argv) {
-	int deviceNum, noiseSourceNum;
-	long totalBlocks, l;
+	int device_num, noise_source_num;
+	long total_blocks, l;
 	SwrngContext ctxt;
 
 	printf("------------------------------------------------------------------------------\n");
@@ -33,10 +38,10 @@ int main(int argc, char **argv) {
 	setbuf(stdout, NULL);
 
 	if (argc == 5) {
-		totalBlocks = atol(argv[1]);
-		deviceNum = atol(argv[2]);
-		noiseSourceNum = atol(argv[3]);
-		filePathName = argv[4];
+		total_blocks = atol(argv[1]);
+		device_num = atol(argv[2]);
+		noise_source_num = atol(argv[3]);
+		file_path_name = argv[4];
 	} else {
 		printf("Usage: swrawrandom <number of blocks> <device> <noise source> <file>\n");
 		printf("Note: One block equals to 16000 bytes\n");
@@ -48,48 +53,48 @@ int main(int argc, char **argv) {
 		return(1);
 	}
 
-	if (noiseSourceNum != 0 && noiseSourceNum != 1) {
+	if (noise_source_num != 0 && noise_source_num != 1) {
 		printf("Invalid noise source number specified\n");
 		return(1);
 	}
 
-	// Initialize the context
+	/* Initialize the context */
 	if (swrngInitializeContext(&ctxt) != SWRNG_SUCCESS) {
 		printf("Could not initialize context\n");
 		return(1);
 	}
 
-	// Open SwiftRNG device if available
-	if (swrngOpen(&ctxt, deviceNum) != SWRNG_SUCCESS) {
+	/* Open SwiftRNG device if available */
+	if (swrngOpen(&ctxt, device_num) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
 		return(1);
 	}
 
-	printf("\nSwiftRNG device number %d open successfully\n\n", deviceNum);
+	printf("\nSwiftRNG device number %d open successfully\n\n", device_num);
 
-	pOutputFile = fopen(filePathName, "wb");
+	p_output_file = fopen(file_path_name, "wb");
 
-	if (pOutputFile == NULL) {
-		fprintf(stderr, "Cannot open file: %s in write mode\n", filePathName);
-		swrngClose(&ctxt);
+	if (p_output_file == NULL) {
+		fprintf(stderr, "Cannot open file: %s in write mode\n", file_path_name);
+		swrngDestroyContext(&ctxt);
 		return -1;
 	}
 
-	printf("*** retrieving raw random bytes from noise source %d ***\n", noiseSourceNum);
-	for (l = 0; l < totalBlocks; l++) {
-		if (swrngGetRawDataBlock(&ctxt, &noiseSourceOneRawData, noiseSourceNum) != SWRNG_SUCCESS) {
+	printf("*** retrieving raw random bytes from noise source %d ***\n", noise_source_num);
+	for (l = 0; l < total_blocks; l++) {
+		if (swrngGetRawDataBlock(&ctxt, &noise_source_one_raw_data, noise_source_num) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
-			swrngClose(&ctxt);
+			swrngDestroyContext(&ctxt);
 			return (1);
 		}
-		fwrite(noiseSourceOneRawData.value, 1, BLOCK_SIZE, pOutputFile);
+		fwrite(noise_source_one_raw_data.value, 1, BLOCK_SIZE, p_output_file);
 	}
 
-	swrngClose(&ctxt);
+	swrngDestroyContext(&ctxt);
 
-	if (pOutputFile != NULL) {
-		fclose(pOutputFile);
-		pOutputFile = NULL;
+	if (p_output_file != NULL) {
+		fclose(p_output_file);
+		p_output_file = NULL;
 	}
 	printf("Completed\n");
 

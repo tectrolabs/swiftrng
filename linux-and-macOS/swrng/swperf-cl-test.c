@@ -1,13 +1,12 @@
-#include "stdafx.h"
 /*
- * swperf-cl-test.cpp
+ * swperf-cl-test.c
  * Ver. 2.2
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2022 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -19,12 +18,15 @@
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-#include "swrng-cl-api.h"
+#include <swrng-cl-api.h>
 
-#define SAMPLES (100000)		// Number of random bytes per block to retrieve
-#define NUM_BLOCKS (5000)		// Total blocks to read
+/* Number of random bytes per block to retrieve */
+#define SAMPLES (100000)
 
-static unsigned char randonbuffer[SAMPLES];
+/* Total blocks to read */
+#define NUM_BLOCKS (5000)
+
+static unsigned char rnd_buffer[SAMPLES];
 static SwrngCLContext ctxt;
 
 static int status;
@@ -37,8 +39,8 @@ static long l;
  * @return 0 - if successful, error otherwise
  */
 int runPerfTest() {
-	// Wake up the device for best performance
-	status = swrngGetCLEntropy(&ctxt, randonbuffer, SAMPLES);
+	/* Wake up the device for best performance */
+	status = swrngGetCLEntropy(&ctxt, rnd_buffer, SAMPLES);
 	if (status != SWRNG_SUCCESS) {
 		printf("*FAILED*, err: %s\n", swrngGetCLLastErrorMessage(&ctxt));
 		swrngCLClose(&ctxt);
@@ -48,8 +50,8 @@ int runPerfTest() {
 	printf("Performance ------- in progress ------------------ ");
 	start = time(NULL);
 	for (l = 0; l < NUM_BLOCKS; l++) {
-		// Retrieve random bytes from the device
-		status = swrngGetCLEntropy(&ctxt, randonbuffer, SAMPLES);
+		/* Retrieve random bytes from the device */
+		status = swrngGetCLEntropy(&ctxt, rnd_buffer, SAMPLES);
 		if ( status != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetCLLastErrorMessage(&ctxt));
 			swrngCLClose(&ctxt);
@@ -73,30 +75,30 @@ int runPerfTest() {
  * @return int 0 - successful or error code
  */
 int main(int argc, char **argv) {
-	int clusterSize = 2;
+	int cluster_size = 2;
 
 	printf("------------------------------------------------------------------------\n");
 	printf("-- swperf-cl-test - SwiftRNG device cluster performance test utility  --\n");
 	printf("------------------------------------------------------------------------\n");
 
 	if (argc > 1) {
-		clusterSize = atoi(argv[1]);
+		cluster_size = atoi(argv[1]);
 	} else {
 		printf("Usage: swperf-cl-test <cluster size>\n");
 	}
 
 	setbuf(stdout, NULL);
 
-	// Open SwiftRNG device cluster if available
-	if (swrngCLOpen(&ctxt, clusterSize) != SWRNG_SUCCESS) {
+	/* Open SwiftRNG device cluster if available */
+	if (swrngCLOpen(&ctxt, cluster_size) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
 		return(1);
 	}
 
-	printf("\nCluster preferred size: %d, actual cluster size: %d (successfully open)\n\n", clusterSize, swrngGetCLSize(&ctxt));
+	printf("\nCluster preferred size: %d, actual cluster size: %d (successfully open)\n\n", cluster_size, swrngGetCLSize(&ctxt));
 
 
-	status = swrngGetCLEntropy(&ctxt, randonbuffer, SAMPLES);
+	status = swrngGetCLEntropy(&ctxt, rnd_buffer, SAMPLES);
 	if (status != SWRNG_SUCCESS) {
 		printf("*FAILED*, err: %s\n", swrngGetCLLastErrorMessage(&ctxt));
 		swrngCLClose(&ctxt);

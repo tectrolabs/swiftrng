@@ -1,13 +1,12 @@
-#include "stdafx.h"
 /*
- * swrng-cl.cpp
- * ver. 3.3
+ * swrng-cl.c
+ * ver. 3.4
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2022 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -34,7 +33,7 @@
  *
  * @return int - 0 when run successfully
  */
-int displayDevices() {
+static int display_devices(void) {
 	DeviceInfoList dil;
 	int i;
 
@@ -66,9 +65,9 @@ int displayDevices() {
  * Display usage message
  *
  */
-void displayUsage() {
+static void display_usage(void) {
 	printf("*********************************************************************************\n");
-	printf("             TectroLabs - swrng-cl - cluster download utility Ver 3.3          \n");
+	printf("             TectroLabs - swrng-cl - cluster download utility Ver 3.4          \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng-cl - Download true random bytes from a cluster of SwiftRNG devices\n");
@@ -153,16 +152,16 @@ void displayUsage() {
  * Validate command line argument count
  *
  * @param int curIdx
- * @param int actualArgumentCount
- * @return swrngBool - true if run successfully
+ * @param int act_argument_count
+ * @return int - 1 if run successfully
  */
-swrngBool validateArgumentCount(int curIdx, int actualArgumentCount) {
-	if (curIdx >= actualArgumentCount) {
+int validate_argument_count(int curIdx, int act_argument_count) {
+	if (curIdx >= act_argument_count) {
 		fprintf(stderr, "\nMissing command line arguments\n\n");
-		displayUsage();
-		return SWRNG_FALSE;
+		display_usage();
+		return val_false;
 	}
-	return SWRNG_TRUE;
+	return val_true;
 }
 
 /**
@@ -173,15 +172,15 @@ swrngBool validateArgumentCount(int curIdx, int actualArgumentCount) {
  * @param char ** argv - parameters
  * @return int - 0 when successfully parsed
  */
-int parseClusterSize(int idx, int argc, char **argv) {
+static int parseClusterSize(int idx, int argc, char **argv) {
 	if (idx < argc) {
 		if (strcmp("-cs", argv[idx]) == 0 || strcmp("--cluster-size",
 				argv[idx]) == 0) {
-			if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
+			if (validate_argument_count(++idx, argc) == val_false) {
 				return -1;
 			}
-			clusterSize = atoi(argv[idx++]);
-			if (clusterSize < 0 || clusterSize > 10) {
+			cl_size = atoi(argv[idx++]);
+			if (cl_size < 0 || cl_size > 10) {
 				fprintf(stderr, "Cluster size must be between 1 and 10\n");
 				return -1;
 			}
@@ -198,15 +197,15 @@ int parseClusterSize(int idx, int argc, char **argv) {
  * @param char ** argv - parameters
  * @return int - 0 when successfully parsed
  */
-int parsePowerProfileNum(int idx, int argc, char **argv) {
+static int parsePowerProfileNum(int idx, int argc, char **argv) {
 	if (idx < argc) {
 		if (strcmp("-ppn", argv[idx]) == 0 || strcmp("--power-profile-number",
 				argv[idx]) == 0) {
-			if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
+			if (validate_argument_count(++idx, argc) == val_false) {
 				return -1;
 			}
-			ppNum = atoi(argv[idx++]);
-			if (ppNum < 0 || ppNum > 9) {
+			pp_num = atoi(argv[idx++]);
+			if (pp_num < 0 || pp_num > 9) {
 				fprintf(stderr,
 						"Power profile number invalid, must be between 0 and 9\n");
 				return -1;
@@ -223,59 +222,59 @@ int parsePowerProfileNum(int idx, int argc, char **argv) {
  * @param char** argv
  * @return int - 0 when run successfully
  */
-int processArguments(int argc, char **argv) {
+static int process_arguments(int argc, char **argv) {
 	int idx = 1;
 	if (strcmp("-ld", argv[idx]) == 0 || strcmp("--list-devices", argv[idx])
 			== 0) {
-		return displayDevices();
+		return display_devices();
 #ifdef __linux__
 	} else if (strcmp("-fep", argv[idx]) == 0 || strcmp("--feed-entropy-pool", argv[idx]) == 0 ) {
 		return feedKernelEntropyPool();
 #endif
 	} else if (strcmp("-dd", argv[idx]) == 0 || strcmp("--download-data",
 			argv[idx]) == 0) {
-		if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
+		if (validate_argument_count(++idx, argc) == val_false) {
 			return -1;
 		}
 		while (idx < argc) {
 			if (strcmp("-dpp", argv[idx]) == 0 || strcmp("--disable-post-processing",
 					argv[idx]) == 0) {
 				idx++;
-				postProcessingEnabled = SWRNG_FALSE;
+				postProcessingEnabled = val_false;
 			} else if (strcmp("-dst", argv[idx]) == 0 || strcmp("--disable-statistical-tests", argv[idx]) == 0) {
 				idx++;
-				statisticalTestsEnabled = SWRNG_FALSE;
+				statisticalTestsEnabled = val_false;
 			} else if (strcmp("-nb", argv[idx]) == 0 || strcmp("--number-bytes",
 					argv[idx]) == 0) {
-				if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
+				if (validate_argument_count(++idx, argc) == val_false) {
 					return -1;
 				}
-				numGenBytes = atoll(argv[idx++]);
-				if (numGenBytes > 200000000000) {
+				num_gen_bytes = atoll(argv[idx++]);
+				if (num_gen_bytes > 200000000000) {
 					fprintf(stderr,
 							"Number of bytes cannot exceed 200000000000\n");
 					return -1;
 				}
 			} else if (strcmp("-fn", argv[idx]) == 0 || strcmp("--file-name",
 					argv[idx]) == 0) {
-				if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
+				if (validate_argument_count(++idx, argc) == val_false) {
 					return -1;
 				}
-				filePathName = argv[idx++];
+				file_path_name = argv[idx++];
 			} else if (strcmp("-ppm", argv[idx]) == 0 || strcmp("--post-processing-method",
 					argv[idx]) == 0) {
-				if (validateArgumentCount(++idx, argc) == SWRNG_FALSE) {
+				if (validate_argument_count(++idx, argc) == val_false) {
 					return -1;
 				}
-				postProcessingMethod = argv[idx++];
-				if (strcmp("SHA256", postProcessingMethod) == 0) {
-					postProcessingMethodId = 0;
-				} else if (strcmp("SHA512", postProcessingMethod) == 0) {
-					postProcessingMethodId = 2;
-				} else if (strcmp("xorshift64", postProcessingMethod) == 0) {
-					postProcessingMethodId = 1;
+				pp_method = argv[idx++];
+				if (strcmp("SHA256", pp_method) == 0) {
+					pp_method_id = 0;
+				} else if (strcmp("SHA512", pp_method) == 0) {
+					pp_method_id = 2;
+				} else if (strcmp("xorshift64", pp_method) == 0) {
+					pp_method_id = 1;
 				} else {
-					fprintf(stderr, "Invalid post processing method: %s \n", postProcessingMethod);
+					fprintf(stderr, "Invalid post processing method: %s \n", pp_method);
 					return -1;
 				}
 			} else if (parseClusterSize(idx, argc, argv) == -1) {
@@ -283,22 +282,22 @@ int processArguments(int argc, char **argv) {
 			} else if (parsePowerProfileNum(idx, argc, argv) == -1) {
 				return -1;
 			} else {
-				// Could not handle the argument, skip to the next one
+				/* Could not handle the argument, skip to the next one */
 				++idx;
 			}
 		}
 	}
-	return processDownloadRequest();
+	return process_download_request();
 }
 
 /**
  * Close file handle
  *
  */
-void closeHandle() {
-	if (pOutputFile != NULL) {
-		fclose(pOutputFile);
-		pOutputFile = NULL;
+static void closeHandle() {
+	if (p_output_file != NULL) {
+		fclose(p_output_file);
+		p_output_file = NULL;
 	}
 }
 
@@ -306,11 +305,11 @@ void closeHandle() {
  * Write bytes out to the file
  *
  * @param uint8_t* bytes - pointer to the byte array
- * @param uint32_t numBytes - number of bytes to write
+ * @param uint32_t num_bytes - number of bytes to write
  */
-void writeBytes(uint8_t *bytes, uint32_t numBytes) {
-	FILE *handle = pOutputFile;
-	fwrite(bytes, 1, numBytes, handle);
+static void write_bytes(uint8_t *bytes, uint32_t num_bytes) {
+	FILE *handle = p_output_file;
+	fwrite(bytes, 1, num_bytes, handle);
 }
 
 /**
@@ -318,18 +317,19 @@ void writeBytes(uint8_t *bytes, uint32_t numBytes) {
  *
  * @return int - 0 when run successfully
  */
-int handleDownloadRequest() {
+static int handle_download_request(void) {
 
-	uint8_t receiveByteBuffer[SWRNG_BUFF_FILE_SIZE_BYTES + 1]; // Add one extra byte of storage for the status byte
+	/* Add one extra byte of storage for the status byte */
+	uint8_t receiveByteBuffer[SWRNG_BUFF_FILE_SIZE_BYTES + 1];
 
-	int status = swrngCLOpen(&cxt, clusterSize);
+	int status = swrngCLOpen(&cxt, cl_size);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, " Cannot open cluster, error code %d ... ", status);
 		swrngCLClose(&cxt);
 		return status;
 	}
 
-	if (statisticalTestsEnabled == SWRNG_FALSE) {
+	if (statisticalTestsEnabled == val_false) {
 		status = swrngDisableCLStatisticalTests(&cxt);
 		if (status != SWRNG_SUCCESS) {
 			fprintf(stderr, " Cannot disable statistical tests, error code %d ... ", status);
@@ -338,7 +338,7 @@ int handleDownloadRequest() {
 		}
 	}
 
-	if (postProcessingEnabled == SWRNG_FALSE) {
+	if (postProcessingEnabled == val_false) {
 		status = swrngDisableCLPostProcessing(&cxt);
 		if (status != SWRNG_SUCCESS) {
 			fprintf(stderr, " Cannot disable post processing, error code %d ... ",
@@ -346,8 +346,8 @@ int handleDownloadRequest() {
 			swrngCLClose(&cxt);
 			return status;
 		}
-	} else if (postProcessingMethod != NULL) {
-		status = swrngEnableCLPostProcessing(&cxt, postProcessingMethodId);
+	} else if (pp_method != NULL) {
+		status = swrngEnableCLPostProcessing(&cxt, pp_method_id);
 		if (status != SWRNG_SUCCESS) {
 			fprintf(stderr, " Cannot enable processing method, error code %d ... ",
 					status);
@@ -356,7 +356,7 @@ int handleDownloadRequest() {
 		}
 	}
 
-	status = swrngSetCLPowerProfile(&cxt, ppNum);
+	status = swrngSetCLPowerProfile(&cxt, pp_num);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, " Cannot set device power profile, error code %d ... ",
 				status);
@@ -364,30 +364,30 @@ int handleDownloadRequest() {
 		return status;
 	}
 
-	if (filePathName == NULL) {
+	if (file_path_name == NULL) {
 		fprintf(stderr, "No file name defined. ");
 		swrngCLClose(&cxt);
 		return -1;
 	}
 
-	if (isOutputToStandardOutput == SWRNG_TRUE) {
+	if (is_output_to_standard_output == val_true) {
 #ifdef _WIN32
 		_setmode(_fileno(stdout), _O_BINARY);
-		pOutputFile = fdopen(_dup(fileno(stdout)), "wb");
+		p_output_file = fdopen(_dup(fileno(stdout)), "wb");
 #else
-		pOutputFile = fdopen(dup(fileno(stdout)), "wb");
+		p_output_file = fdopen(dup(fileno(stdout)), "wb");
 #endif
 	} else {
-		pOutputFile = fopen(filePathName, "wb");
+		p_output_file = fopen(file_path_name, "wb");
 	}
-	if (pOutputFile == NULL) {
-		fprintf(stderr, "Cannot open file: %s in write mode\n", filePathName);
+	if (p_output_file == NULL) {
+		fprintf(stderr, "Cannot open file: %s in write mode\n", file_path_name);
 		swrngCLClose(&cxt);
 		return -1;
 	}
 
-	while (numGenBytes == -1) {
-		// Infinite loop for downloading unlimited random bytes
+	while (num_gen_bytes == -1) {
+		/* Infinite loop for downloading unlimited random bytes */
 		status = swrngGetCLEntropy(&cxt, receiveByteBuffer, SWRNG_BUFF_FILE_SIZE_BYTES);
 		if (status != SWRNG_SUCCESS) {
 			fprintf(
@@ -398,16 +398,16 @@ int handleDownloadRequest() {
 			swrngCLClose(&cxt);
 			return status;
 		}
-		writeBytes(receiveByteBuffer, SWRNG_BUFF_FILE_SIZE_BYTES);
+		write_bytes(receiveByteBuffer, SWRNG_BUFF_FILE_SIZE_BYTES);
 	}
 
-	// Calculate number of complete random byte chunks to download
-	int64_t numCompleteChunks = numGenBytes / SWRNG_BUFF_FILE_SIZE_BYTES;
+	/* Calculate number of complete random byte chunks to download */
+	int64_t numCompleteChunks = num_gen_bytes / SWRNG_BUFF_FILE_SIZE_BYTES;
 
-	// Calculate number of bytes in the last incomplete chunk
-	uint32_t chunkRemaindBytes = (uint32_t)(numGenBytes % SWRNG_BUFF_FILE_SIZE_BYTES);
+	/* Calculate number of bytes in the last incomplete chunk */
+	uint32_t chunkRemaindBytes = (uint32_t)(num_gen_bytes % SWRNG_BUFF_FILE_SIZE_BYTES);
 
-	// Process each chunk
+	/* Process each chunk */
 	int64_t chunkNum;
 	for (chunkNum = 0; chunkNum < numCompleteChunks; chunkNum++) {
 		status = swrngGetCLEntropy(&cxt, receiveByteBuffer, SWRNG_BUFF_FILE_SIZE_BYTES);
@@ -418,11 +418,11 @@ int handleDownloadRequest() {
 			swrngCLClose(&cxt);
 			return status;
 		}
-		writeBytes(receiveByteBuffer, SWRNG_BUFF_FILE_SIZE_BYTES);
+		write_bytes(receiveByteBuffer, SWRNG_BUFF_FILE_SIZE_BYTES);
 	}
 
 	if (chunkRemaindBytes > 0) {
-		//Process incomplete chunk
+		/* Process incomplete chunk */
 		status = swrngGetCLEntropy(&cxt, receiveByteBuffer, chunkRemaindBytes);
 		if (status != SWRNG_SUCCESS) {
 			fprintf(
@@ -433,7 +433,7 @@ int handleDownloadRequest() {
 			swrngCLClose(&cxt);
 			return status;
 		}
-		writeBytes(receiveByteBuffer, chunkRemaindBytes);
+		write_bytes(receiveByteBuffer, chunkRemaindBytes);
 	}
 
 	closeHandle();
@@ -449,14 +449,14 @@ int handleDownloadRequest() {
  *
  * @return int - 0 when run successfully
  */
-int processDownloadRequest() {
-	if (filePathName != NULL && (!strcmp(filePathName, "STDOUT") || !strcmp(filePathName, "/dev/stdout"))) {
-		isOutputToStandardOutput = SWRNG_TRUE;
+static int process_download_request() {
+	if (file_path_name != NULL && (!strcmp(file_path_name, "STDOUT") || !strcmp(file_path_name, "/dev/stdout"))) {
+		is_output_to_standard_output = val_true;
 	} else {
-		isOutputToStandardOutput = SWRNG_FALSE;
+		is_output_to_standard_output = val_false;
 	}
-	int status = handleDownloadRequest();
-	if (!isOutputToStandardOutput) {
+	int status = handle_download_request();
+	if (!is_output_to_standard_output) {
 		printf("Completed, cluster size: %d", actClusterSize);
 		printf(", fail-over events: %ld", failOverCount);
 		printf(", cluster resize attempts: %ld", resizeAttemptCount);
@@ -473,7 +473,7 @@ int processDownloadRequest() {
  * @return int - 0 when run successfully
  */
 int process(int argc, char **argv) {
-	// Initialize the context
+	/* Initialize the context */
 	int status = swrngInitializeContext(&hcxt);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Could not initialize context\n");
@@ -488,25 +488,25 @@ int process(int argc, char **argv) {
 
 	swrngEnableCLPrintingErrorMessages(&cxt);
 	if (argc == 1) {
-		displayUsage();
+		display_usage();
 		return -1;
 	}
-	status = processArguments(argc, argv);
-	swrngClose(&hcxt);
+	status = process_arguments(argc, argv);
+	swrngDestroyContext(&hcxt);
 	return status;
 }
 
-//.............
+/* ............. */
 #ifdef __linux__
-//.............
+/* ............. */
 /**
  * Feed Kernel entropy pool with true random bytes
  *
  * @return int - 0 when run successfully
  */
-int feedKernelEntropyPool() {
+static int feedKernelEntropyPool() {
 
-	int status = swrngCLOpen(&cxt, clusterSize);
+	int status = swrngCLOpen(&cxt, cl_size);
 	if(status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Cannot open device, error code %d ... ", status);
 		swrngCLClose(&cxt);
@@ -520,7 +520,7 @@ int feedKernelEntropyPool() {
 		return rndout;
 	}
 
-	// Check to see if we have privileges for feeding the entropy pool
+	/* Check to see if we have privileges for feeding the entropy pool */
 	int result = ioctl(rndout, RNDGETENTCNT, &entropyAvailable);
 	if (result < 0) {
 		printf("Cannot verify available entropy in the pool, make sure you run this utility with CAP_SYS_ADMIN capability\n");
@@ -531,9 +531,9 @@ int feedKernelEntropyPool() {
 
 	printf("Feeding the kernel %s entropy pool. Initial amount of entropy bits in the pool: %d ...\n", KERNEL_ENTROPY_POOL_NAME, entropyAvailable);
 
-	// Infinite loop for feeding kernel entropy pool
-	while(SWRNG_TRUE) {
-		// Check to see if we need more entropy, feed the pool if the current level is below 2048 bits
+	/* Infinite loop for feeding kernel entropy pool */
+	while(val_true) {
+		/* Check to see if we need more entropy, feed the pool if the current level is below 2048 bits */
 		ioctl(rndout, RNDGETENTCNT, &entropyAvailable);
 		if (entropyAvailable < (KERNEL_ENTROPY_POOL_SIZE_BYTES * 8) / 2) {
 			int addMoreBytes = KERNEL_ENTROPY_POOL_SIZE_BYTES - (entropyAvailable >> 3);
@@ -544,9 +544,9 @@ int feedKernelEntropyPool() {
 				return status;
 			}
 			entropy.buf_size = addMoreBytes;
-			// Estimate the amount of entropy
+			/* Estimate the amount of entropy */
 			entropy.entropy_count = entropyAvailable + (addMoreBytes << 3);
-			// Push the entropy out to the pool
+			/* Push the entropy out to the pool */
 			result = ioctl(rndout, RNDADDENTROPY, &entropy);
 			if (result < 0) {
 				printf("Cannot add more entropy to the pool, error: %d\n", result);
@@ -561,9 +561,9 @@ int feedKernelEntropyPool() {
 	}
 
 }
-//.............
+/* ............. */
 #endif
-//.............
+/* ............. */
 
 /**
  * Main entry

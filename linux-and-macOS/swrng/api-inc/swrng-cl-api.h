@@ -1,12 +1,12 @@
 /*
  * swrng-cl-api.h
- * Ver. 2.1
+ * Ver. 2.2
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -29,7 +29,8 @@
 #ifndef SWRNG_CL_API_H_
 #define SWRNG_CL_API_H_
 
-#include "swrngapi.h"
+#include <swrngapi.h>
+
 #if defined(_WIN32)
  #include <windows.h> 
  #include <stdio.h>
@@ -46,20 +47,22 @@
  #include <pthread.h>
  #include <sched.h>
  #include <unistd.h>
+ #include <string.h>
+ #include <errno.h>
+ #include <stdlib.h>
+ #include <stdio.h>
 #endif
 
 
-#define SWRNG_MAX_ERR_MSG_SIZE_BYTES (256)
-#define SWRNG_THREAD_EVENT_ERROR (10)
-
-
-//
-// Context thread structure
-//
+/**
+ * Thread context structure
+ */
 typedef struct {
+
+	/* A context reference to a single device */
 	SwrngContext ctxt;
 
-	// Thread variables
+	/* Thread handle and synchronization variables */
 #if defined(_WIN32)
 	HANDLE dwnl_thread;
 	HANDLE dwnl_thread_event;
@@ -68,43 +71,86 @@ typedef struct {
 	pthread_mutex_t dwnl_mutex;
 	pthread_cond_t dwnl_synch;
 #endif
-	int devNum; // Logical SwiftRNG device number
-	volatile int destroyDwnlThreadReq;
-	volatile int dwnlRequestActive;
+
+	/* 1 - thread is marked for destruction, 0 - otherwise */
+	volatile int destroy_dwnl_thread_req;
+
+	/* 1 - thread has a device operation in progress, 0 - otherwise */
+	volatile int dwnl_req_active;
+
+	/* 1 - thread is in a good state, 0 - thread encountered a device error */
 	volatile int dwnl_status;
-	unsigned char *trngOutBuffer;
+
+	/* A pointer to a memory location used for retrieving random byte stream from the device */
+	unsigned char *thread_device_data_buffer;
+
 } SwrngThreadContext;
 
-//
-// Clustered context thread structure
-//
+/**
+ * Cluster context structure
+ */
 typedef struct {
-	int startSignature;
+	/* Used for context sanity check */
+	int sig_begin_data;
 
-	swrngBool enPrintErrorMessages;
-	char lastError[SWRNG_MAX_ERR_MSG_SIZE_BYTES];	// Last cluster recorded error message
-	char lastTmpError[SWRNG_MAX_ERR_MSG_SIZE_BYTES];	// Last cluster temporary storage for recorded error message
-	SwrngThreadContext *tctxts;	// An array of SwrngThreadContext entries
-	swrngBool clusterOpen; 	// True if cluster successfully open
-	int clusterSize;		// Preferred cluster size - number of devices in a cluster
-	int actClusterSize;		// Actual cluster size - actual number of devices in a cluster
-	unsigned char *trngOutBuffer;	// Final TRNG output buffer for cluster
-	int curTrngOutIdx; // Current index for the trngOutBuffer buffer
-	int ppNum;			// Power profile number of the cluster
-	swrngBool ppnChanged;
-	long numClusterFailoverEvents;	// How many times cluster recovered from errors
-	long numClusterResizeAttempts;	// How many times cluster attempted to resize
-	time_t clusterStartedSecs;	// The time when cluster open successfully
-	swrngBool postProcessingEnabled; // A flag indicating if post processing is enabled for all cluster devices
-	swrngBool statisticalTestsEnabled; // A flag indicating if statistical tests are enabled for all cluster devices
-	int postProcessingMethodId;	// -1 - not in use, 0 - default SHA256 method, 1 - xorshift64 post processing method
+	/* 1 - to print error messages, 0 - otherwise */
+	int enable_print_err_msg;
 
+	/* Last cluster recorded error message */
+	char last_err_msg[256];
 
-	int endSignature;
+	/* Cluster temporary storage for recorded error message */
+	char tmp_err_msg[256];
+
+	/* An array of SwrngThreadContext entries */
+	SwrngThreadContext *tctxts;
+
+	/* 1 - if cluster was successfully open, 0 - otherwise */
+	int is_cluster_open;
+
+	/* Preferred cluster size - number of devices in a cluster */
+	int cluster_size;
+
+	/* Actual cluster size - actual number of devices in a cluster */
+	int actual_cluster_size;
+
+	/* Final TRNG output buffer for cluster */
+	unsigned char *out_data_buff;
+
+	/* Current index used with `out_data_buff` */
+	int cur_out_data_buff_idx;
+
+	/* Power profile number of the cluster */
+	int ppn_number;
+
+	/* 1 - if the power profile number changed for the cluster, 0 - otherwise */
+	int ppn_changed;
+
+	/* How many times cluster recovered from errors */
+	long num_cl_failover_events;
+
+	/* How many times cluster attempted to resize */
+	long num_cl_resize_events;
+
+	/* Time when cluster open successfully */
+	time_t cl_start_time_secs;
+
+	/* 1 - if post processing is enabled for all cluster devices, 0 - otherwise */
+	int data_post_process_enabled;
+
+	/* 1 - if statistical tests are enabled for all cluster devices, 0 - otherwise */
+	int stat_tests_enabled;
+
+	/* -1 if not in use, 0 for SHA256 (default), 1 for xorshift64 (devices with versions 1.2 and up), 2 for SHA512 */
+	int post_processing_method_id;
+
+	/* Used for context sanity check */
+	int sig_end_block;
 } SwrngCLContext;
 
+
 /**
- * Global function declaration section
+ * API function declaration section
  */
 
 #ifdef __cplusplus
@@ -122,8 +168,8 @@ int swrngInitializeCLContext(SwrngCLContext *ctxt);
 * Open SwiftRNG USB cluster.
 *
 * @param ctxt - pointer to SwrngCLContext structure
-* @param clusterSize - preferred cluster size
-* @return int 0 - when open successfully or error code
+* @param int clusterSize - preferred cluster size
+* @return int - 0 when processed successfully
 */
 int swrngCLOpen(SwrngCLContext *ctxt, int clusterSize);
 
@@ -202,8 +248,7 @@ void swrngEnableCLPrintingErrorMessages(SwrngCLContext *ctxt);
 
 /**
 * Disable post processing of raw random data for each device in a cluster.
-* For devices with versions 1.2 and up the post processing can be disabled
-* after device is open.
+* Post processing can only be disabled for devices with versions 1.2 or greater.
 *
 * To disable post processing, call this function immediately after cluster is successfully open.
 *
@@ -217,7 +262,7 @@ int swrngDisableCLPostProcessing(SwrngCLContext *ctxt);
 * Enable post processing method.
 *
 * @param ctxt - pointer to SwrngContext structure
-* @param postProcessingMethodId - 0 for SHA256 (default), 1 - xorshift64 (devices with versions 1.2 and up), 2 - for SHA512
+* @param postProcessingMethodId - 0 for SHA256 (default), 1 - xorshift64 (devices with versions 1.2 or grater), 2 - for SHA512
 *
 * @return int - 0 when post processing successfully enabled, otherwise the error code
 *

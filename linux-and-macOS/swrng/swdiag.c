@@ -1,14 +1,12 @@
-#include "stdafx.h"
-
 /*
- * swdiag.cpp
- * Ver. 2.5
+ * swdiag.c
+ * Ver. 2.6
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2022 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -20,11 +18,21 @@
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-#include "swrngapi.h"
 #include <math.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <time.h>
+#include <string.h>
+#include <stdio.h>
+#include <errno.h>
+#include <swrngapi.h>
 
-#define SAMPLES (10000)		// Number of random bytes per block to retrieve
-#define NUM_BLOCKS (1000)		// Total blocks to read
+/* Number of random bytes per block to retrieve */
+#define SAMPLES (10000)
+
+/* Total blocks to read */
+#define NUM_BLOCKS (1000)
+
 #define EXTLOOPS (5)
 #define ENTROPY_SCORE_BYTES (24000000)
 #define MAX_CHUNK_SIZE_BYTES (100000)
@@ -33,23 +41,23 @@ static void chi_sqrd_count_bits(uint8_t byte, double *ones, double *zeros);
 static double chi_sqrd_calculate(void);
 static int run_chi_squire_test(long idx);
 static int calculate_entropy_score(void);
-static int printFrequencyTableSummary(uint16_t frequencyTable[]);
-static int inspectRawData(NoiseSourceRawData *rawData1, NoiseSourceRawData *rawData2);
+static int print_frequency_table_summary(uint16_t *frequency_table);
+static int inspectRawData(NoiseSourceRawData *raw_data_1, NoiseSourceRawData *raw_data_2);
 
-static double 	actOnes;
-static double  	actZeros;
-static double  	expctOnes = 4 * SAMPLES;
-static double  	expctZeros = 4 * SAMPLES;
-static double 	chiSquare;
-static double 	chiSquareSum;
+static double 	act_ones;
+static double  	act_zeros;
+static double  	expct_ones = 4 * SAMPLES;
+static double  	expct_zeros = 4 * SAMPLES;
+static double 	chi_square;
+static double 	chi_square_sum;
 
-static unsigned char randonbuffer[SAMPLES];
-static unsigned char entropybuffer[ENTROPY_SCORE_BYTES];
-static unsigned long entropyfreqbuff[256];
-static FrequencyTables freqTables;
-static NoiseSourceRawData noiseSourceOneRawData;
-static NoiseSourceRawData noiseSourceTwoRawData;
-static int embeddedCorrectionMethodId;
+static unsigned char rnd_buffer[SAMPLES];
+static unsigned char entropy_buffer[ENTROPY_SCORE_BYTES];
+static unsigned long entropy_freq_buff[256];
+static FrequencyTables freq_tables;
+static NoiseSourceRawData noise_source_one_raw_data;
+static NoiseSourceRawData noise_source_two_raw_data;
+static int emb_corr_method_id;
 SwrngContext ctxt;
 
 /**
@@ -62,17 +70,19 @@ int main() {
 	long l;
 	int p;
 	int status;
-	double actualDeviceVersion;
-	int postProcessingEnabled;
+	double act_device_version;
+	int pp_enabled;
+	uint16_t max_apt_failures_per_block;
+	uint16_t max_rct_failures_per_block;
 
 	printf("-------------------------------------------------------------------\n");
-	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.5  ---\n");
+	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.6  ---\n");
 	printf("-------------------------------------------------------------------\n");
 	printf("Searching for devices ------------------ ");
 
 	setbuf(stdout, NULL);
 
-	// Initialize the context
+	/* Initialize the context */
 	status = swrngInitializeContext(&ctxt);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Could not initialize context\n");
@@ -82,6 +92,7 @@ int main() {
 	status = swrngGetDeviceList(&ctxt, &dil);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Could not generate device info list, status: %d\n", status);
+		swrngDestroyContext(&ctxt);
 		return status;
 	}
 
@@ -89,6 +100,7 @@ int main() {
 		printf("found %d SwiftRNG device(s)\n", dil.numDevs);
 	} else {
 		printf("  no SwiftRNG device found\n");
+		swrngDestroyContext(&ctxt);
 		return -1;
 	}
 
@@ -104,6 +116,7 @@ int main() {
 		status = swrngOpen(&ctxt, i);
 		if ( status != SWRNG_SUCCESS) {
 			printf("*FAILED*, error: %s\n", swrngGetLastErrorMessage(&ctxt));
+			swrngDestroyContext(&ctxt);
 			return status;
 		}
 		printf("Success\n");
@@ -111,47 +124,47 @@ int main() {
 		status = swrngSetPowerProfile(&ctxt, 9);
 		if (status != SWRNG_SUCCESS) {
 			printf("*** Could not set power profile, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-			swrngClose(&ctxt);
+			swrngDestroyContext(&ctxt);
 			return status;
 		}
 
-		status = swrngGetVersionNumber(&ctxt, &actualDeviceVersion);
+		status = swrngGetVersionNumber(&ctxt, &act_device_version);
 		if ( status != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-			swrngClose(&ctxt);
+			swrngDestroyContext(&ctxt);
 			return status;
 		}
 
-		if(actualDeviceVersion >= 1.2) {
+		if(act_device_version >= 1.2) {
 			printf("\n------------- Disabling post processing for this device -----------");
 			status = swrngDisablePostProcessing(&ctxt);
 			if ( status != SWRNG_SUCCESS) {
 				printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 		}
 
-		status = swrngGetPostProcessingStatus(&ctxt, &postProcessingEnabled);
+		status = swrngGetPostProcessingStatus(&ctxt, &pp_enabled);
 		if ( status != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-			swrngClose(&ctxt);
+			swrngDestroyContext(&ctxt);
 			return status;
 		}
-		if (postProcessingEnabled) {
+		if (pp_enabled) {
 			printf("\n------------- Post processing enabled for this device -------------");
 		} else {
 			printf("\n------------- Post processing disabled for this device ------------");
 			printf("\n------------- Tests will be performed on RAW byte stream ----------");
 		}
 
-		if (swrngGetEmbeddedCorrectionMethod(&ctxt, &embeddedCorrectionMethodId) != SWRNG_SUCCESS) {
+		if (swrngGetEmbeddedCorrectionMethod(&ctxt, &emb_corr_method_id) != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-			swrngClose(&ctxt);
+			swrngDestroyContext(&ctxt);
 			return status;
 		}
 
-		switch (embeddedCorrectionMethodId) {
+		switch (emb_corr_method_id) {
 		case 0:
 			printf("\n------------- Using no embedded correction algorithm --------------");
 			break;
@@ -162,110 +175,110 @@ int main() {
 			printf("\n------------- Unknown built-in correction algorithm ---------------");
 		}
 
-		if (actualDeviceVersion >= 2.0) {
-			// This feature was only implemented in devices with version 2.0 and up
+		if (act_device_version >= 2.0) {
+			/* This feature was only implemented in devices with version 2.0 and up */
 			printf("\n\n---------- Running device internal diagnostics  ----------  ");
 			status = swrngRunDeviceDiagnostics(&ctxt);
 			if ( status != SWRNG_SUCCESS) {
 				printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 			printf("Success\n");
 		}
 
-		if (actualDeviceVersion >= 1.2) {
-			// These features were only implemented in devices with version 1.2 and up
+		if (act_device_version >= 1.2) {
+			/* These features were only implemented in devices with version 1.2 and up */
 			printf("\n-------------- Verifying noise sources of the device --------------\n");
 
 			printf("\n-------- Retrieving RAW data from noise sources  ---------  ");
-			status = swrngGetRawDataBlock(&ctxt, &noiseSourceOneRawData, 0);
+			status = swrngGetRawDataBlock(&ctxt, &noise_source_one_raw_data, 0);
 			if ( status != SWRNG_SUCCESS) {
 				printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
-			status = swrngGetRawDataBlock(&ctxt, &noiseSourceTwoRawData, 1);
+			status = swrngGetRawDataBlock(&ctxt, &noise_source_two_raw_data, 1);
 			if ( status != SWRNG_SUCCESS) {
 				printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 			printf("Success\n");
 
 			printf("----------  Inspecting RAW data of the noise sources  -------------\n");
-			status = inspectRawData(&noiseSourceOneRawData, &noiseSourceTwoRawData);
+			status = inspectRawData(&noise_source_one_raw_data, &noise_source_two_raw_data);
 			if ( status != SWRNG_SUCCESS) {
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 
-			status = swrngGetFrequencyTables(&ctxt, &freqTables);
+			status = swrngGetFrequencyTables(&ctxt, &freq_tables);
 			if ( status != SWRNG_SUCCESS) {
 				printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 			printf("\n-------- Retrieving frequency table for noise source 1 ------------\n");
-			status = printFrequencyTableSummary(freqTables.freqTable1);
+			status = print_frequency_table_summary(freq_tables.freqTable1);
 			if ( status != SWRNG_SUCCESS) {
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 			printf("\n-------- Retrieving frequency table for noise source 2 ------------\n");
-			status = printFrequencyTableSummary(freqTables.freqTable2);
+			status = print_frequency_table_summary(freq_tables.freqTable2);
 			if ( status != SWRNG_SUCCESS) {
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 		}
 		printf("\n-------- Running APT, RCT and device built-in tests ---------------\n");
 		printf("Retrieving %d blocks of %6d random bytes each -------- ", NUM_BLOCKS, SAMPLES);
-		// APT and RCT tests are implemented in SwiftRNG Software API.
-		// Those tests are also embedded in SwiftRNG devices
+		/* APT and RCT tests are implemented in SwiftRNG Software API.
+		Those tests are also embedded in SwiftRNG devices */
 		for (l = 0; l < NUM_BLOCKS; l++) {
-			// Retrieve random bytes from device
-			status = swrngGetEntropy(&ctxt, randonbuffer, SAMPLES);
+			/* Retrieve random bytes from device */
+			status = swrngGetEntropy(&ctxt, rnd_buffer, SAMPLES);
 			if ( status != SWRNG_SUCCESS) {
 				printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 		}
 		printf("Success\n");
 
 		for (p = 0; p < 10; p++) {
-			// Power profiles are only implemented in 'SwiftRNG' models
+			/* Power profiles are only implemented in 'SwiftRNG' models */
 			if (!strcmp("SwiftRNG", dil.devInfoList[i].dm.value)) {
 				printf("\nSetting power profiles to %1d ------------------------------- ", p);
 				status = swrngSetPowerProfile(&ctxt, p);
 				if (status != SWRNG_SUCCESS) {
 					printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-					swrngClose(&ctxt);
+					swrngDestroyContext(&ctxt);
 					return status;
 				}
-				status = swrngGetEntropy(&ctxt, randonbuffer, SAMPLES);
+				status = swrngGetEntropy(&ctxt, rnd_buffer, SAMPLES);
 				if (status != SWRNG_SUCCESS) {
 					printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-					swrngClose(&ctxt);
+					swrngDestroyContext(&ctxt);
 					return status;
 				}
 				printf("Success\n");
 			}
 
-			// Retrieve random data for entropy score
+			/* Retrieve random data for entropy score */
 			printf("Entropy score for %8d bytes -------------------------- ", ENTROPY_SCORE_BYTES);
 			for (k = 0; k < ENTROPY_SCORE_BYTES; k+=MAX_CHUNK_SIZE_BYTES)
-			status = swrngGetEntropy(&ctxt, entropybuffer + k, MAX_CHUNK_SIZE_BYTES);
+			status = swrngGetEntropy(&ctxt, entropy_buffer + k, MAX_CHUNK_SIZE_BYTES);
 			if (status != SWRNG_SUCCESS) {
 				printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 			status = calculate_entropy_score();
 			if (status != SWRNG_SUCCESS) {
 				printf("*FAILED*");
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 			printf("\n");
@@ -274,19 +287,22 @@ int main() {
 			for (l = 0; l < EXTLOOPS; l++) {
 				status = run_chi_squire_test(l);
 				if (status != SWRNG_SUCCESS) {
-					swrngClose(&ctxt);
+					swrngDestroyContext(&ctxt);
 					return status;
 				}
 			}
 		}
-		printf("Maximum RCT/APT failures per block: ----------------------- %d/%d      ", ctxt.maxRctFailuresPerBlock, ctxt.maxAptFailuresPerBlock);
-		if (ctxt.maxRctFailuresPerBlock >= 3 || ctxt.maxAptFailuresPerBlock >= 3) {
-			printf("   (Warning)");
+
+		swrngGetMaxAptFailuresPerBlock(&ctxt, &max_apt_failures_per_block);
+		swrngGetMaxRctFailuresPerBlock(&ctxt, &max_rct_failures_per_block);
+		printf("Maximum RCT/APT failures per block: ----------------------- %d/%d      ", (int)max_rct_failures_per_block, (int)max_apt_failures_per_block);
+		if (max_rct_failures_per_block >= 3 || max_apt_failures_per_block >= 3) {
+			printf("   (Warning)\n");
 		} else {
 			printf("(Acceptable)\n");
 		}
 		printf("Closing device -------------------------------------------- ");
-		swrngClose(&ctxt);
+		swrngDestroyContext(&ctxt);
 		printf("Success\n");
 
 	}
@@ -324,80 +340,80 @@ void chi_sqrd_count_bits(uint8_t byte, double *ones, double *zeros) {
  * @return double - calculated chi-squire value
  */
 double chi_sqrd_calculate() {
-	double val1 = (actOnes - expctOnes);
-	double val2 = (actZeros - expctZeros);
-	return val1 * val1 / expctOnes + val2 * val2 / expctZeros;
+	double val1 = (act_ones - expct_ones);
+	double val2 = (act_zeros - expct_zeros);
+	return val1 * val1 / expct_ones + val2 * val2 / expct_zeros;
 }
 
 /**
  * Inspect raw random data of the noise sources
- * @param NoiseSourceRawData *rawData1 - raw random data from noise source 1
- * @param NoiseSourceRawData *rawData2 - raw random data from noise source 2
+ * @param NoiseSourceRawData *raw_data_1 - raw random data from noise source 1
+ * @param NoiseSourceRawData *raw_data_2 - raw random data from noise source 2
  * @return int - status
  */
-static int inspectRawData(NoiseSourceRawData *rawData1, NoiseSourceRawData *rawData2) {
+static int inspectRawData(NoiseSourceRawData *raw_data_1, NoiseSourceRawData *raw_data_2) {
 	int i;
 	int count1, count2;
-	int minFreq1, minFreq2, maxFreq1, maxFreq2;
-	uint16_t frequencyTableSource1[256];
-	uint16_t frequencyTableSource2[256];
-	int freqRange1;
-	int freqRange2;
+	int min_freq1, min_freq2, max_freq1, max_freq2;
+	uint16_t frequency_table_source1[256];
+	uint16_t frequency_table_source2[256];
+	int freq_range1;
+	int freq_range2;
 
-	// Clear the frequency tables
+	/* Clear the frequency tables */
 	for (i = 0; i < 256; i++) {
-		frequencyTableSource1[i] = 0;
-		frequencyTableSource2[i] = 0;
+		frequency_table_source1[i] = 0;
+		frequency_table_source2[i] = 0;
 	}
 
 
-	// Fill the frequency tables
+	/* Fill the frequency tables */
 	for (i = 0; i < 16000; i++) {
-		frequencyTableSource1[(uint8_t)rawData1->value[i]]++;
-		frequencyTableSource2[(uint8_t)rawData2->value[i]]++;
+		frequency_table_source1[(uint8_t)raw_data_1->value[i]]++;
+		frequency_table_source2[(uint8_t)raw_data_2->value[i]]++;
 	}
 
-	// Calculate min and max values for each table
-	minFreq1 = frequencyTableSource1[0];
-	maxFreq1 = frequencyTableSource1[0];
-	minFreq2 = frequencyTableSource2[0];
-	maxFreq2 = frequencyTableSource2[0];
+	/* Calculate min and max values for each table */
+	min_freq1 = frequency_table_source1[0];
+	max_freq1 = frequency_table_source1[0];
+	min_freq2 = frequency_table_source2[0];
+	max_freq2 = frequency_table_source2[0];
 	count1 = 0;
 	count2 = 0;
 	for (i = 0; i < 256; i++) {
-		count1 += frequencyTableSource1[i];
-		count2 += frequencyTableSource2[i];
-		if (frequencyTableSource1[i] > maxFreq1) {
-			maxFreq1 = frequencyTableSource1[i];
+		count1 += frequency_table_source1[i];
+		count2 += frequency_table_source2[i];
+		if (frequency_table_source1[i] > max_freq1) {
+			max_freq1 = frequency_table_source1[i];
 		}
-		if (frequencyTableSource1[i] < minFreq1) {
-			minFreq1 = frequencyTableSource1[i];
+		if (frequency_table_source1[i] < min_freq1) {
+			min_freq1 = frequency_table_source1[i];
 		}
-		if (frequencyTableSource2[i] > maxFreq2) {
-			maxFreq2 = frequencyTableSource2[i];
+		if (frequency_table_source2[i] > max_freq2) {
+			max_freq2 = frequency_table_source2[i];
 		}
-		if (frequencyTableSource2[i] < minFreq2) {
-			minFreq2 = frequencyTableSource2[i];
+		if (frequency_table_source2[i] < min_freq2) {
+			min_freq2 = frequency_table_source2[i];
 		}
 	}
 
-	printf("Frequency table source 1: min %d, max %d, samples %d", minFreq1, maxFreq1, count1);
-	freqRange1 = maxFreq1 - minFreq1;
-	if (freqRange1 > 200.0 || count1 != 16000) {
+	printf("Frequency table source 1: min %d, max %d, samples %d", min_freq1, max_freq1, count1);
+	freq_range1 = max_freq1 - min_freq1;
+	if (freq_range1 > 200.0 || count1 != 16000) {
 		printf(" *FAILED*\n");
 		return -1;
-	} else if (freqRange1 > 100.0) {
+	} else if (freq_range1 > 100.0) {
 		printf(" *WARNING*\n");
 	} else {
 		printf(" (healthy)\n");
 	}
 
-	printf("Frequency table source 2: min %d, max %d, samples %d", minFreq2, maxFreq2, count2);
-	freqRange2 = maxFreq2 - minFreq2;
-	if (freqRange2 > 200.0 || count2 != 16000) {
+	printf("Frequency table source 2: min %d, max %d, samples %d", min_freq2, max_freq2, count2);
+	freq_range2 = max_freq2 - min_freq2;
+	if (freq_range2 > 200.0 || count2 != 16000) {
 		printf(" *FAILED*\n");
 		return -1;
-	} else if (freqRange2 > 100.0) {
+	} else if (freq_range2 > 100.0) {
 		printf(" *WARNING*\n");
 	} else {
 		printf(" (healthy)\n");
@@ -408,47 +424,47 @@ static int inspectRawData(NoiseSourceRawData *rawData1, NoiseSourceRawData *rawD
 
 /**
  * Inspect and print retrieved frequency tables
- * @param uint16_t table[] - frequency table pointer
+ * @param uint16_t frequency_table - pointer to the frequency table
  * @return int - status
  */
-int printFrequencyTableSummary(uint16_t frequencyTable[]) {
+int print_frequency_table_summary(uint16_t *frequency_table) {
 	int k;
-	int minFreq;
-	int maxFreq;
-	int totalSamples;
-	int freqRange;
+	int min_freq;
+	int max_freq;
+	int total_samples;
+	int freq_range;
 
-	minFreq = frequencyTable[0];
-	maxFreq = frequencyTable[0];
-	totalSamples = 0;
+	min_freq = frequency_table[0];
+	max_freq = frequency_table[0];
+	total_samples = 0;
 	for (k = 0; k < 256; k += 8) {
 		printf("(%3d : %3d)  %5d, %5d, %5d, %5d, %5d, %5d, %5d, %5d \n", k, k+7,
-				frequencyTable[k+0],
-				frequencyTable[k+1],
-				frequencyTable[k+2],
-				frequencyTable[k+3],
-				frequencyTable[k+4],
-				frequencyTable[k+5],
-				frequencyTable[k+6],
-				frequencyTable[k+7]);
+				frequency_table[k+0],
+				frequency_table[k+1],
+				frequency_table[k+2],
+				frequency_table[k+3],
+				frequency_table[k+4],
+				frequency_table[k+5],
+				frequency_table[k+6],
+				frequency_table[k+7]);
 	}
 
 	for (k = 0; k < 256; k++) {
-		totalSamples += frequencyTable[k];
-		if (frequencyTable[k] > maxFreq) {
-			maxFreq = frequencyTable[k];
+		total_samples += frequency_table[k];
+		if (frequency_table[k] > max_freq) {
+			max_freq = frequency_table[k];
 		}
-		if (frequencyTable[k] < minFreq) {
-			minFreq = frequencyTable[k];
+		if (frequency_table[k] < min_freq) {
+			min_freq = frequency_table[k];
 		}
 	}
 	printf("-------------------------------------------------------------------\n");
-	printf("Table summary: min %d, max %d, total samples %d", minFreq, maxFreq, totalSamples);
-	freqRange = maxFreq - minFreq;
-	if (freqRange > 200.0 || totalSamples != 16000) {
+	printf("Table summary: min %d, max %d, total samples %d", min_freq, max_freq, total_samples);
+	freq_range = max_freq - min_freq;
+	if (freq_range > 200.0 || total_samples != 16000) {
 		printf(" *FAILED*\n");
 		return -1;
-	} else if (freqRange > 100.0) {
+	} else if (freq_range > 100.0) {
 		printf(" *WARNING*\n");
 	} else {
 		printf(" (healthy)\n");
@@ -465,17 +481,17 @@ static int calculate_entropy_score() {
 	double p, score;
 
 	for(i = 0; i < 256; i++) {
-		entropyfreqbuff[i] = 0;
+		entropy_freq_buff[i] = 0;
 	}
 
 	for(i = 0; i < ENTROPY_SCORE_BYTES; i++) {
-		entropyfreqbuff[entropybuffer[i]] ++;
+		entropy_freq_buff[entropy_buffer[i]] ++;
 	}
 
 	score = 0;
 	for(i = 0; i < 256; i++) {
-		if (entropyfreqbuff[i] > 0) {
-			p = (double)entropyfreqbuff[i] / (double)ENTROPY_SCORE_BYTES;
+		if (entropy_freq_buff[i] > 0) {
+			p = (double)entropy_freq_buff[i] / (double)ENTROPY_SCORE_BYTES;
 			score -= p * log2(p);
 		}
 	}
@@ -504,24 +520,24 @@ int run_chi_squire_test(long idx) {
 	int status;
 
 	printf("Average chi-square for test %3ld --------------------------- ", idx + 1);
-	chiSquareSum = 0;
+	chi_square_sum = 0;
 	for (l = 0; l < NUM_BLOCKS; l++) {
-		// Retrieve random bytes from device
-		status = swrngGetEntropy(&ctxt, randonbuffer, SAMPLES);
+		/* Retrieve random bytes from device */
+		status = swrngGetEntropy(&ctxt, rnd_buffer, SAMPLES);
 		if ( status != SWRNG_SUCCESS) {
 			printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
 			return status;
 		}
-		actOnes = 0;
-		actZeros = 0;
+		act_ones = 0;
+		act_zeros = 0;
 		int i = 0;
 		for (i = 0; i < SAMPLES; i++) {
-			chi_sqrd_count_bits(randonbuffer[i], &actOnes, &actZeros);
+			chi_sqrd_count_bits(rnd_buffer[i], &act_ones, &act_zeros);
 		}
-		chiSquare = chi_sqrd_calculate();
-		chiSquareSum += chiSquare;
+		chi_square = chi_sqrd_calculate();
+		chi_square_sum += chi_square;
 	}
-	double avgSquare = chiSquareSum/NUM_BLOCKS;
+	double avgSquare = chi_square_sum/NUM_BLOCKS;
 	printf("%f ", avgSquare);
 	if (avgSquare > 3.84) {
 		printf("(Not acceptable)\n");

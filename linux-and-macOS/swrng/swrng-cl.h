@@ -1,12 +1,12 @@
 /*
  * swrng-cl.h
- * Ver. 3.1
+ * Ver. 3.2
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -29,7 +29,7 @@
 #ifndef SWRNG_H_
 #define SWRNG_H_
 
-#include "swrng-cl-api.h"
+#include <swrng-cl-api.h>
 #ifndef _WIN32
 #include <unistd.h>
 #else
@@ -46,7 +46,12 @@
 
 #define KERNEL_ENTROPY_POOL_SIZE_BYTES 512
 #define KERNEL_ENTROPY_POOL_NAME "/dev/random"
+
 #endif
+
+
+#define SWRNG_BUFF_FILE_SIZE_BYTES (10000 * 10)
+
 
 /*
  * Structures
@@ -59,29 +64,47 @@ typedef struct {
 }Entropy;
 #endif
 
+static const int val_true = 1;
+static const int val_false = 0;
+
 /**
  * Variables
  */
 
-int64_t numGenBytes = -1; // Total number of random bytes needed (a command line argument) max 100000000000 bytes
-char *filePathName = NULL; // File name for recording the random bytes (a command line argument)
-char *postProcessingMethod = NULL; // Post processing method or NULL if not specified
-int postProcessingMethodId = 0; // Post processing method id, 0 - SHA256, 1 - xorshift64, 2 - SHA512
-int clusterSize = 2; // cluster size
-int ppNum = 9; // Power profile number, between 0 and 9
-FILE *pOutputFile = NULL; // Output file handle
-swrngBool isOutputToStandardOutput = SWRNG_FALSE;
-SwrngContext hcxt;
-SwrngCLContext cxt;
-long failOverCount = 0;
-long resizeAttemptCount = 0;
-int actClusterSize = 0;
-swrngBool postProcessingEnabled = SWRNG_TRUE;
-swrngBool statisticalTestsEnabled = SWRNG_TRUE;
+/* Total number of random bytes needed (a command line argument) max 100000000000 bytes */
+static int64_t num_gen_bytes = -1;
+
+/* File name for recording the random bytes (a command line argument) */
+static char *file_path_name = NULL;
+
+/* Post processing method or NULL if not specified */
+static char *pp_method = NULL;
+
+/* Post processing method id, 0 - SHA256, 1 - xorshift64, 2 - SHA512 */
+static int pp_method_id = 0;
+
+/* Cluster size */
+static int cl_size = 2;
+
+/* Power profile number, between 0 and 9 */
+static int pp_num = 9;
+
+/* Output file handle */
+static FILE *p_output_file = NULL;
+
+static int is_output_to_standard_output = val_false;
+static SwrngContext hcxt;
+static SwrngCLContext cxt;
+static long failOverCount = 0;
+static long resizeAttemptCount = 0;
+static int actClusterSize = 0;
+static int postProcessingEnabled = val_true;
+static int statisticalTestsEnabled = val_true;
 
 
 #ifdef __linux__
-int entropyAvailable; // A variable for checking the amount of the entropy available in the kernel pool
+/* A variable for checking the amount of the entropy available in the kernel pool */
+static int entropyAvailable;
 Entropy entropy;
 #endif
 
@@ -89,18 +112,18 @@ Entropy entropy;
  * Function Declarations
  */
 
-int displayDevices();
-void displayUsage();
-int process(int argc, char **argv);
-int processArguments(int argc, char **argv);
-int validateArgumentCount(int curIdx, int actualArgumentCount);
-int parseDeviceNum(int idx, int argc, char **argv);
-int processDownloadRequest();
-int handleDownloadRequest();
-void writeBytes(uint8_t *bytes, uint32_t numBytes);
+static int display_devices(void);
+static void display_usage(void);
+static int process(int argc, char **argv);
+static int process_arguments(int argc, char **argv);
+static int validate_argument_count(int curIdx, int act_argument_count);
+static int process_download_request(void);
+static int handle_download_request(void);
+static void write_bytes(uint8_t *bytes, uint32_t num_bytes);
+
 
 #ifdef __linux__
-int feedKernelEntropyPool();
+static int feedKernelEntropyPool();
 #endif
 
 #endif /* SWRNG_H_ */
