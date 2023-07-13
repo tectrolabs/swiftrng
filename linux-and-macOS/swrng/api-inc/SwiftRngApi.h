@@ -143,8 +143,15 @@ private:
 	// USB product id exclusively used with older SwiftRNG device
 	const int c_usb_product_id {0x8110};
 
+#if defined _WIN32
+
 	// USB product id exclusively used with newer CDC SwiftRNG device
 	const int c_usb_cdc_product_id {0x8111};
+
+	// There could be many CDC COM devices connected, limit the amount of devices to search
+	const int c_max_cdc_com_ports {80};
+
+#endif
 
 	// Device specific USB bulk end point number for OUT operation
 	const int SWRNG_BULK_EP_OUT {0x01};
@@ -174,9 +181,6 @@ private:
 	const int c_out_num_words {8};
 	const int c_rnd_out_buff_size {c_num_chunks * c_out_num_words * c_word_size_bytes};
 	const int c_rnd_in_buff_size {c_num_chunks * c_min_input_num_words * c_word_size_bytes};
-
-	// There could be many CDC COM devices connected, limit the amount of devices to search
-	const int c_max_cdc_com_ports {80};
 
 	// Sometimes read operations from device may timeout, limit the number of times to read before giving up
 	const int c_usb_read_max_retry_count {15};
@@ -296,13 +300,10 @@ private:
 	ostringstream m_last_error_log_oss;
 
 	// Number of bytes to allocate for `m_last_error_log_char`;
-	const int m_max_last_error_log_char {2565};
+	const int c_max_last_error_log_size {256};
 
 	// C style char message same as `m_last_error_log_oss`
 	char *m_last_error_log_char;
-
-	// How many bytes to allocate for `m_last_error_buff`
-	const int c_last_error_buff_size {256};
 
 	// When set to true, each error message generated will automatically be printed on error output stream.
 	bool m_print_error_messages {false};

@@ -6,23 +6,23 @@ SDIR =./api-src
 PREFIX = $(DESTDIR)/usr/local
 BINDIR = $(PREFIX)/bin
 
+OS:=$(shell uname -s)
+ifeq ($(OS),Darwin)
+IDIR_MACOS = /usr/local/include/
+LDIR_MACOS = /usr/local/lib/
+endif
+
+
+CFLAGS = -O2 -I$(IDIR) -I$(IDIR_MACOS) -Wall -Wextra
 CFLAGS_THREAD = -lpthread
-CFLAGS = -O2 -I$(IDIR) -Wall -Wextra
 CPPFLAGS = $(CFLAGS) -std=c++11
 #CLANGSTD = -std=c89
-LDFLAGS = -lusb-1.0
+LDFLAGS = -lusb-1.0 -L$(LDIR_MACOS)
 LDCPPFLAGS = $(LDFLAGS) -lstdc++
 
 
 OBJECTS = SwiftRngApi.o USBSerialDevice.o SwiftRngApiCWrapper.o RandomSeqGenerator.o
 CLOBJECTS = swrng-cl-api.o
-
-OS:=$(shell uname -s)
-ifeq ($(OS),Darwin)
-CPPFLAGS += -L/usr/local/lib/ -I /usr/local/include/ 
-endif
-
-
 
 SWDIAG = swdiag
 SWPERFTEST = swperftest
