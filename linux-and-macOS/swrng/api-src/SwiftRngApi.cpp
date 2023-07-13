@@ -177,7 +177,7 @@ void SwiftRngApi::swrng_printErrorMessage(const string &err_msg) {
 	clear_last_error_msg();
 	m_last_error_log_oss << err_msg;
 
-	int err_msg_size = err_msg.size();
+	int err_msg_size = (int) err_msg.size();
 	if (err_msg_size >= c_max_last_error_log_size) {
 		// Truncate the message to fit the char storage
 		err_msg_size = c_max_last_error_log_size - 1;
@@ -194,24 +194,19 @@ int SwiftRngApi::open(int devNum) {
 		return -1;
 	}
 
-#ifdef _WIN32
-	if (usbComPort != NULL) {
-		usbComPort->disconnect();
-	}
-#else
 	if (m_usb_serial_device != NULL) {
 		m_usb_serial_device->disconnect();
 	}
-#endif
+
 	close_USB_lib();
 	clear_last_error_msg();
 	m_device_open = false;
 
 
 #ifdef _WIN32
-	if (usbComPort == NULL) {
-		usbComPort = new (notrow) USBComPort;
-		usbComPort->initialize();
+	if (m_usb_serial_device == NULL) {
+		m_usb_serial_device = new (nothrow) USBComPort;
+		m_usb_serial_device->initialize();
 	}
 #else
 	if (m_usb_serial_device == NULL) {
@@ -243,15 +238,15 @@ int SwiftRngApi::open(int devNum) {
 
 #if defined(_WIN32)
 	int portsConnected;
-	int ports[SWRNG_MAX_CDC_COM_PORTS];
+	int ports[c_max_cdc_com_ports];
 	// Retrieve devices connected as USB CDC in Windows
-	usbComPort->getConnectedPorts(ports, SWRNG_MAX_CDC_COM_PORTS, &portsConnected, SWRNG_HDWARE_ID);
+	m_usb_serial_device->getConnectedPorts(ports, c_max_cdc_com_ports, &portsConnected, SWRNG_HDWARE_ID);
 	if (portsConnected > devNum) {
 		WCHAR portName[80];
-		usbComPort->toPortName(ports[devNum], portName, 80);
-		bool comPortStatus = usbComPort->connect(portName);
+		m_usb_serial_device->toPortName(ports[devNum], portName, 80);
+		bool comPortStatus = m_usb_serial_device->connect(portName);
 		if (!comPortStatus) {
-			swrng_printErrorMessage(usbComPort->getLastErrMsg());
+			swrng_printErrorMessage(m_usb_serial_device->getLastErrMsg());
 			return -1;
 		}
 		else {
@@ -366,34 +361,20 @@ int SwiftRngApi::close() {
 		return -1;
 	}
 
-#ifdef _WIN32
-	if (usbComPort != NULL) {
-		usbComPort->disconnect();
-		delete usbComPort;
-		usbComPort = NULL;
-	}
-#else
 	if (m_usb_serial_device != NULL) {
 		m_usb_serial_device->disconnect();
 		delete m_usb_serial_device;
 		m_usb_serial_device = NULL;
 	}
-#endif
 	close_USB_lib();
 	m_device_open = false;
 	return SWRNG_SUCCESS;
 }
 
 void SwiftRngApi::swrng_contextReset() {
-#ifdef _WIN32
-	if (usbComPort != NULL) {
-		usbComPort->disconnect();
-	}
-#else
 	if (m_usb_serial_device != NULL) {
 		m_usb_serial_device->disconnect();
 	}
-#endif
 	close_USB_lib();
 	clear_last_error_msg();
 	m_device_open = false;
@@ -747,11 +728,11 @@ int SwiftRngApi::get_device_list(DeviceInfoList *dev_info_list) {
 #if defined(_WIN32)
 	USBComPort usbComPort;
 	int portsConnected;
-	int ports[SWRNG_MAX_CDC_COM_PORTS];
+	int ports[c_max_cdc_com_ports];
 	// Add devices connected as USB CDC in Windows
-	usbComPort.getConnectedPorts(ports, SWRNG_MAX_CDC_COM_PORTS, &portsConnected, SWRNG_HDWARE_ID);
+	usbComPort.getConnectedPorts(ports, c_max_cdc_com_ports, &portsConnected, SWRNG_HDWARE_ID);
 	while (portsConnected-- > 0) {
-		swrng_updateDevInfoList(devInfoList, &curFoundDevNum);
+		swrng_updateDevInfoList(dev_info_list, &curFoundDevNum);
 	}
 #else
 	USBSerialDevice usbSerialDevice;
@@ -1299,28 +1280,14 @@ void SwiftRngApi::swrng_clearReceiverBuffer() {
 	int transferred;
 	int retval;
 	int i;
-	for(i = 0; i < 3; i++) {
+	for (i = 0; i < 3; i++) {
 
-#ifdef _WIN32
-		if (usbComPort->isConnected()) {
-			retval = ctxt->usbComPort->receiveDeviceData(m_bulk_in_buffer, c_rnd_in_buff_size + 1, &transferred);
-		}
-		else {
-#else
 		if (m_usb_serial_device->isConnected()) {
 			retval = m_usb_serial_device->receiveDeviceData(m_bulk_in_buffer, c_rnd_in_buff_size + 1, &transferred);
 		}
 		else {
-
-#endif
 			retval = libusb_bulk_transfer(m_libusb_devh, SWRNG_BULK_EP_IN, m_bulk_in_buffer, c_rnd_in_buff_size + 1, &transferred, c_usb_bulk_read_timeout_mlsecs);
-#ifdef _WIN32
 		}
-#else
-		}
-#endif
-
-
 
 		if (retval) {
 			break;
@@ -1342,30 +1309,19 @@ void SwiftRngApi::swrng_clearReceiverBuffer() {
  * @return 0 - successful operation, otherwise the error code (a negative number)
  *
  */
-int SwiftRngApi::swrng_snd_rcv_usb_data(char *snd, int sizeSnd, char *rcv, int sizeRcv,
-		int op_timeout_secs) {
+int SwiftRngApi::swrng_snd_rcv_usb_data(char *snd, int sizeSnd, char *rcv, int sizeRcv,	int op_timeout_secs) {
 	int retry;
 	int actualc_cnt;
 	int retval = SWRNG_SUCCESS;
 
 	for (retry = 0; retry < c_usb_read_max_retry_count; retry++) {
-#ifdef _WIN32
-		if (usbComPort->isConnected()) {
-			retval = ctxt->usbComPort->sendCommand((unsigned char*)snd, sizeSnd, &actualc_cnt);
-		}
-		else {
-#else
 		if (m_usb_serial_device->isConnected()) {
 			retval = m_usb_serial_device->sendCommand((unsigned char*)snd, sizeSnd, &actualc_cnt);
 		}
 		else {
-#endif
 			retval = libusb_bulk_transfer(m_libusb_devh, SWRNG_BULK_EP_OUT, (unsigned char*)snd, sizeSnd, &actualc_cnt, 100);
-#ifdef _WIN32
 		}
-#else
-		}
-#endif
+
 		if (retval == SWRNG_SUCCESS && actualc_cnt == sizeSnd) {
 			retval = swrng_chip_read_data(rcv, sizeRcv + 1, op_timeout_secs);
 			if (retval == SWRNG_SUCCESS) {
@@ -1412,23 +1368,12 @@ int SwiftRngApi::swrng_chip_read_data(char *buff, int length, int op_timeout_sec
 
 	cnt = 0;
 	do {
-#ifdef _WIN32
-		if (ctxt->usbComPort->isConnected()) {
-			retval = ctxt->usbComPort->receiveDeviceData(m_bulk_in_buffer, length, &transferred);
-		}
-		else {
-#else
 		if (m_usb_serial_device->isConnected()) {
 			retval = m_usb_serial_device->receiveDeviceData(m_bulk_in_buffer, length, &transferred);
 		}
 		else {
-#endif
 			retval = libusb_bulk_transfer(m_libusb_devh, SWRNG_BULK_EP_IN, m_bulk_in_buffer, length, &transferred, c_usb_bulk_read_timeout_mlsecs);
-#ifdef _WIN32
 		}
-#else
-		}
-#endif
 
 #ifdef inDebugMode
 		fprintf(stderr, "chip_read_data retval %d transferred %d, length %d\n", retval, transferred, length);

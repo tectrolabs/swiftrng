@@ -448,7 +448,7 @@ static int initializeCLThreads(SwrngCLContext *ctxt) {
 */
 static void errorCleanUpEventsAndThreads(SwrngCLContext *ctxt, int maxIndex) {
 	for (int j = 0; j < maxIndex; j++) {
-		ctxt->tctxts[j].destroyDwnlThreadReq = c_cl_api_true;
+		ctxt->tctxts[j].destroy_dwnl_thread_req = c_cl_api_true;
 		SetEvent(ctxt->tctxts[j].dwnl_thread_event);
 		WaitForSingleObject(ctxt->tctxts[j].dwnl_thread, INFINITE);
 		CloseHandle(ctxt->tctxts[j].dwnl_thread);
@@ -750,19 +750,19 @@ unsigned int __stdcall download_thread(void *th_params) {
 		switch (dwWaitResult) {
 		case WAIT_OBJECT_0:
 		case WAIT_TIMEOUT:
-			if (tctxt->destroyDwnlThreadReq == c_cl_api_true) {
+			if (tctxt->destroy_dwnl_thread_req == c_cl_api_true) {
 				return 0;
 			} else {
-				if (tctxt->dwnlRequestActive == c_cl_api_true) {
-					tctxt->dwnl_status = swrngGetEntropy(&tctxt->ctxt, tctxt->trngOutBuffer, c_out_data_buff_size);
-					tctxt->dwnlRequestActive = c_cl_api_false;
+				if (tctxt->dwnl_req_active == c_cl_api_true) {
+					tctxt->dwnl_status = swrngGetEntropy(&tctxt->ctxt, tctxt->thread_device_data_buffer, c_out_data_buff_size);
+					tctxt->dwnl_req_active = c_cl_api_false;
 				}
 			}
 			break;
 		default:
 			tctxt->dwnl_status = thread_event_err_id;
-			tctxt->dwnlRequestActive = c_cl_api_false;
-			if (tctxt->destroyDwnlThreadReq == c_cl_api_true) {
+			tctxt->dwnl_req_active = c_cl_api_false;
+			if (tctxt->destroy_dwnl_thread_req == c_cl_api_true) {
 				return 0;
 			}
 		}

@@ -21,6 +21,7 @@
 #ifndef SWIFTRNGAPI_H_
 #define SWIFTRNGAPI_H_
 
+#include <new>
 #include <string>
 #include <cstring>
 #include <iostream>
@@ -35,7 +36,7 @@
 
 #if defined _WIN32
 	#include "libusb.h"
-	#include <WinUsbSerialDevice.h>
+	#include <USBComPort.h>
 #elif defined __FreeBSD__
 	#include <libusb.h>
     #include <USBSerialDevice.h>
@@ -149,7 +150,7 @@ private:
 	const int c_usb_cdc_product_id {0x8111};
 
 	// There could be many CDC COM devices connected, limit the amount of devices to search
-	const int c_max_cdc_com_ports {80};
+	static const int c_max_cdc_com_ports {80};
 
 #endif
 
@@ -334,7 +335,7 @@ private:
 	// Use specific implementation for Windows or other platforms
 #ifdef _WIN32
 	// Use specific implementation for the USB COM port when using Windows
-	USBComPort *m_usb_com_port;
+	USBComPort* m_usb_serial_device {nullptr};
 #else
 	// Use specific implementation for the USB ACM device when using Linux, macOS or FreeBSD
 	USBSerialDevice *m_usb_serial_device {nullptr};
