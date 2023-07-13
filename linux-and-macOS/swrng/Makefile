@@ -8,16 +8,16 @@ BINDIR = $(PREFIX)/bin
 
 OS:=$(shell uname -s)
 ifeq ($(OS),Darwin)
-IDIR_MACOS = /usr/local/include/
-LDIR_MACOS = /usr/local/lib/
+IDIR_MACOS = -I/usr/local/include/
+LDIR_MACOS = -L/usr/local/lib/
 endif
 
 
-CFLAGS = -O2 -I$(IDIR) -I$(IDIR_MACOS) -Wall -Wextra
+CFLAGS = -O2 -I$(IDIR) $(IDIR_MACOS) -Wall -Wextra
 CFLAGS_THREAD = -lpthread
 CPPFLAGS = $(CFLAGS) -std=c++11
 #CLANGSTD = -std=c89
-LDFLAGS = -lusb-1.0 -L$(LDIR_MACOS)
+LDFLAGS = -lusb-1.0 $(LDIR_MACOS)
 LDCPPFLAGS = $(LDFLAGS) -lstdc++
 
 
