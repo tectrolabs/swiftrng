@@ -13,7 +13,6 @@ CPPFLAGS = $(CFLAGS) -std=c++11
 LDFLAGS = -lusb-1.0
 LDCPPFLAGS = $(LDFLAGS) -lstdc++
 
-
 OBJECTS = SwiftRngApi.o USBSerialDevice.o SwiftRngApiCWrapper.o RandomSeqGenerator.o
 CLOBJECTS = swrng-cl-api.o
 
@@ -21,7 +20,6 @@ OS:=$(shell uname -s)
 ifeq ($(OS),Darwin)
 CPPFLAGS += -L/usr/local/lib/ -I /usr/local/include/ 
 endif
-
 
 
 SWDIAG = swdiag
@@ -59,7 +57,7 @@ $(SWDIAG_CL): $(SWDIAG_CL).c $(OBJECTS) $(CLOBJECTS)
 	@echo "Creating $(SWDIAG_CL) ..."
 	@echo
 	$(CC) -c $(SWDIAG_CL).c $(CFLAGS) $(CLANGSTD)
-	$(GPP) $(SWDIAG_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SWDIAG_CL) $(LDFLAGS)
+	$(GPP) $(SWDIAG_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SWDIAG_CL) $(LDFLAGS) $(CFLAGS_THREAD)
 
 $(SWPERFTEST): $(SWPERFTEST).c $(OBJECTS)
 	@echo
@@ -73,7 +71,7 @@ $(SWPERFTEST_CL): $(SWPERFTEST_CL).c $(OBJECTS) $(CLOBJECTS)
 	@echo "Creating $(SWPERFTEST_CL) ..."
 	@echo
 	$(CC) -c $(SWPERFTEST_CL).c $(CFLAGS) $(CLANGSTD)
-	$(GPP) $(SWPERFTEST_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SWPERFTEST_CL) $(LDFLAGS)
+	$(GPP) $(SWPERFTEST_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SWPERFTEST_CL) $(LDFLAGS) $(CFLAGS_THREAD)
 
 $(BITCOUNT): $(BITCOUNT).c $(OBJECTS)
 	@echo
@@ -87,7 +85,7 @@ $(BITCOUNT_CL): $(BITCOUNT_CL).c $(OBJECTS) $(CLOBJECTS)
 	@echo "Creating $(BITCOUNT_CL) ..."
 	@echo
 	$(CC) -c $(BITCOUNT_CL).c $(CFLAGS) $(CLANGSTD)
-	$(GPP) $(BITCOUNT_CL).o $(OBJECTS) $(CLOBJECTS) -o $(BITCOUNT_CL) $(LDFLAGS)
+	$(GPP) $(BITCOUNT_CL).o $(OBJECTS) $(CLOBJECTS) -o $(BITCOUNT_CL) $(LDFLAGS) $(CFLAGS_THREAD)
 
 $(SWRNG): $(SWRNG).c $(OBJECTS)
 	@echo
@@ -101,7 +99,7 @@ $(SWRNG_CL): $(SWRNG_CL).c $(OBJECTS) $(CLOBJECTS)
 	@echo "Creating $(SWRNG_CL) ..."
 	@echo
 	$(CC) -c $(SWRNG_CL).c $(CFLAGS) $(CLANGSTD)
-	$(GPP) $(SWRNG_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SWRNG_CL) $(LDFLAGS)
+	$(GPP) $(SWRNG_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SWRNG_CL) $(LDFLAGS) $(CFLAGS_THREAD)
 
 $(SWRAWRANDOM): $(SWRAWRANDOM).c $(OBJECTS)
 	@echo
@@ -122,7 +120,7 @@ $(SAMPLE_CL): $(SAMPLE_CL).c $(OBJECTS) $(CLOBJECTS)
 	@echo "Creating $(SAMPLE_CL) ..."
 	@echo
 	$(CC) -c $(SAMPLE_CL).c $(CFLAGS) $(CLANGSTD)
-	$(GPP) $(SAMPLE_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SAMPLE_CL) $(LDFLAGS)
+	$(GPP) $(SAMPLE_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SAMPLE_CL) $(LDFLAGS) $(CFLAGS_THREAD)
 
 
 SwiftRngApi.o:
