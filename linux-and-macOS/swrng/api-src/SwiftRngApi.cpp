@@ -138,7 +138,7 @@ void SwiftRngApi::initialize() {
 		return;
 	}
 
-	m_last_error_log_char = new (nothrow) char [m_max_last_error_log_char];
+	m_last_error_log_char = new (nothrow) char [c_max_last_error_log_size];
 	if (m_last_error_log_char == nullptr) {
 		return;
 	}
@@ -178,9 +178,9 @@ void SwiftRngApi::swrng_printErrorMessage(const string &err_msg) {
 	m_last_error_log_oss << err_msg;
 
 	int err_msg_size = err_msg.size();
-	if (err_msg_size >= m_max_last_error_log_char) {
+	if (err_msg_size >= c_max_last_error_log_size) {
 		// Truncate the message to fit the char storage
-		err_msg_size = m_max_last_error_log_char - 1;
+		err_msg_size = c_max_last_error_log_size - 1;
 	}
 	memcpy(m_last_error_log_char, err_msg.c_str(), err_msg_size);
 	m_last_error_log_char[err_msg_size] = '\0';

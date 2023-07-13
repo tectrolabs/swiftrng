@@ -36,84 +36,72 @@ all: $(SAMPLE) $(SWDIAG) $(SWPERFTEST) $(BITCOUNT) $(SWRNG) $(SWRAWRANDOM) $(SWR
 $(SAMPLE): $(SAMPLE).c $(OBJECTS)
 	@echo
 	@echo "Creating $(SAMPLE) ..."
-	@echo
 	$(CC) -c $(SAMPLE).c $(CFLAGS) $(CLANGSTD)
 	$(GPP) $(SAMPLE).o $(OBJECTS) -o $(SAMPLE) $(LDFLAGS)
 
 $(SWDIAG): $(SWDIAG).c $(OBJECTS)
 	@echo
 	@echo "Creating $(SWDIAG) ..."
-	@echo
 	$(CC) -c $(SWDIAG).c $(CFLAGS) $(CLANGSTD)
 	$(GPP) $(SWDIAG).o $(OBJECTS) -o $(SWDIAG) $(LDFLAGS)
 
 $(SWDIAG_CL): $(SWDIAG_CL).c $(OBJECTS) $(CLOBJECTS)
 	@echo
 	@echo "Creating $(SWDIAG_CL) ..."
-	@echo
 	$(CC) -c $(SWDIAG_CL).c $(CFLAGS) $(CLANGSTD)
 	$(GPP) $(SWDIAG_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SWDIAG_CL) $(LDFLAGS) $(CFLAGS_THREAD)
 
 $(SWPERFTEST): $(SWPERFTEST).c $(OBJECTS)
 	@echo
 	@echo "Creating $(SWPERFTEST) ..."
-	@echo
 	$(CC) -c $(SWPERFTEST).c $(CFLAGS) $(CLANGSTD)
 	$(GPP) $(SWPERFTEST).o $(OBJECTS) -o $(SWPERFTEST) $(LDFLAGS)
 
 $(SWPERFTEST_CL): $(SWPERFTEST_CL).c $(OBJECTS) $(CLOBJECTS)
 	@echo
 	@echo "Creating $(SWPERFTEST_CL) ..."
-	@echo
 	$(CC) -c $(SWPERFTEST_CL).c $(CFLAGS) $(CLANGSTD)
 	$(GPP) $(SWPERFTEST_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SWPERFTEST_CL) $(LDFLAGS) $(CFLAGS_THREAD)
 
 $(BITCOUNT): $(BITCOUNT).c $(OBJECTS)
 	@echo
 	@echo "Creating $(BITCOUNT) ..."
-	@echo
 	$(CC) -c $(BITCOUNT).c $(CFLAGS) $(CLANGSTD)
 	$(GPP) $(BITCOUNT).o $(OBJECTS) -o $(BITCOUNT) $(LDFLAGS)
 
 $(BITCOUNT_CL): $(BITCOUNT_CL).c $(OBJECTS) $(CLOBJECTS)
 	@echo
 	@echo "Creating $(BITCOUNT_CL) ..."
-	@echo
 	$(CC) -c $(BITCOUNT_CL).c $(CFLAGS) $(CLANGSTD)
 	$(GPP) $(BITCOUNT_CL).o $(OBJECTS) $(CLOBJECTS) -o $(BITCOUNT_CL) $(LDFLAGS) $(CFLAGS_THREAD)
 
 $(SWRNG): $(SWRNG).c $(OBJECTS)
 	@echo
 	@echo "Creating $(SWRNG) ..."
-	@echo
 	$(CC) -c $(SWRNG).c $(CFLAGS) $(CLANGSTD)
 	$(GPP) $(SWRNG).o $(OBJECTS) -o $(SWRNG) $(LDFLAGS)
 
 $(SWRNG_CL): $(SWRNG_CL).c $(OBJECTS) $(CLOBJECTS)
 	@echo
 	@echo "Creating $(SWRNG_CL) ..."
-	@echo
 	$(CC) -c $(SWRNG_CL).c $(CFLAGS) $(CLANGSTD)
 	$(GPP) $(SWRNG_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SWRNG_CL) $(LDFLAGS) $(CFLAGS_THREAD)
 
 $(SWRAWRANDOM): $(SWRAWRANDOM).c $(OBJECTS)
 	@echo
 	@echo "Creating $(SWRAWRANDOM) ..."
-	@echo
 	$(CC) -c $(SWRAWRANDOM).c $(CFLAGS) $(CLANGSTD)
 	$(GPP) $(SWRAWRANDOM).o $(OBJECTS) -o $(SWRAWRANDOM) $(LDFLAGS)
 
 $(SWRNGSEQGEN): $(SWRNGSEQGEN).cpp $(OBJECTS)
 	@echo
 	@echo "Creating $(SWRNGSEQGEN) ..."
-	@echo
 	$(GPP) -c $(SWRNGSEQGEN).cpp $(CPPFLAGS)
 	$(GPP) $(SWRNGSEQGEN).o $(OBJECTS) -o $(SWRNGSEQGEN) $(LDCPPFLAGS)
 
 $(SAMPLE_CL): $(SAMPLE_CL).c $(OBJECTS) $(CLOBJECTS)
 	@echo
 	@echo "Creating $(SAMPLE_CL) ..."
-	@echo
 	$(CC) -c $(SAMPLE_CL).c $(CFLAGS) $(CLANGSTD)
 	$(GPP) $(SAMPLE_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SAMPLE_CL) $(LDFLAGS) $(CFLAGS_THREAD)
 
