@@ -572,6 +572,11 @@ static int feedKernelEntropyPool() {
  * @param char ** argv - parameters
  */
 int main(int argc, char **argv) {
+	/* Initialize some values here to work around compiling errors on some platforms*/
+	is_output_to_standard_output = val_false;
+	postProcessingEnabled = val_true;
+	statisticalTestsEnabled = val_true;
+
 	return process(argc, argv);
 }
 

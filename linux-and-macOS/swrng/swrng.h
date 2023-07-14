@@ -97,10 +97,10 @@ static int pp_num = 9;
 /* Output file handle */
 static FILE *p_output_file = NULL;
 
-static int is_output_to_standard_output = val_false;
+static int is_output_to_standard_output;
 static SwrngContext ctxt;
-static int pp_enabled = val_true;
-static int stats_tests_enabled = val_true;
+static int pp_enabled;
+static int stats_tests_enabled;
 static int act_pp_method_id;
 static int pp_status;
 static char pp_method_char[32];

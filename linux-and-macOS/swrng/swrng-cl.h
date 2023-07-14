@@ -92,14 +92,14 @@ static int pp_num = 9;
 /* Output file handle */
 static FILE *p_output_file = NULL;
 
-static int is_output_to_standard_output = val_false;
+static int is_output_to_standard_output;
 static SwrngContext hcxt;
 static SwrngCLContext cxt;
 static long failOverCount = 0;
 static long resizeAttemptCount = 0;
 static int actClusterSize = 0;
-static int postProcessingEnabled = val_true;
-static int statisticalTestsEnabled = val_true;
+static int postProcessingEnabled;
+static int statisticalTestsEnabled;
 
 
 #ifdef __linux__

@@ -645,6 +645,11 @@ static int feed_kernel_entropy_pool(void) {
  *
  */
 int main(int argc, char **argv) {
+	/* Initialize some values here to work around compiling errors on some platforms*/
+	is_output_to_standard_output = val_false;
+	pp_enabled = val_true;
+	stats_tests_enabled = val_true;
+
 	return process(argc, argv);
 }
 
