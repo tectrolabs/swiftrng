@@ -24,7 +24,7 @@
 #include <iostream>
 #include <string>
 
-#include "api-inc/RandomSeqGenerator.h"
+#include <RandomSeqGenerator.h>
 
 using namespace swiftrng;
 

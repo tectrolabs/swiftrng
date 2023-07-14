@@ -382,11 +382,7 @@ static int handle_download_request(void) {
 	}
 
 	if (pp_status == 0) {
-#ifdef _WIN32
-		strcpy_s(pp_method_char, "none");
-#else
 		strcpy(pp_method_char, "none");
-#endif
 	} else {
 		if (swrngGetPostProcessingMethod(&ctxt, &act_pp_method_id) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
@@ -415,25 +411,13 @@ static int handle_download_request(void) {
 
 	switch(emb_corr_method_id) {
 	case 0:
-		#ifdef _WIN32
-			strcpy_s(emb_corr_method_char, "none");
-		#else
-			strcpy(emb_corr_method_char, "none");
-		#endif
-			break;
+		strcpy(emb_corr_method_char, "none");
+		break;
 	case 1:
-		#ifdef _WIN32
-				strcpy_s(emb_corr_method_char, "Linear");
-		#else
-				strcpy(emb_corr_method_char, "Linear");
-		#endif
-			break;
+		strcpy(emb_corr_method_char, "Linear");
+		break;
 	default:
-		#ifdef _WIN32
-			strcpy_s(emb_corr_method_char, "*unknown*");
-		#else
-			strcpy(emb_corr_method_char, "*unknown*");
-		#endif
+		strcpy(emb_corr_method_char, "*unknown*");
 	}
 
 
@@ -566,11 +550,7 @@ static int process_download_request(void) {
  * @return int - 0 when run successfully
  */
 static int process(int argc, char **argv) {
-#ifdef _WIN32
-	strcpy_s(pp_method_char, "*unknown*");
-#else
 	strcpy(pp_method_char, "*unknown*");
-#endif
 	int status = swrngInitializeContext(&ctxt);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Could not initialize context\n");

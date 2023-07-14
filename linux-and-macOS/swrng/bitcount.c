@@ -42,13 +42,8 @@ static void print_final_stats(void);
  * @return int 0 - successful or error code
  */
 int main(int argc, char **argv) {
-#ifdef _WIN32
-	strcpy_s(pp_method_char, "SHA256");
-	strcpy_s(emb_corr_method_char, "none");
-#else
 	strcpy(pp_method_char, "SHA256");
 	strcpy(emb_corr_method_char, "none");
-#endif
 
 	printf("----------------------------------------------------------------------------\n");
 	printf("---  A program for counting bits retrieved from SwiftRNG or from a file  ---\n");
@@ -85,11 +80,7 @@ int main(int argc, char **argv) {
 			return(1);
 		}
 		if (argc > 3) {
-#ifdef _WIN32
-			strcpy_s(pp_method_char, argv[3]);
-#else
 			strcpy(pp_method_char, argv[3]);
-#endif
 			if (!strcmp("SHA256", pp_method_char)) {
 				pp_method_id = 0;
 			} else if (!strcmp("SHA512", pp_method_char)) {
@@ -168,6 +159,7 @@ static int count_bits_from_device(void) {
 	/* Initialize the context */
 	if (swrngInitializeContext(&ctxt) != SWRNG_SUCCESS) {
 		printf("Could not initialize context\n");
+		swrngDestroyContext(&ctxt);
 		return(1);
 	}
 
@@ -176,6 +168,7 @@ static int count_bits_from_device(void) {
 	/* Open SwiftRNG device if available */
 	if (swrngOpen(&ctxt, device_num) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		swrngDestroyContext(&ctxt);
 		return(1);
 	}
 
@@ -196,11 +189,7 @@ static int count_bits_from_device(void) {
 	}
 
 	if (pp_status == 0) {
-#ifdef _WIN32
-		strcpy_s(pp_method_char, "none");
-#else
 		strcpy(pp_method_char, "none");
-#endif
 	} else {
 		if (swrngGetPostProcessingMethod(&ctxt, &act_pp_method_id) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
@@ -209,32 +198,16 @@ static int count_bits_from_device(void) {
 		}
 		switch (act_pp_method_id) {
 		case 0:
-#ifdef _WIN32
-			strcpy_s(pp_method_char, "SHA256");
-#else
 			strcpy(pp_method_char, "SHA256");
-#endif
 			break;
 		case 1:
-#ifdef _WIN32
-			strcpy_s(pp_method_char, "xorshift64");
-#else
 			strcpy(pp_method_char, "xorshift64");
-#endif
 			break;
 		case 2:
-#ifdef _WIN32
-			strcpy_s(pp_method_char, "SHA512");
-#else
 			strcpy(pp_method_char, "SHA512");
-#endif
 			break;
 		default:
-#ifdef _WIN32
-			strcpy_s(pp_method_char, "*unknown*");
-#else
 			strcpy(pp_method_char, "*unknown*");
-#endif
 			break;
 		}
 
@@ -248,25 +221,13 @@ static int count_bits_from_device(void) {
 
 	switch(emb_corr_method_id) {
 	case 0:
-		#ifdef _WIN32
-			strcpy_s(emb_corr_method_char, "none");
-		#else
-			strcpy(emb_corr_method_char, "none");
-		#endif
-			break;
+		strcpy(emb_corr_method_char, "none");
+		break;
 	case 1:
-		#ifdef _WIN32
-				strcpy_s(emb_corr_method_char, "Linear");
-		#else
-				strcpy(emb_corr_method_char, "Linear");
-		#endif
-			break;
+		strcpy(emb_corr_method_char, "Linear");
+		break;
 	default:
-		#ifdef _WIN32
-			strcpy_s(emb_corr_method_char, "*unknown*");
-		#else
-			strcpy(emb_corr_method_char, "*unknown*");
-		#endif
+		strcpy(emb_corr_method_char, "*unknown*");
 	}
 
 	printf("*** retrieving random bytes and counting bits, post-processing: %s, embedded correction: %s ***\n", pp_method_char, emb_corr_method_char);

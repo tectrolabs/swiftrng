@@ -95,6 +95,7 @@ int main() {
 	status = swrngGetDeviceList(&ctxt, &dil);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Could not generate device info list, status: %d\n", status);
+		swrngDestroyContext(&ctxt);
 		return status;
 	}
 
@@ -102,6 +103,7 @@ int main() {
 		printf("found %d SwiftRNG device(s)\n", dil.numDevs);
 	} else {
 		printf("  no SwiftRNG device found\n");
+		swrngDestroyContext(&ctxt);
 		return -1;
 	}
 
@@ -118,6 +120,7 @@ int main() {
 		status = swrngOpen(&ctxt, i);
 		if ( status != SWRNG_SUCCESS) {
 			printf("*FAILED*, error: %s\n", swrngGetLastErrorMessage(&ctxt));
+			swrngDestroyContext(&ctxt);
 			return status;
 		}
 		printf("Success\n");

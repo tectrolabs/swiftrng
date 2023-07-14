@@ -39,11 +39,7 @@ int main(int argc, char **argv) {
 	printf("---------------------------------------------------------------------------------\n");
 
 	setbuf(stdout, NULL);
-#ifndef _WIN32
 	strcpy(postProcessingMethodStr, "default");
-#else
-	strcpy_s(postProcessingMethodStr, "default");
-#endif
 
 	if (argc > 2) {
 		totalBlocks = atol(argv[1]);
@@ -54,11 +50,7 @@ int main(int argc, char **argv) {
 
 		clusterSize = atol(argv[2]);
 		if (argc > 3) {
-#ifndef _WIN32
 			strcpy(postProcessingMethodStr, argv[3]);
-#else
-			strcpy_s(postProcessingMethodStr, argv[3]);
-#endif
 			if (!strcmp("SHA256", postProcessingMethodStr)) {
 				postProcessingMethod = 0;
 			} else if (!strcmp("SHA512", postProcessingMethodStr)) {
@@ -90,6 +82,7 @@ int main(int argc, char **argv) {
 	/* Open the cluster if any SwiftRNG device if available */
 	if (swrngCLOpen(&ctxt, clusterSize) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
+		swrngCLClose(&ctxt);
 		return(1);
 	}
 
