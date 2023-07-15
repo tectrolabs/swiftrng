@@ -267,7 +267,7 @@ static int process_arguments(int argc, char **argv) {
 				if (validate_argument_count(++idx, argc) == val_false) {
 					return -1;
 				}
-				num_gen_bytes = atoll(argv[idx++]);
+				num_gen_bytes = (int64_t)atoll(argv[idx++]);
 				if (num_gen_bytes > 200000000000) {
 					fprintf(stderr,
 							"Number of bytes cannot exceed 200000000000\n");
