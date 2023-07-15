@@ -1,12 +1,12 @@
 /*
  * SwiftRNG.h
- * ver. 2.0
+ * ver. 2.1
  *
  */
 
  /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2020 TectroLabs, http://tectrolabs.com
+ Copyright (C) 2014-2023 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -29,8 +29,8 @@
 
 
 
-#ifndef SWIFTRNG_H_
-#define SWIFTRNG_H_
+#ifndef SWIFTRNG_DLL_H_
+#define SWIFTRNG_DLL_H_
 
 #include <stdio.h>
 
@@ -185,4 +185,4 @@ __declspec(dllexport) int swftSetEntropyServerPipeEndpointSynchronized(char *pip
 }
 #endif
 
-#endif /* SWIFTRNG_H_ */ 
+#endif /* SWIFTRNG_DLL_H_ */ 

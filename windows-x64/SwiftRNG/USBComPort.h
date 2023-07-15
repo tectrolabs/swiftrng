@@ -1,11 +1,11 @@
 /*
 * USBComPort.h
-* Ver 1.0
+* Ver 1.2
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
+Copyright (C) 2014-2023 TectroLabs L.L.C. https://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -30,16 +30,6 @@ This class may only be used in conjunction with TectroLabs devices.
 
 class USBComPort
 {
-private:
-	HANDLE cdcUsbDevHandle;
-	bool deviceConnected;
-	char lastError[512];
-	COMSTAT commStatus;
-	DWORD commError;
-	void setErrMsg(const char *errMessage);
-	void clearErrMsg();
-	void purgeComm();
-	void clearCommErr();
 public:
 	USBComPort();
 	~USBComPort();
@@ -53,6 +43,18 @@ public:
 	const char* getLastErrMsg();
 	int sendCommand(unsigned char *snd, int sizeSnd, int *bytesSend);
 	int receiveDeviceData(unsigned char *rcv, int sizeRcv, int *bytesReveived);
+
+private:
+	HANDLE cdcUsbDevHandle;
+	bool deviceConnected;
+	char lastError[512];
+	COMSTAT commStatus;
+	DWORD commError;
+	void setErrMsg(const char* errMessage);
+	void clearErrMsg();
+	void purgeComm();
+	void clearCommErr();
+
 };
 
 #endif /* SWRNGUSBCOMPORT_H_ */

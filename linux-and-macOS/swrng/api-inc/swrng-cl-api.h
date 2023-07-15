@@ -168,10 +168,10 @@ int swrngInitializeCLContext(SwrngCLContext *ctxt);
 * Open SwiftRNG USB cluster.
 *
 * @param ctxt - pointer to SwrngCLContext structure
-* @param int clusterSize - preferred cluster size
+* @param int cluster_size - preferred cluster size
 * @return int - 0 when processed successfully
 */
-int swrngCLOpen(SwrngCLContext *ctxt, int clusterSize);
+int swrngCLOpen(SwrngCLContext *ctxt, int cluster_size);
 
 /**
 * Check if cluster is open
@@ -262,12 +262,12 @@ int swrngDisableCLPostProcessing(SwrngCLContext *ctxt);
 * Enable post processing method.
 *
 * @param ctxt - pointer to SwrngContext structure
-* @param postProcessingMethodId - 0 for SHA256 (default), 1 - xorshift64 (devices with versions 1.2 or grater), 2 - for SHA512
+* @param pp_method_id - 0 for SHA256 (default), 1 - xorshift64 (devices with versions 1.2 or grater), 2 - for SHA512
 *
 * @return int - 0 when post processing successfully enabled, otherwise the error code
 *
 */
-int swrngEnableCLPostProcessing(SwrngCLContext *ctxt, int postProcessingMethodId);
+int swrngEnableCLPostProcessing(SwrngCLContext *ctxt, int pp_method_id);
 
 /**
 * Disable statistical tests on raw random data stream for each device in a cluster.

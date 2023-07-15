@@ -27,11 +27,11 @@ This program may only be used in conjunction with the SwiftRNG device.
 #ifndef ENTROPY_SERVER_H_
 #define ENTROPY_SERVER_H_
 
-#include "swrngapi.h"
+#include <swrngapi.h>
 #include <windows.h> 
-#include <string>
 #include <stdio.h>
 #include <tchar.h>
+#include <string.h>
 
 #include <strsafe.h>
 
@@ -40,6 +40,8 @@ This program may only be used in conjunction with the SwiftRNG device.
 #define WRITING_STATE 2 
 #define DEFAULT_PIPE_INSTANCES 10
 #define MAX_PIPE_INSTANCES 64
+#define MAX_METHOD_NAME_SIZE 64
+#define MAX_CORRECTION_NAME_SIZE 32
 #define PIPE_TIMEOUT 5000
 #define WRITE_BUFSIZE 100000
 #define CMD_ENTROPY_RETRIEVE_ID 0
@@ -52,6 +54,9 @@ This program may only be used in conjunction with the SwiftRNG device.
 #define CMD_SERV_MAJOR_VERSION_ID 7
 #define CMD_NOISE_SRC_ONE_ID 8
 #define CMD_NOISE_SRC_TWO_ID 9
+#define EN_SRV_TRUE (1)
+#define EN_SRV_FALSE (0)
+
 
 
 #define PIPENAME_MAX_CHARS 128
@@ -85,10 +90,10 @@ DWORD pipeInstances = DEFAULT_PIPE_INSTANCES;
 int ppNum = 9; // Power profile number, between 0 and 9
 char *postProcessingMethod = NULL; // Post processing method or NULL if not specified
 int postProcessingMethodId = 0; // Post processing method id, 0 - SHA256, 1 - xorshift64, 2 - SHA512
-char postProcessingMethodName[64];
+char postProcessingMethodName[MAX_METHOD_NAME_SIZE];
 SwrngContext ctxt;
-swrngBool postProcessingEnabled = SWRNG_TRUE;
-swrngBool statisticalTestsEnabled = SWRNG_TRUE;
+int postProcessingEnabled = EN_SRV_TRUE;
+int statisticalTestsEnabled = EN_SRV_TRUE;
 DWORD i, dwWait, cbRet, dwErr;
 BOOL fSuccess;
 BOOL isDevieNumSpecified = FALSE;
@@ -98,9 +103,9 @@ DeviceVersion dv;
 static wchar_t pipeEndPoint[PIPENAME_MAX_CHARS + 1];
 static char defaultPipeEndpoint[] = "\\\\.\\pipe\\SwiftRNG";
 static char serverMajorVersion = 2;
-static char serverMinorVersion = 1;
+static char serverMinorVersion = 2;
 size_t numCharConverted;
-char embeddedCorrectionMethodStr[32];
+char embeddedCorrectionMethodStr[MAX_CORRECTION_NAME_SIZE];
 int embeddedCorrectionMethodId;
 
 
@@ -110,7 +115,6 @@ int embeddedCorrectionMethodId;
 
 void reConnect(DWORD);
 BOOL ConnectToNewClient(HANDLE, LPOVERLAPPED);
-int displayDevices();
 void displayUsage();
 int process(int argc, char **argv);
 int processArguments(int argc, char **argv);
@@ -126,5 +130,6 @@ int retrieveDeviceModel(DWORD i);
 int retrieveDeviceMinorVersion(DWORD i);
 int retrieveDeviceMajorVersion(DWORD i);
 int retrieveNoiseSourceBytes(DWORD i, int noiseSource);
+char* findCharSafe(char* p, int n, char c);
 
 #endif /* ENTROPY_SERVER_H_ */

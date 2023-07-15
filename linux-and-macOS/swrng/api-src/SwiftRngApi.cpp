@@ -240,7 +240,7 @@ int SwiftRngApi::open(int devNum) {
 	int portsConnected;
 	int ports[c_max_cdc_com_ports];
 	// Retrieve devices connected as USB CDC in Windows
-	m_usb_serial_device->getConnectedPorts(ports, c_max_cdc_com_ports, &portsConnected, SWRNG_HDWARE_ID);
+	m_usb_serial_device->getConnectedPorts(ports, c_max_cdc_com_ports, &portsConnected, (WCHAR*)c_hardware_id.c_str());
 	if (portsConnected > devNum) {
 		WCHAR portName[80];
 		m_usb_serial_device->toPortName(ports[devNum], portName, 80);
@@ -730,7 +730,7 @@ int SwiftRngApi::get_device_list(DeviceInfoList *dev_info_list) {
 	int portsConnected;
 	int ports[c_max_cdc_com_ports];
 	// Add devices connected as USB CDC in Windows
-	usbComPort.getConnectedPorts(ports, c_max_cdc_com_ports, &portsConnected, SWRNG_HDWARE_ID);
+	usbComPort.getConnectedPorts(ports, c_max_cdc_com_ports, &portsConnected, (WCHAR*)c_hardware_id.c_str());
 	while (portsConnected-- > 0) {
 		swrng_updateDevInfoList(dev_info_list, &curFoundDevNum);
 	}

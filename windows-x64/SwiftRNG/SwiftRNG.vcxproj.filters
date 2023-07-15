@@ -19,34 +19,50 @@
     <None Include="ClassDiagram.cd" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="stdafx.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
     <ClInclude Include="targetver.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="swrngapi.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="libusb.h">
       <Filter>Header Files</Filter>
     </ClInclude>
+    <ClInclude Include="ApiStructs.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SwiftRngApi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="swrngapi.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
     <ClInclude Include="swrng-cl-api.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="USBComPort.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="RandomSeqGenerator.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="stdafx.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="swrngapi.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
-    <ClCompile Include="swrng-cl-api.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
+    <Library Include="libusb-1.0.lib" />
+    <Library Include="SetupAPI.Lib" />
   </ItemGroup>
   <ItemGroup>
-    <Library Include="libusb-1.0.lib" />
+    <ClCompile Include="SwiftRngApi.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="SwiftRngApiCWrapper.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="swrng-cl-api.c">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="USBComPort.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="RandomSeqGenerator.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
 </Project>

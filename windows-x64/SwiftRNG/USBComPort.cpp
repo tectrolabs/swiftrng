@@ -1,12 +1,11 @@
-#include "stdafx.h"
 /*
 * USBComPort.cpp
-* Ver 1.0
+* Ver 1.1
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
+Copyright (C) 2014-2021 TectroLabs L.L.C. https://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -18,7 +17,7 @@ This class may only be used in conjunction with TectroLabs devices.
 +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
 
-#include "USBComPort.h"
+#include <USBComPort.h>
 
 USBComPort::USBComPort()
 {
@@ -294,7 +293,7 @@ void USBComPort::getConnectedPorts(int ports[], int maxPorts, int *actualCount, 
 					if (_tcsnicmp(curPortName, _T("COM"), 3) == 0)
 					{
 						TCHAR* src = (TCHAR*)curHardwareId;
-						int size = _tcsnlen(hardwareId, 80);
+						int size = (int)_tcsnlen(hardwareId, 80);
 
 						if (_tcsnicmp(hardwareId, (TCHAR*)curHardwareId, _tcsnlen(hardwareId, 80)) == 0) {
 							int nPortNr = _ttoi(curPortName + 3);

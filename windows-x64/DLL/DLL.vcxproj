@@ -98,12 +98,11 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;_DEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../SwiftRNG</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../SwiftRNG;.</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4996 /wd4220 /wd4200 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -133,13 +132,12 @@
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
       <WarningLevel>TurnOffAllWarnings</WarningLevel>
-      <PrecompiledHeader>
-      </PrecompiledHeader>
+      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <Optimization>MaxSpeed</Optimization>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;NDEBUG;_WINDOWS;_USRDLL;DLL_EXPORTS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>../SwiftRNG</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>../SwiftRNG;.</AdditionalIncludeDirectories>
       <AdditionalOptions>/wd4996 /wd4220 /wd4200 %(AdditionalOptions)</AdditionalOptions>
     </ClCompile>
     <Link>
@@ -150,18 +148,18 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="SwiftRNG.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="SwiftRNG.h" />
-  </ItemGroup>
-  <ItemGroup>
     <ProjectReference Include="..\SwiftRNG\SwiftRNG.vcxproj">
       <Project>{5b18a966-1200-4528-abdb-fd8647a2327a}</Project>
     </ProjectReference>
   </ItemGroup>
   <ItemGroup>
     <None Include="ReadMe.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="SwiftRNG.c" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="SwiftRNG.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

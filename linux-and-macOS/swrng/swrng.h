@@ -129,6 +129,7 @@ static int handle_download_request(void);
 static void write_bytes(uint8_t *bytes, uint32_t num_bytes);
 static int parse_pp_num(int idx, int argc, char **argv);
 static void close_handle(void);
+static void initialize(void);
 
 #ifdef __linux__
 static int feed_kernel_entropy_pool();
