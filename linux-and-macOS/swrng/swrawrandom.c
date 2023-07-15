@@ -67,6 +67,7 @@ int main(int argc, char **argv) {
 	/* Open SwiftRNG device if available */
 	if (swrngOpen(&ctxt, device_num) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		swrngDestroyContext(&ctxt);
 		return(1);
 	}
 

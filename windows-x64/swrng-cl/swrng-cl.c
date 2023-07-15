@@ -489,6 +489,7 @@ int process(int argc, char **argv) {
 	swrngEnableCLPrintingErrorMessages(&cxt);
 	if (argc == 1) {
 		display_usage();
+		swrngDestroyContext(&hcxt);
 		return -1;
 	}
 	status = process_arguments(argc, argv);

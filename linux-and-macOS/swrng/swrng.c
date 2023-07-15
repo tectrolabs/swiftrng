@@ -560,6 +560,7 @@ static int process(int argc, char **argv) {
 	swrngEnablePrintingErrorMessages(&ctxt);
 	if (argc == 1) {
 		display_usage();
+		swrngDestroyContext(&ctxt);
 		return -1;
 	}
 	status = process_arguments(argc, argv);
@@ -580,14 +581,14 @@ static int feed_kernel_entropy_pool(void) {
 	int status = swrngOpen(&ctxt, device_num);
 	if(status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Cannot open device, error code %d ... ", status);
-		swrngClose(&ctxt);
+		swrngDestroyContext(&ctxt);
 		return status;
 	}
 
 	int rndout = open(KERNEL_ENTROPY_POOL_NAME, O_WRONLY);
 	if (rndout < 0) {
 		printf("Cannot open %s : %d\n", KERNEL_ENTROPY_POOL_NAME, rndout);
-		swrngClose(&ctxt);
+		swrngDestroyContext(&ctxt);
 		return rndout;
 	}
 
@@ -595,7 +596,7 @@ static int feed_kernel_entropy_pool(void) {
 	int result = ioctl(rndout, RNDGETENTCNT, &entropyAvailable);
 	if (result < 0) {
 		printf("Cannot verify available entropy in the pool, make sure you run this utility with CAP_SYS_ADMIN capability\n");
-		swrngClose(&ctxt);
+		swrngDestroyContext(&ctxt);
 		close(rndout);
 		return result;
 	}
@@ -611,7 +612,7 @@ static int feed_kernel_entropy_pool(void) {
 			status = swrngGetEntropy(&ctxt, entropy.data, addMoreBytes);
 			if(status != SWRNG_SUCCESS) {
 				fprintf(stderr, "Failed to receive %d bytes for feeding entropy pool, error code %d. ", addMoreBytes, status);
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				return status;
 			}
 			entropy.buf_size = addMoreBytes;
@@ -621,7 +622,7 @@ static int feed_kernel_entropy_pool(void) {
 			result = ioctl(rndout, RNDADDENTROPY, &entropy);
 			if (result < 0) {
 				printf("Cannot add more entropy to the pool, error: %d\n", result);
-				swrngClose(&ctxt);
+				swrngDestroyContext(&ctxt);
 				close(rndout);
 				return result;
 			}

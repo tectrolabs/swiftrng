@@ -283,7 +283,7 @@ int swrngCLOpen(SwrngCLContext *ctxt, int cluster_size) {
 	ctxt->cluster_size = cluster_size;
 #ifndef _WIN32
 	int numCores = (int)sysconf(_SC_NPROCESSORS_ONLN);
-	if (numCores <= cluster_size / 2) {
+	if (numCores <= clusterSize / 2) {
 		printCLErrorMessage(ctxt, needMoreCPUsErrMsg);
 		return -1;
 	}

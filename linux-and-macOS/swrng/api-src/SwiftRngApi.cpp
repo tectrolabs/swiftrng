@@ -2116,7 +2116,9 @@ const std::string SwiftRngApi::c_cannot_get_freq_table_for_device_msg = "Frequen
 const std::string SwiftRngApi::c_too_many_devices_msg = "Cannot have more than 127 USB devices";
 const std::string SwiftRngApi::c_cannot_read_device_descriptor_msg = "Failed to retrieve USB device descriptor";
 const std::string SwiftRngApi::c_libusb_init_failure_msg = "Failed to initialize libusb";
-
+#ifdef _WIN32
+const std::wstring SwiftRngApi::c_hardware_id = L"USB\\VID_1FC9&PID_8111";
+#endif
 
 
 } /* namespace swiftrng */
