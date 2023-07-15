@@ -1,5 +1,5 @@
 /**
- Copyright (C) 2014-2021 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -12,14 +12,14 @@
 
  /**
   *    @file dllmain.h
-  *    @date 07/04/2021
+  *    @date 07/15/2023
   *    @Author: Andrian Belinski
-  *    @version 1.0
+  *    @version 1.1
   *
   *    @brief DLL implementation for interacting with the entropy server using named pipes.
   */
+#include <framework.h>
 
-#include "pch.h"
 
 #ifdef SWIFTRNG_ENTROPY_SERVER
 static char defaultPipeEndpoint[] = "\\\\.\\pipe\\SwiftRNG";
