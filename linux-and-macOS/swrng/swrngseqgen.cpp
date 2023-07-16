@@ -1,7 +1,6 @@
-#include "stdafx.h"
 /*
  * swrngseqgen.cpp
- * Ver. 2.2
+ * Ver. 2.3
  *
  * A program for generating random sequences of unique integer numbers based
  * on true random bytes produced by a SwiftRNG device.
@@ -11,7 +10,7 @@
 
  /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2022 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -24,18 +23,36 @@
 
 #include <iostream>
 #include <string>
-#include "SWRNGRandomSeqGenerator.h"
 
-int deviceNumber;			// SwiftRNG device number, 0 - first device
-int32_t minNumber;			// When generating random sequence, this is the smallest value
-int32_t maxNumber;			// When generating random sequence, this is the maximum value
-uint32_t numberCount;		// Only show specified amount of numbers in sequence
-uint32_t range;				// Random Sequence range
-int repeatCount = 1;		// How many times to repeat the sequence generation
+#include <RandomSeqGenerator.h>
+
+using namespace swiftrng;
+
+// SwiftRNG device number, 0 - first device
+static int deviceNumber;
+
+// When generating random sequence, this is the smallest value
+static int32_t minNumber;
+
+// When generating random sequence, this is the maximum value
+static int32_t maxNumber;
+
+// Only show specified amount of numbers in sequence
+static uint32_t numberCount;
+
+// Random Sequence range
+static uint32_t range;
+
+// How many times to repeat the sequence generation
+int repeatCount = 1;
+
 static const uint32_t maxSequenceRange = 10000000;
-uint32_t deviceBytesBuffer[maxSequenceRange];
-int64_t  sequenceBuffer[maxSequenceRange];
+static uint32_t deviceBytesBuffer[maxSequenceRange];
+static int64_t  sequenceBuffer[maxSequenceRange];
 
+//
+// Function prototypes
+//
 int generateSequences();
 void printRandomSequence(int64_t *buffer);
 
@@ -120,10 +137,11 @@ int main(int argc, char **argv) {
 
 /**
  * Generate sequences
+ *
  * @return int 0 - successful or error code
  */
 int generateSequences() {
-	SWRNGRandomSeqGenerator seqGen(deviceNumber, range);
+	RandomSeqGenerator seqGen(deviceNumber, range);
 
 	while (repeatCount-- > 0) {
 
@@ -150,7 +168,6 @@ int generateSequences() {
  * @param buffer - array of numbers to print
  */
 void printRandomSequence(int64_t *buffer) {
-	// Print sequence numbers
 	std::cout << std::endl << "-- Beginning of random sequence --" << std::endl;
 	for (uint32_t i = 0; i < numberCount; i++) {
 		std::cout << (int)buffer[i] << std::endl;

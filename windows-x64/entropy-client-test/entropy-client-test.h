@@ -1,7 +1,7 @@
 #ifndef ENTROPY_CLIENT_TEST_H_
 #define ENTROPY_CLIENT_TEST_H_
 
-#include "SwiftRNG.h"
+#include <SwiftRNG.h>
 #include <windows.h> 
 #include <stdio.h>
 #include <conio.h>

@@ -1,12 +1,12 @@
 /*
 * entropy-cl-server.h
-* Ver. 2.0
+* Ver. 2.3
 *
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2020 TectroLabs, http://tectrolabs.com
+Copyright (C) 2014-2023 TectroLabs L.L.C. https://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -27,7 +27,7 @@ This program may only be used in conjunction with SwiftRNG devices.
 #ifndef ENTROPY_SERVER_H_
 #define ENTROPY_SERVER_H_
 
-#include "swrng-cl-api.h"
+#include <swrng-cl-api.h>
 #include <windows.h> 
 #include <stdio.h>
 #include <tchar.h>
@@ -44,7 +44,9 @@ This program may only be used in conjunction with SwiftRNG devices.
 #define CMD_ENTROPY_RETRIEVE_ID 0
 #define CMD_DIAG_ID 1
 #define PIPENAME_MAX_CHARS 128
-
+#define MAX_METHOD_NAME_SIZE 64
+#define EN_SRV_TRUE (1)
+#define EN_SRV_FALSE (0)
 
 typedef struct
 {
@@ -64,6 +66,13 @@ typedef struct
 } PIPEINST;
 
 //
+// Static variables
+//
+
+static wchar_t pipeEndPoint[PIPENAME_MAX_CHARS + 1];
+static char defaultPipeEndpoint[] = "\\\\.\\pipe\\SwiftRNG";
+
+//
 // Local variables
 //
 
@@ -74,14 +83,12 @@ int clusterSize = 2; // Cluster size, between 1 and 10
 int ppNum = 9; // Power profile number, between 0 and 9
 char *postProcessingMethod = NULL; // Post processing method or NULL if not specified
 int postProcessingMethodId = 0; // Post processing method id, 0 - SHA256, 1 - xorshift64, 2 - SHA512
-char postProcessingMethodName[64];
+char postProcessingMethodName[MAX_METHOD_NAME_SIZE];
 SwrngCLContext ctxt;
-swrngBool postProcessingEnabled = SWRNG_TRUE;
-swrngBool statisticalTestsEnabled = SWRNG_TRUE;
+int postProcessingEnabled = EN_SRV_TRUE;
+int statisticalTestsEnabled = EN_SRV_TRUE;
 DWORD i, dwWait, cbRet, dwErr;
 BOOL fSuccess;
-static wchar_t pipeEndPoint[PIPENAME_MAX_CHARS + 1];
-static char defaultPipeEndpoint[] = "\\\\.\\pipe\\SwiftRNG";
 size_t numCharConverted;
 
 
@@ -92,7 +99,6 @@ size_t numCharConverted;
 
 void reConnect(DWORD);
 BOOL ConnectToNewClient(HANDLE, LPOVERLAPPED);
-int displayDevices();
 void displayUsage();
 int process(int argc, char **argv);
 int processArguments(int argc, char **argv);

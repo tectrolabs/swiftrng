@@ -1,12 +1,12 @@
-/*
+ /*
  * swrng.h
- * ver. 3.1
+ * ver. 3.2
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -29,7 +29,12 @@
 #ifndef SWRNG_H_
 #define SWRNG_H_
 
-#include "swrngapi.h"
+#include <swrngapi.h>
+#include <stdio.h>
+#include <string.h>
+#include <stdlib.h>
+
+
 #ifndef _WIN32
 #include <unistd.h>
 #else
@@ -37,6 +42,9 @@
 #include <fcntl.h>
 #include <io.h>
 #endif
+
+#define SWRNG_BUFF_FILE_SIZE_BYTES (10000 * 10)
+
 
 #ifdef __linux__
 #include <stdlib.h>
@@ -60,30 +68,49 @@ typedef struct {
 }Entropy;
 #endif
 
+static const int val_true = 1;
+static const int val_false = 0;
+
+
 /**
  * Variables
  */
 
-int64_t numGenBytes = -1; // Total number of random bytes needed (a command line argument) max 100000000000 bytes
-char *filePathName = NULL; // File name for recording the random bytes (a command line argument)
-char *postProcessingMethod = NULL; // Post processing method or NULL if not specified
-int postProcessingMethodId = 0; // Post processing method id, 0 - SHA256, 1 - xorshift64, 2 - SHA512
-int deviceNum; // USB device number starting with 0 (a command line argument)
-int ppNum = 9; // Power profile number, between 0 and 9
-FILE *pOutputFile = NULL; // Output file handle
-swrngBool isOutputToStandardOutput = SWRNG_FALSE;
-SwrngContext ctxt;
-swrngBool postProcessingEnabled = SWRNG_TRUE;
-swrngBool statisticalTestsEnabled = SWRNG_TRUE;
-int actualPostProcessingMethodId;
-int postProcessingStatus;
-char postProcessingMethodStr[32];
-char embeddedCorrectionMethodStr[32];
-int embeddedCorrectionMethodId;
+/* Total number of random bytes needed (a command line argument) max 100000000000 bytes */
+static int64_t num_gen_bytes = -1;
+
+/* File name for recording the random bytes (a command line argument) */
+static char *file_path_name = NULL;
+
+/* Post processing method or NULL if not specified */
+static char *pp_method = NULL;
+
+/* Post processing method id, 0 - SHA256, 1 - xorshift64, 2 - SHA512 */
+static int pp_method_id = 0;
+
+/* USB device number starting with 0 (a command line argument) */
+static int device_num;
+
+/* Power profile number, between 0 and 9 */
+static int pp_num = 9;
+
+/* Output file handle */
+static FILE *p_output_file = NULL;
+
+static int is_output_to_standard_output;
+static SwrngContext ctxt;
+static int pp_enabled;
+static int stats_tests_enabled;
+static int act_pp_method_id;
+static int pp_status;
+static char pp_method_char[32];
+static char emb_corr_method_char[32];
+static int emb_corr_method_id;
 
 
 #ifdef __linux__
-int entropyAvailable; // A variable for checking the amount of the entropy available in the kernel pool
+/* A variable for checking the amount of the entropy available in the kernel pool */
+int entropyAvailable;
 Entropy entropy;
 #endif
 
@@ -91,18 +118,21 @@ Entropy entropy;
  * Function Declarations
  */
 
-int displayDevices();
-void displayUsage();
-int process(int argc, char **argv);
-int processArguments(int argc, char **argv);
-int validateArgumentCount(int curIdx, int actualArgumentCount);
-int parseDeviceNum(int idx, int argc, char **argv);
-int processDownloadRequest();
-int handleDownloadRequest();
-void writeBytes(uint8_t *bytes, uint32_t numBytes);
+static int display_devices(void);
+static void display_usage(void);
+static int process(int argc, char **argv);
+static int process_arguments(int argc, char **argv);
+static int validate_argument_count(int curIdx, int act_argument_count);
+static int parse_device_num(int idx, int argc, char **argv);
+static int process_download_request(void);
+static int handle_download_request(void);
+static void write_bytes(uint8_t *bytes, uint32_t num_bytes);
+static int parse_pp_num(int idx, int argc, char **argv);
+static void close_handle(void);
+static void initialize(void);
 
 #ifdef __linux__
-int feedKernelEntropyPool();
+static int feed_kernel_entropy_pool();
 #endif
 
 #endif /* SWRNG_H_ */
