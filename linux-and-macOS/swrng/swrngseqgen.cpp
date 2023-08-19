@@ -1,6 +1,6 @@
 /*
  * swrngseqgen.cpp
- * Ver. 2.3
+ * Ver. 2.4
  *
  * A program for generating random sequences of unique integer numbers based
  * on true random bytes produced by a SwiftRNG device.
@@ -62,7 +62,7 @@ void printRandomSequence(int64_t *buffer);
  */
 int main(int argc, char **argv) {
 
-	std::cerr << "-------------------------------------------------------------------------------------------------" << std::endl;
+	std::cout << "-------------------------------------------------------------------------------------------------" << std::endl;
 	std::cout << "--- A program for generating random sequences of unique integer numbers using SwiftRNG device ---" << std::endl;
 	std::cout << "-------------------------------------------------------------------------------------------------" << std::endl;
 
