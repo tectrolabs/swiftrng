@@ -247,7 +247,7 @@ int main() {
 		for (int p = 0; p < 10; p++) {
 			/* Power profiles are only implemented in 'SwiftRNG' models */
 			if (!strcmp("SwiftRNG", dil.devInfoList[i].dm.value)) {
-				printf("\nSetting power profiles to %d ------------------------------- ", p);
+				printf("\nSetting power profiles to %1d ------------------------------- ", p);
 				status = swrngSetPowerProfile(&ctxt, p);
 				if (status != SWRNG_SUCCESS) {
 					printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
@@ -265,8 +265,11 @@ int main() {
 
 			/* Retrieve random data for entropy score */
 			printf("Entropy score for %8d bytes -------------------------- ", ENTROPY_SCORE_BYTES);
-			for (int k = 0; k < ENTROPY_SCORE_BYTES && status == SWRNG_SUCCESS; k+=MAX_CHUNK_SIZE_BYTES) {
+			for (int k = 0; k < ENTROPY_SCORE_BYTES; k+=MAX_CHUNK_SIZE_BYTES) {
 				status = swrngGetEntropy(&ctxt, entropy_buffer + k, MAX_CHUNK_SIZE_BYTES);
+				if (status != SWRNG_SUCCESS) {
+					break;
+				}
 			}
 			if (status != SWRNG_SUCCESS) {
 				printf("*FAILED*, err: %s\n", swrngGetLastErrorMessage(&ctxt));
