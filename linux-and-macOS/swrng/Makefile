@@ -16,7 +16,7 @@ endif
 CFLAGS = -O2 -I$(IDIR) $(IDIR_MACOS) -Wall -Wextra
 CFLAGS_THREAD = -lpthread
 CPPFLAGS = $(CFLAGS) -std=c++11
-#CLANGSTD = -std=c89
+#CLANGSTD = -std=c99
 LDFLAGS = -lusb-1.0 $(LDIR_MACOS)
 LDCPPFLAGS = $(LDFLAGS) -lstdc++
 

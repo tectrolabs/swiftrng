@@ -1,6 +1,6 @@
 /*
  * swrng-cl-api.c
- * Ver. 2.2
+ * Ver. 2.3
  *
  */
 
@@ -72,8 +72,8 @@ static const int c_cl_api_false = 0;
  * Declarations for local functions
  */
 static void wait_seconds(int seconds);
-static int isContextCLInitialized(SwrngCLContext *ctxt);
-static int isItTimeToResizeCluster(SwrngCLContext *ctxt);
+static int isContextCLInitialized(const SwrngCLContext *ctxt);
+static int isItTimeToResizeCluster(const SwrngCLContext *ctxt);
 static int initializeCLContext(SwrngCLContext *ctxt);
 static void printCLErrorMessage(SwrngCLContext *ctxt, const char* errMsg);
 static void freeAllocatedMemory(SwrngCLContext *ctxt);
@@ -88,8 +88,8 @@ static void *download_thread(void *th_params);
 unsigned int __stdcall download_thread(void *th_params);
 static void errorCleanUpEventsAndThreads(SwrngCLContext *ctxt, int maxIndex);
 #endif
-static void wait_complete_download_req(SwrngThreadContext *ctxt);
-static void wait_all_complete_download_reqs(SwrngCLContext *ctxt);
+static void wait_complete_download_req(const SwrngThreadContext *ctxt);
+static void wait_all_complete_download_reqs(const  SwrngCLContext *ctxt);
 static int initializeCLThreads(SwrngCLContext *ctxt);
 static void unInitializeCLThreads(SwrngCLContext *ctxt);
 static void trigger_download_reqs(SwrngCLContext *ctxt);
@@ -123,8 +123,7 @@ const char* swrngGetCLLastErrorMessage(SwrngCLContext *ctxt) {
 * @param ctxt - pointer to SwrngCLContext structure
 */
 static void trigger_download_reqs(SwrngCLContext *ctxt) {
-	int i;
-	for (i = 0; i < ctxt->actual_cluster_size; i++) {
+	for (int i = 0; i < ctxt->actual_cluster_size; i++) {
 		ctxt->tctxts[i].dwnl_req_active = c_cl_api_true;
 #ifndef _WIN32
 		pthread_cond_signal(&ctxt->tctxts[i].dwnl_synch);
@@ -143,8 +142,7 @@ static void trigger_download_reqs(SwrngCLContext *ctxt) {
 */
 static int getClusterDownloadStatus(SwrngCLContext *ctxt) {
 	int retval = SWRNG_SUCCESS;
-	int i;
-	for (i = 0; i < ctxt->actual_cluster_size; i++) {
+	for (int i = 0; i < ctxt->actual_cluster_size; i++) {
 		if (ctxt->tctxts[i].dwnl_status != SWRNG_SUCCESS) {
 			retval = ctxt->tctxts[i].dwnl_status;
 			if (retval == thread_event_err_id) {
@@ -314,9 +312,8 @@ int swrngCLOpen(SwrngCLContext *ctxt, int cluster_size) {
 		return -1;
 	}
 
-	int i;
 	ctxt->actual_cluster_size = 0;
-	for (i = 0; i < devInfoList.numDevs && ctxt->actual_cluster_size < ctxt->cluster_size; i++) {
+	for (int i = 0; i < devInfoList.numDevs && ctxt->actual_cluster_size < ctxt->cluster_size; i++) {
 		swrngInitializeContext(&ctxt->tctxts[i].ctxt);
 		retVal = swrngOpen(&ctxt->tctxts[i].ctxt, devInfoList.devInfoList[i].devNum);
 		if (retVal != SWRNG_SUCCESS) {
@@ -392,8 +389,7 @@ int swrngCLOpen(SwrngCLContext *ctxt, int cluster_size) {
 static int initializeCLThreads(SwrngCLContext *ctxt) {
 	int status = SWRNG_SUCCESS;
 
-	int i;
-	for (i = 0; i < ctxt->actual_cluster_size; i++) {
+	for (int i = 0; i < ctxt->actual_cluster_size; i++) {
 		ctxt->tctxts[i].destroy_dwnl_thread_req = c_cl_api_false;
 		ctxt->tctxts[i].dwnl_req_active = c_cl_api_false;
 		ctxt->tctxts[i].dwnl_status = SWRNG_SUCCESS;
@@ -407,8 +403,7 @@ static int initializeCLThreads(SwrngCLContext *ctxt) {
 			pthread_mutex_destroy(&ctxt->tctxts[i].dwnl_mutex);
 			pthread_cond_destroy(&ctxt->tctxts[i].dwnl_synch);
 			printCLErrorMessage(ctxt, threadCreationErrMsg);
-			int j;
-			for (j = 0; j < i; j++) {
+			for (int j = 0; j < i; j++) {
 				ctxt->tctxts[j].destroy_dwnl_thread_req = c_cl_api_true;
 				pthread_cond_signal(&ctxt->tctxts[j].dwnl_synch);
 				pthread_join(ctxt->tctxts[j].dwnl_thread, &th_retval);
@@ -466,9 +461,7 @@ static void unInitializeCLThreads(SwrngCLContext *ctxt) {
 #ifndef _WIN32
 	void *th_retval;
 #endif
-	int i;
-
-	for (i = 0; i < ctxt->actual_cluster_size; i++) {
+	for (int i = 0; i < ctxt->actual_cluster_size; i++) {
 		wait_complete_download_req(&ctxt->tctxts[i]);
 		ctxt->tctxts[i].destroy_dwnl_thread_req = c_cl_api_true;
 #ifndef _WIN32
@@ -504,8 +497,7 @@ int swrngCLClose(SwrngCLContext *ctxt) {
 
 	unInitializeCLThreads(ctxt);
 
-	int i;
-	for (i = 0; i < ctxt->actual_cluster_size; i++) {
+	for (int i = 0; i < ctxt->actual_cluster_size; i++) {
 		/* Ignore the previous error */
 		status = swrngDestroyContext(&ctxt->tctxts[i].ctxt);
 		if (status != SWRNG_SUCCESS) {
@@ -525,7 +517,7 @@ int swrngCLClose(SwrngCLContext *ctxt) {
 * @param ctxt - pointer to SwrngCLContext structure
 * @return - number of devices used by the cluster
 */
-int swrngGetCLSize(SwrngCLContext *ctxt) {
+int swrngGetCLSize(const SwrngCLContext *ctxt) {
 
 	if (swrngIsCLOpen(ctxt) != c_cl_api_true) {
 		return 0;
@@ -539,7 +531,7 @@ int swrngGetCLSize(SwrngCLContext *ctxt) {
 * @param ctxt - pointer to SwrngCLContext structure
 * @return - number of cluster fail-over events
 */
-long swrngGetCLFailoverEventCount(SwrngCLContext *ctxt) {
+long swrngGetCLFailoverEventCount(const SwrngCLContext *ctxt) {
 	if (swrngIsCLOpen(ctxt) != c_cl_api_true) {
 		return 0;
 	}
@@ -552,7 +544,7 @@ long swrngGetCLFailoverEventCount(SwrngCLContext *ctxt) {
 * @param ctxt - pointer to SwrngCLContext structure
 * @return - number of cluster resize attempts
 */
-long swrngGetCLResizeAttemptCount(SwrngCLContext *ctxt) {
+long swrngGetCLResizeAttemptCount(const SwrngCLContext *ctxt) {
 	if (swrngIsCLOpen(ctxt) != c_cl_api_true) {
 		return 0;
 	}
@@ -616,13 +608,11 @@ static void freeAllocatedMemory(SwrngCLContext *ctxt) {
 * @param ctxt - pointer to SwrngCLContext structure
 * @return c_cl_api_true - context SI initialized
 */
-static int isContextCLInitialized(SwrngCLContext *ctxt) {
+static int isContextCLInitialized(const SwrngCLContext *ctxt) {
 	int retVal = c_cl_api_false;
-	if (ctxt != NULL) {
-		if (ctxt->sig_begin_data == c_cl_ctxt_sig_begin
-			&& ctxt->sig_end_block == c_cl_ctxt_sig_end) {
-			retVal = c_cl_api_true;
-		}
+	if (ctxt != NULL && ctxt->sig_begin_data == c_cl_ctxt_sig_begin
+		&& ctxt->sig_end_block == c_cl_ctxt_sig_end) {
+		retVal = c_cl_api_true;
 	}
 	return retVal;
 }
@@ -650,7 +640,7 @@ static int initializeCLContext(SwrngCLContext *ctxt) {
 * @param ctxt - pointer to SwrngCLContext structure
 * @return int - 0 when cluster is open
 */
-int swrngIsCLOpen(SwrngCLContext *ctxt) {
+int swrngIsCLOpen(const SwrngCLContext *ctxt) {
 
 	if (isContextCLInitialized(ctxt) == c_cl_api_false) {
 		return c_cl_api_false;
@@ -702,14 +692,15 @@ static void *download_thread(void *th_params) {
 	struct timespec timeout;
 	SwrngThreadContext *tctxt = (SwrngThreadContext *)th_params;
 
-	pthread_cleanup_push(cleanup_download_thread, (void*)tctxt);
+	pthread_cleanup_push(cleanup_download_thread, tctxt)
 
 	rc = pthread_mutex_lock(&tctxt->dwnl_mutex);
 	if (rc) {
 		pthread_exit(NULL);
 	}
 
-	while (1) {
+	int inLoop = 1;
+	while (inLoop) {
 		start = time(NULL);
 		timeout.tv_sec = start + 1;
 		timeout.tv_nsec = 0;
@@ -718,7 +709,7 @@ static void *download_thread(void *th_params) {
 		case 0:
 		case ETIMEDOUT:
 			if (tctxt->destroy_dwnl_thread_req == c_cl_api_true) {
-				goto exit;
+				inLoop = 0;
 			} else {
 				if (tctxt->dwnl_req_active == c_cl_api_true) {
 					tctxt->dwnl_status = swrngGetEntropy(&tctxt->ctxt, tctxt->thread_device_data_buffer, c_out_data_buff_size);
@@ -730,11 +721,11 @@ static void *download_thread(void *th_params) {
 			tctxt->dwnl_status = thread_event_err_id;
 			tctxt->dwnl_req_active = c_cl_api_false;
 			if (tctxt->destroy_dwnl_thread_req == c_cl_api_true) {
-				goto exit;
+				inLoop = 0;
 			}
 		}
 	}
-exit:
+
 	pthread_exit(NULL);
 	pthread_cleanup_pop(0);
 }
@@ -776,7 +767,7 @@ unsigned int __stdcall download_thread(void *th_params) {
 * @param ctxt - pointer to SwrngThreadContext structure
 * @return c_cl_api_true - context initialized
 */
-static void wait_complete_download_req(SwrngThreadContext *ctxt) {
+static void wait_complete_download_req(const SwrngThreadContext *ctxt) {
 	while(ctxt->dwnl_req_active == c_cl_api_true) {
 #ifndef _WIN32
 		sched_yield();
@@ -793,9 +784,8 @@ static void wait_complete_download_req(SwrngThreadContext *ctxt) {
 * @param ctxt - pointer to SwrngCLContext structure
 * @return c_cl_api_true - context initialized
 */
-static void wait_all_complete_download_reqs(SwrngCLContext *ctxt) {
-	int i;
-	for (i = 0; i < ctxt->actual_cluster_size; i++) {
+static void wait_all_complete_download_reqs(const SwrngCLContext *ctxt) {
+	for (int i = 0; i < ctxt->actual_cluster_size; i++) {
 		wait_complete_download_req(&ctxt->tctxts[i]);
 	}
 }
@@ -806,7 +796,8 @@ static void wait_all_complete_download_reqs(SwrngCLContext *ctxt) {
  *
  */
 static void wait_seconds(int seconds) {
-	time_t start, end;
+	time_t start;
+	time_t end;
 	start = time(NULL);
 	do {
 		end = time(NULL);
@@ -892,8 +883,7 @@ int swrngDisableCLStatisticalTests(SwrngCLContext *ctxt) {
 */
 static int disableCLPostProcessing(SwrngCLContext *ctxt) {
 	int status = SWRNG_SUCCESS;
-	int i;
-	for (i = 0; i < ctxt->actual_cluster_size; i++) {
+	for (int i = 0; i < ctxt->actual_cluster_size; i++) {
 		status = swrngDisablePostProcessing(&ctxt->tctxts[i].ctxt);
 	}
 	return status;
@@ -908,8 +898,7 @@ static int disableCLPostProcessing(SwrngCLContext *ctxt) {
 */
 static int disableCLStatisticalTests(SwrngCLContext *ctxt) {
 	int status = SWRNG_SUCCESS;
-	int i;
-	for (i = 0; i < ctxt->actual_cluster_size; i++) {
+	for (int i = 0; i < ctxt->actual_cluster_size; i++) {
 		status = swrngDisableStatisticalTests(&ctxt->tctxts[i].ctxt);
 	}
 	return status;
@@ -926,8 +915,7 @@ static int disableCLStatisticalTests(SwrngCLContext *ctxt) {
 */
 static int enableCLPostProcessing(SwrngCLContext *ctxt, int postProcessingMethodId) {
 	int status = SWRNG_SUCCESS;
-	int i;
-	for (i = 0; i < ctxt->actual_cluster_size; i++) {
+	for (int i = 0; i < ctxt->actual_cluster_size; i++) {
 		status = swrngEnablePostProcessing(&ctxt->tctxts[i].ctxt, postProcessingMethodId);
 	}
 	return status;
@@ -964,8 +952,7 @@ int swrngEnableCLStatisticaTests(SwrngCLContext *ctxt) {
 */
 static int enableCLStatisticalTests(SwrngCLContext *ctxt) {
 	int status = SWRNG_SUCCESS;
-	int i;
-	for (i = 0; i < ctxt->actual_cluster_size; i++) {
+	for (int i = 0; i < ctxt->actual_cluster_size; i++) {
 		status = swrngEnableStatisticalTests(&ctxt->tctxts[i].ctxt);
 	}
 	return status;
@@ -1004,8 +991,7 @@ int swrngSetCLPowerProfile(SwrngCLContext *ctxt, int ppNum) {
 */
 static int setCLPowerProfile(SwrngCLContext *ctxt, int ppNum) {
 	int status = SWRNG_SUCCESS;
-	int i;
-	for (i = 0; i < ctxt->actual_cluster_size; i++) {
+	for (int i = 0; i < ctxt->actual_cluster_size; i++) {
 		status = swrngSetPowerProfile(&ctxt->tctxts[i].ctxt, ppNum);
 	}
 	return status;
@@ -1018,7 +1004,7 @@ static int setCLPowerProfile(SwrngCLContext *ctxt, int ppNum) {
 * @return c_cl_api_true - it is time to resize the cluster
 *
 */
-static int isItTimeToResizeCluster(SwrngCLContext *ctxt) {
+static int isItTimeToResizeCluster(const SwrngCLContext *ctxt) {
 	if (swrngIsCLOpen(ctxt) == c_cl_api_false) {
 		return c_cl_api_false;
 	}

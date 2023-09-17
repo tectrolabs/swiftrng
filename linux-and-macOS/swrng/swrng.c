@@ -1,6 +1,6 @@
 /*
  * swrng.c
- * Ver. 3.4
+ * Ver. 3.5
  *
  */
 
@@ -39,7 +39,6 @@
  */
 static int display_devices(void) {
 	DeviceInfoList dil;
-	int i;
 
 	int status = swrngGetDeviceList(&ctxt, &dil);
 
@@ -51,7 +50,7 @@ static int display_devices(void) {
 
 	if (dil.numDevs > 0) {
 		printf("\n");
-		for (i = 0; i < dil.numDevs; i++) {
+		for (int i = 0; i < dil.numDevs; i++) {
 			printf("{");
 			printf("DevNum=%d", i);
 			printf(" DevModel=%s", dil.devInfoList[i].dm.value);
@@ -71,7 +70,7 @@ static int display_devices(void) {
  */
 static void display_usage(void) {
 	printf("*********************************************************************************\n");
-	printf("                   TectroLabs - swrng - download utility Ver 3.4  \n");
+	printf("                   TectroLabs - swrng - download utility Ver 3.5  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng  - True Random Number Generator SwiftRNG download \n");
@@ -322,10 +321,10 @@ static void close_handle(void) {
 /**
  * Write bytes out to the file
  *
- * @param uint8_t* bytes - pointer to the byte array
+ * @param const uint8_t* bytes - pointer to the byte array
  * @param uint32_t num_bytes - number of bytes to write
  */
-static void write_bytes(uint8_t *bytes, uint32_t num_bytes) {
+static void write_bytes(const uint8_t *bytes, uint32_t num_bytes) {
 	FILE *handle = p_output_file;
 	fwrite(bytes, 1, num_bytes, handle);
 }
@@ -378,7 +377,7 @@ static int handle_download_request(void) {
 	if (swrngGetPostProcessingStatus(&ctxt, &pp_status) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
 		swrngClose(&ctxt);
-		return(1);
+		return 1;
 	}
 
 	if (pp_status == 0) {
@@ -386,7 +385,7 @@ static int handle_download_request(void) {
 	} else {
 		if (swrngGetPostProcessingMethod(&ctxt, &act_pp_method_id) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
-			return(1);
+			return 1;
 		}
 		switch (act_pp_method_id) {
 		case 0:
@@ -406,7 +405,7 @@ static int handle_download_request(void) {
 
 	if (swrngGetEmbeddedCorrectionMethod(&ctxt, &emb_corr_method_id) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
-		return(1);
+		return 1;
 	}
 
 	switch(emb_corr_method_id) {
@@ -477,8 +476,7 @@ static int handle_download_request(void) {
 	uint32_t chunkRemaindBytes = (uint32_t)(num_gen_bytes % SWRNG_BUFF_FILE_SIZE_BYTES);
 
 	/* Process each chunk */
-	int64_t chunkNum;
-	for (chunkNum = 0; chunkNum < numCompleteChunks; chunkNum++) {
+	for (int64_t chunkNum = 0; chunkNum < numCompleteChunks; chunkNum++) {
 		status = swrngGetEntropy(&ctxt, receiveByteBuffer, SWRNG_BUFF_FILE_SIZE_BYTES);
 		if (status != SWRNG_SUCCESS) {
 			fprintf(stderr, "Failed to receive %d bytes, error code %d. ",
@@ -526,7 +524,7 @@ static int process_download_request(void) {
 		is_output_to_standard_output = val_false;
 	}
 	int status = handle_download_request();
-	DeviceStatistics *ds = swrngGenerateDeviceStatistics(&ctxt);
+	const DeviceStatistics *ds = swrngGenerateDeviceStatistics(&ctxt);
 	if (!is_output_to_standard_output) {
 		printf("Completed in %d seconds, post-processing method used: %s, device built-in correction method used: %s, ",
 				(int) ds->totalTime, pp_method_char, emb_corr_method_char);
@@ -537,7 +535,7 @@ static int process_download_request(void) {
 		} else {
 			printf("statistical tests disabled, ");
 		}
-		printf("speed: %d KBytes/sec, blocks re-sent: %d\n", (int) ds->downloadSpeedKBsec, (int) ds->totalRetries);
+		printf("speed: %d KBytes/sec, blocks re-sent: %d\n", ds->downloadSpeedKBsec, (int) ds->totalRetries);
 	}
 	return status;
 }
@@ -554,7 +552,7 @@ static int process(int argc, char **argv) {
 	int status = swrngInitializeContext(&ctxt);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Could not initialize context\n");
-		return(status);
+		return status;
 	}
 
 	swrngEnablePrintingErrorMessages(&ctxt);

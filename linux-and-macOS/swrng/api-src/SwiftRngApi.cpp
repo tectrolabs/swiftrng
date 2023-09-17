@@ -12,13 +12,15 @@
 
 /**
  *    @file SwiftRngApi.h
- *    @date 7/8/2022
+ *    @date 9/17/2023
  *    @Author: Andrian Belinski
- *    @version 1.0
+ *    @version 1.1
  *
  *    @brief Implements the API for interacting with the SwiftRNG device.
  */
 #include <SwiftRngApi.h>
+
+using namespace std;
 
 namespace swiftrng {
 
@@ -153,15 +155,15 @@ void SwiftRngApi::close_USB_lib() {
 	if (m_libusb_devh) {
 		libusb_release_interface(m_libusb_devh, 0); //release the claimed interface
 		libusb_close(m_libusb_devh);
-		m_libusb_devh = NULL;
+		m_libusb_devh = nullptr;
 	}
 	if (m_libusb_devs) {
 		libusb_free_device_list(m_libusb_devs, 1);
-		m_libusb_devs = NULL;
+		m_libusb_devs = nullptr;
 	}
 	if (m_libusb_initialized == true) {
 		libusb_exit(m_libusb_luctx);
-		m_libusb_luctx = NULL;
+		m_libusb_luctx = nullptr;
 		m_libusb_initialized = false;
 	}
 }
@@ -177,7 +179,7 @@ void SwiftRngApi::swrng_printErrorMessage(const string &err_msg) {
 	clear_last_error_msg();
 	m_last_error_log_oss << err_msg;
 
-	int err_msg_size = (int) err_msg.size();
+	auto err_msg_size = (int) err_msg.size();
 	if (err_msg_size >= c_max_last_error_log_size) {
 		// Truncate the message to fit the char storage
 		err_msg_size = c_max_last_error_log_size - 1;
@@ -194,7 +196,7 @@ int SwiftRngApi::open(int devNum) {
 		return -1;
 	}
 
-	if (m_usb_serial_device != NULL) {
+	if (m_usb_serial_device != nullptr) {
 		m_usb_serial_device->disconnect();
 	}
 
@@ -204,12 +206,12 @@ int SwiftRngApi::open(int devNum) {
 
 
 #ifdef _WIN32
-	if (m_usb_serial_device == NULL) {
+	if (m_usb_serial_device == nullptr) {
 		m_usb_serial_device = new (nothrow) USBComPort;
 		m_usb_serial_device->initialize();
 	}
 #else
-	if (m_usb_serial_device == NULL) {
+	if (m_usb_serial_device == nullptr) {
 		m_usb_serial_device = new (nothrow) USBSerialDevice;
 		m_usb_serial_device->initialize();
 	}
@@ -258,14 +260,14 @@ int SwiftRngApi::open(int devNum) {
 	}
 #else
 	// Retrieve devices connected as USB CDC in Linux/macOS
-	m_usb_serial_device->scanForConnectedDevices();
-	int portsConnected = m_usb_serial_device->getConnectedDeviceCount();
+	m_usb_serial_device->scan_available_devices();
+	int portsConnected = m_usb_serial_device->get_device_count();
 	if (portsConnected > devNum) {
 		char devicePath[128];
-		m_usb_serial_device->retrieveConnectedDevice(devicePath, devNum);
+		m_usb_serial_device->retrieve_device_path(devicePath, devNum);
 		bool comPortStatus = m_usb_serial_device->connect(devicePath);
 		if (!comPortStatus) {
-			swrng_printErrorMessage(m_usb_serial_device->getLastErrMsg());
+			swrng_printErrorMessage(m_usb_serial_device->get_error_log().c_str());
 			return -1;
 		}
 		else {
@@ -291,10 +293,10 @@ int SwiftRngApi::open(int devNum) {
 	ssize_t cnt = libusb_get_device_list(m_libusb_luctx, &m_libusb_devs);
 	if (cnt < 0) {
 		close_USB_lib();
-		return cnt;
+		return (int)cnt;
 	}
 	int i = 0;
-	while ((m_libusb_dev = m_libusb_devs[i++]) != NULL) {
+	while ((m_libusb_dev = m_libusb_devs[i++]) != nullptr) {
 		struct libusb_device_descriptor desc;
 		ret = libusb_get_device_descriptor(m_libusb_dev, &desc);
 		if (ret < 0) {
@@ -361,10 +363,10 @@ int SwiftRngApi::close() {
 		return -1;
 	}
 
-	if (m_usb_serial_device != NULL) {
+	if (m_usb_serial_device != nullptr) {
 		m_usb_serial_device->disconnect();
 		delete m_usb_serial_device;
-		m_usb_serial_device = NULL;
+		m_usb_serial_device = nullptr;
 	}
 	close_USB_lib();
 	m_device_open = false;
@@ -372,7 +374,7 @@ int SwiftRngApi::close() {
 }
 
 void SwiftRngApi::swrng_contextReset() {
-	if (m_usb_serial_device != NULL) {
+	if (m_usb_serial_device != nullptr) {
 		m_usb_serial_device->disconnect();
 	}
 	close_USB_lib();
@@ -385,7 +387,7 @@ void SwiftRngApi::swrng_contextReset() {
 *
 * @return int - 0 when device is open
 */
-int SwiftRngApi::is_open() {
+int SwiftRngApi::is_open() const {
 
 	if (is_context_initialized() == false) {
 		return -1;
@@ -418,7 +420,6 @@ int SwiftRngApi::swrng_getEntropyBytes() {
  */
 int SwiftRngApi::swrng_rcv_rnd_bytes() {
 	int retval;
-	int i, j;
 	uint32_t *dst32, *src32;
 	uint64_t *dst64, *src64;
 
@@ -440,24 +441,24 @@ int SwiftRngApi::swrng_rcv_rnd_bytes() {
 			if (m_post_processing_method_id == c_sha256_pp_method_id) {
 				dst32 = (uint32_t *)m_buff_rnd_out;
 				src32 = (uint32_t *)m_buff_rnd_in;
-				for (i = 0; i < c_rnd_in_buff_size / c_word_size_bytes; i
+				for (int i = 0; i < c_rnd_in_buff_size / c_word_size_bytes; i
 						+= c_min_input_num_words) {
-					for (j = 0; j < c_min_input_num_words; j++) {
+					for (int j = 0; j < c_min_input_num_words; j++) {
 						m_src_to_hash_32[j] = src32[i + j];
 					}
 					sha256_stampSerialNumber(m_src_to_hash_32);
-					sha256_generateHash(m_src_to_hash_32, c_min_input_num_words + 1, dst32);
+					sha256_generateHash(m_src_to_hash_32, (int16_t)(c_min_input_num_words + 1), dst32);
 					dst32 += c_out_num_words;
 				}
 			} else if (m_post_processing_method_id == c_sha512_pp_method_id) {
 				dst64 = (uint64_t *)m_buff_rnd_out;
 				src64 = (uint64_t *)m_buff_rnd_in;
-				for (i = 0; i < c_rnd_in_buff_size / (c_word_size_bytes * 2); i
+				for (int i = 0; i < c_rnd_in_buff_size / (c_word_size_bytes * 2); i
 						+= c_min_input_num_words) {
-					for (j = 0; j < c_min_input_num_words; j++) {
+					for (int j = 0; j < c_min_input_num_words; j++) {
 						m_src_to_hash_64[j] = src64[i + j];
 					}
-					sha512_generateHash(m_src_to_hash_64, c_min_input_num_words, dst64);
+					sha512_generateHash(m_src_to_hash_64, (int16_t)c_min_input_num_words, dst64);
 					dst64 += c_out_num_words;
 				}
 			} else if (m_post_processing_method_id == c_xorshift64_pp_method_id) {
@@ -489,9 +490,8 @@ int SwiftRngApi::swrng_rcv_rnd_bytes() {
  *
  */
 void SwiftRngApi::test_samples() {
-	int i;
 	uint8_t value;
-	for (i = 0; i < c_rnd_out_buff_size; i++) {
+	for (int i = 0; i < c_rnd_out_buff_size; i++) {
 		value = m_buff_rnd_in[i];
 
 		//
@@ -585,7 +585,6 @@ int SwiftRngApi::get_entropy_ex(unsigned char *buffer, long length) {
 	unsigned char *dst;
 	long total_byte_blocks;
 	long leftover_bytes;
-	long l;
 
 	if (length <= 0) {
 		retval = -EPERM;
@@ -593,7 +592,7 @@ int SwiftRngApi::get_entropy_ex(unsigned char *buffer, long length) {
 		total_byte_blocks = length / c_max_request_size_bytes;
 		leftover_bytes = length % c_max_request_size_bytes;
 		dst = buffer;
-		for (l = 0; l < total_byte_blocks; l++) {
+		for (long l = 0; l < total_byte_blocks; l++) {
 			retval = get_entropy(dst, c_max_request_size_bytes);
 			if (retval != SWRNG_SUCCESS) {
 				break;
@@ -678,12 +677,12 @@ int SwiftRngApi::get_frequency_tables(FrequencyTables *frequency_tables) {
 		return -1;
 	}
 
-	if (frequency_tables == NULL) {
+	if (frequency_tables == nullptr) {
 		swrng_printErrorMessage(c_freq_table_invalid_msg);
 		return -1;
 	}
 
-	int resp = swrng_snd_rcv_usb_data((char*) "f", 1, (char *)frequency_tables,
+	int resp = swrng_snd_rcv_usb_data("f", 1, (char *)frequency_tables,
 			sizeof(FrequencyTables) - 2, c_usb_read_timeout_secs);
 	if (resp != 0) {
 		swrng_printErrorMessage("Could not retrieve device frequency tables");
@@ -737,20 +736,20 @@ int SwiftRngApi::get_device_list(DeviceInfoList *dev_info_list) {
 #else
 	USBSerialDevice usbSerialDevice;
 	// Add devices connected as USB CDC in Linux/macOS
-	usbSerialDevice.scanForConnectedDevices();
-	int portsConnected = usbSerialDevice.getConnectedDeviceCount();
+	usbSerialDevice.scan_available_devices();
+	int portsConnected = usbSerialDevice.get_device_count();
 	while (portsConnected-- > 0) {
 		swrng_updateDevInfoList(dev_info_list, &curFoundDevNum);
 	}
 #endif
 
-	ssize_t cnt = libusb_get_device_list(NULL, &devs);
+	ssize_t cnt = libusb_get_device_list(nullptr, &devs);
 	if (cnt < 0) {
 		close_USB_lib();
-		return cnt;
+		return (int)cnt;
 	}
 	int i = -1;
-	while ((dev = devs[++i]) != NULL) {
+	while ((dev = devs[++i]) != nullptr) {
 		if (i > 127) {
 			libusb_free_device_list(devs, 1);
 			close_USB_lib();
@@ -777,7 +776,7 @@ int SwiftRngApi::get_device_list(DeviceInfoList *dev_info_list) {
 	return 0;
 }
 
-void SwiftRngApi::swrng_updateDevInfoList(DeviceInfoList* dev_info_list, int *curt_found_dev_num) {
+void SwiftRngApi::swrng_updateDevInfoList(DeviceInfoList* dev_info_list, int *curt_found_dev_num) const {
 	dev_info_list->devInfoList[*curt_found_dev_num].devNum = *curt_found_dev_num;
 	SwiftRngApi api;
 	if (api.is_context_initialized() == false) {
@@ -812,7 +811,7 @@ int SwiftRngApi::get_serial_number(DeviceSerialNumber *serial_number) {
 		return -1;
 	}
 
-	int resp = swrng_snd_rcv_usb_data((char*) "s", 1, serial_number->value, sizeof(DeviceSerialNumber) - 1, c_usb_read_timeout_secs);
+	int resp = swrng_snd_rcv_usb_data("s", 1, serial_number->value, sizeof(DeviceSerialNumber) - 1, c_usb_read_timeout_secs);
 	// Replace status byte with \0 for ASCIIZ
 	serial_number->value[sizeof(DeviceSerialNumber) - 1] = '\0';
 	if (resp != 0) {
@@ -841,7 +840,7 @@ int SwiftRngApi::set_power_profile(int power_profile_number) {
 		return -1;
 	}
 
-	ppn[0] = '0' + power_profile_number;
+	ppn[0] = '0' + (char)power_profile_number;
 
 	int resp = swrng_snd_rcv_usb_data(ppn, 1, ppn, 0, c_usb_read_timeout_secs);
 	if (resp != 0) {
@@ -1005,12 +1004,12 @@ int SwiftRngApi::enable_statistical_tests() {
 
 /**
  * Generate and retrieve device statistics
- * @return a pointer to DeviceStatistics structure or NULL if the call failed
+ * @return a pointer to DeviceStatistics structure or nullptr if the call failed
  */
 DeviceStatistics* SwiftRngApi::generate_device_statistics() {
 
 	if (is_context_initialized() == false) {
-		return NULL;
+		return nullptr;
 	}
 
 	time(&m_device_stats.endTime); // Stop performance timer
@@ -1019,8 +1018,7 @@ DeviceStatistics* SwiftRngApi::generate_device_statistics() {
 	if (m_device_stats.totalTime == 0) {
 		m_device_stats.totalTime = 1;
 	}
-	m_device_stats.downloadSpeedKBsec = (int) (m_device_stats.numGenBytes / (int64_t) 1024
-			/ (int64_t)m_device_stats.totalTime);
+	m_device_stats.downloadSpeedKBsec = (int) (m_device_stats.numGenBytes / (int64_t) 1024 / m_device_stats.totalTime);
 	return &m_device_stats;
 }
 
@@ -1056,7 +1054,7 @@ void SwiftRngApi::enable_printing_error_messages() {
 *
 * @return int - 0 when statistical tests successfully enabled, otherwise the error code
 */
-int SwiftRngApi::get_max_apt_failures_per_block(uint16_t *max_apt_failures_per_block) {
+int SwiftRngApi::get_max_apt_failures_per_block(uint16_t *max_apt_failures_per_block) const {
 	if (is_context_initialized() == false) {
 		return -1;
 	}
@@ -1071,7 +1069,7 @@ int SwiftRngApi::get_max_apt_failures_per_block(uint16_t *max_apt_failures_per_b
 *
 * @return int - 0 when statistical tests successfully enabled, otherwise the error code
 */
-int SwiftRngApi::get_max_rct_failures_per_block(uint16_t *max_rct_failures_per_block) {
+int SwiftRngApi::get_max_rct_failures_per_block(uint16_t *max_rct_failures_per_block) const {
 	if (is_context_initialized() == false) {
 		return -1;
 	}
@@ -1193,7 +1191,7 @@ int SwiftRngApi::get_model(DeviceModel *model) {
 		return -1;
 	}
 
-	int resp = swrng_snd_rcv_usb_data((char*) "m", 1, model->value,	sizeof(DeviceModel) - 1, c_usb_read_timeout_secs);
+	int resp = swrng_snd_rcv_usb_data("m", 1, model->value,	sizeof(DeviceModel) - 1, c_usb_read_timeout_secs);
 	// Replace status byte with \0 for ASCIIZ
 	model->value[sizeof(DeviceModel) - 1] = '\0';
 	if (resp != 0) {
@@ -1279,11 +1277,10 @@ int SwiftRngApi::get_entropy(unsigned char *buffer, long length) {
 void SwiftRngApi::swrng_clearReceiverBuffer() {
 	int transferred;
 	int retval;
-	int i;
-	for (i = 0; i < 3; i++) {
+	for (int i = 0; i < 3; i++) {
 
-		if (m_usb_serial_device->isConnected()) {
-			retval = m_usb_serial_device->receiveDeviceData(m_bulk_in_buffer, c_rnd_in_buff_size + 1, &transferred);
+		if (m_usb_serial_device->is_connected()) {
+			retval = m_usb_serial_device->receive_data(m_bulk_in_buffer, c_rnd_in_buff_size + 1, &transferred);
 		}
 		else {
 			retval = libusb_bulk_transfer(m_libusb_devh, SWRNG_BULK_EP_IN, m_bulk_in_buffer, c_rnd_in_buff_size + 1, &transferred, c_usb_bulk_read_timeout_mlsecs);
@@ -1291,7 +1288,9 @@ void SwiftRngApi::swrng_clearReceiverBuffer() {
 
 		if (retval) {
 			break;
-		} if (transferred == 0) {
+		}
+
+		if (transferred == 0) {
 			break;
 		}
 	}
@@ -1300,7 +1299,7 @@ void SwiftRngApi::swrng_clearReceiverBuffer() {
 /**
  * Send a SW device command and receive response
  *
- * @param char *snd -  a pointer to the command
+ * @param const char *snd -  a pointer to the command
  * @param int size_snd - how many bytes in command
  * @param char *rcv - a pointer to the data receive buffer
  * @param int size_rcv - how many bytes expected to receive
@@ -1309,17 +1308,17 @@ void SwiftRngApi::swrng_clearReceiverBuffer() {
  * @return 0 - successful operation, otherwise the error code (a negative number)
  *
  */
-int SwiftRngApi::swrng_snd_rcv_usb_data(char *snd, int sizeSnd, char *rcv, int sizeRcv,	int op_timeout_secs) {
+int SwiftRngApi::swrng_snd_rcv_usb_data(const char *snd, int sizeSnd, char *rcv, int sizeRcv,	int op_timeout_secs) {
 	int retry;
 	int actualc_cnt;
 	int retval = SWRNG_SUCCESS;
 
 	for (retry = 0; retry < c_usb_read_max_retry_count; retry++) {
-		if (m_usb_serial_device->isConnected()) {
-			retval = m_usb_serial_device->sendCommand((unsigned char*)snd, sizeSnd, &actualc_cnt);
+		if (m_usb_serial_device->is_connected()) {
+			retval = m_usb_serial_device->send_command((const unsigned char*)snd, sizeSnd, &actualc_cnt);
 		}
 		else {
-			retval = libusb_bulk_transfer(m_libusb_devh, SWRNG_BULK_EP_OUT, (unsigned char*)snd, sizeSnd, &actualc_cnt, 100);
+			retval = libusb_bulk_transfer(m_libusb_devh, (unsigned char)SWRNG_BULK_EP_OUT, (unsigned char*)snd, sizeSnd, &actualc_cnt, 100);
 		}
 
 		if (retval == SWRNG_SUCCESS && actualc_cnt == sizeSnd) {
@@ -1339,10 +1338,8 @@ int SwiftRngApi::swrng_snd_rcv_usb_data(char *snd, int sizeSnd, char *rcv, int s
 			m_device_stats.totalRetries++;
 		swrng_chip_read_data(m_buff_rnd_in, c_rnd_in_buff_size + 1, op_timeout_secs);
 	}
-	if (retry >= c_usb_read_max_retry_count) {
-		if (retval == SWRNG_SUCCESS) {
-			retval = -ETIMEDOUT;
-		}
+	if (retry >= c_usb_read_max_retry_count && retval == SWRNG_SUCCESS) {
+		retval = -ETIMEDOUT;
 	}
 	return retval;
 }
@@ -1359,20 +1356,20 @@ int SwiftRngApi::swrng_snd_rcv_usb_data(char *snd, int sizeSnd, char *rcv, int s
 int SwiftRngApi::swrng_chip_read_data(char *buff, int length, int op_timeout_secs) {
 	long secs_waited;
 	int transferred;
-	time_t start, end;
+	time_t start;
+	time_t end;
 	int cnt;
-	int i;
 	int retval;
 
-	start = time(NULL);
+	start = time(nullptr);
 
 	cnt = 0;
 	do {
-		if (m_usb_serial_device->isConnected()) {
-			retval = m_usb_serial_device->receiveDeviceData(m_bulk_in_buffer, length, &transferred);
+		if (m_usb_serial_device->is_connected()) {
+			retval = m_usb_serial_device->receive_data(m_bulk_in_buffer, length, &transferred);
 		}
 		else {
-			retval = libusb_bulk_transfer(m_libusb_devh, SWRNG_BULK_EP_IN, m_bulk_in_buffer, length, &transferred, c_usb_bulk_read_timeout_mlsecs);
+			retval = libusb_bulk_transfer(m_libusb_devh, (unsigned char)SWRNG_BULK_EP_IN, m_bulk_in_buffer, length, &transferred, c_usb_bulk_read_timeout_mlsecs);
 		}
 
 #ifdef inDebugMode
@@ -1387,10 +1384,10 @@ int SwiftRngApi::swrng_chip_read_data(char *buff, int length, int op_timeout_sec
 			return -EFAULT;
 		}
 
-		end = time(NULL);
-		secs_waited = (long)(end - start);
+		end = time(nullptr);
+		secs_waited = end - start;
 		if (transferred > 0) {
-			for (i = 0; i < transferred; i++) {
+			for (int i = 0; i < transferred; i++) {
 				buff[cnt++] = m_bulk_in_buffer[i];
 			}
 		}
@@ -1425,8 +1422,7 @@ int SwiftRngApi::get_version(DeviceVersion *version) {
 		return -1;
 	}
 
-	int resp = swrng_snd_rcv_usb_data((char*) "v", 1, version->value,
-			sizeof(DeviceVersion) - 1, c_usb_read_timeout_secs);
+	int resp = swrng_snd_rcv_usb_data("v", 1, version->value, sizeof(DeviceVersion) - 1, c_usb_read_timeout_secs);
 	// Replace status byte with \0 for ASCIIZ
 	version->value[sizeof(DeviceVersion) - 1] = '\0';
 	if (resp != 0) {
@@ -1495,7 +1491,6 @@ void SwiftRngApi::sha256_initialize() {
  *
  */
 void SwiftRngApi::sha512_initialize() {
-	int i;
 	// Initialize H0, H1, H2, H3, H4, H5, H6 and H7
 	m_sha512_ctxt.h0 = 0x6a09e667f3bcc908;
 	m_sha512_ctxt.h1 = 0xbb67ae8584caa73b;
@@ -1506,7 +1501,7 @@ void SwiftRngApi::sha512_initialize() {
 	m_sha512_ctxt.h6 = 0x1f83d9abfb41bd6b;
 	m_sha512_ctxt.h7 = 0x5be0cd19137e2179;
 
-	for (i = 0; i < 15; i++) {
+	for (int i = 0; i < 15; i++) {
 		m_sha512_ctxt.w[i] = 0;
 	}
 }
@@ -1517,9 +1512,8 @@ void SwiftRngApi::sha512_initialize() {
  * @param void* input_block pointer to the input hashing block
  *
  */
-void SwiftRngApi::sha256_stampSerialNumber(void *input_block) {
-	uint32_t *inw = (uint32_t*) input_block;
-	inw[c_min_input_num_words] = m_sha256_ctxt.blockSerialNumber++;
+void SwiftRngApi::sha256_stampSerialNumber(uint32_t *input_block) {
+	input_block[c_min_input_num_words] = m_sha256_ctxt.blockSerialNumber++;
 }
 
 /**
@@ -1542,7 +1536,7 @@ void SwiftRngApi::sha256_initializeSerialNumber(uint32_t init_value) {
  * @return int 0 for successful operation, -1 for invalid parameters
  *
  */
-int SwiftRngApi::sha512_generateHash(uint64_t *src, int16_t len, uint64_t *dst) {
+int SwiftRngApi::sha512_generateHash(const uint64_t *src, int16_t len, uint64_t *dst) {
 
 	if (len <= 0 || len > 14) {
 		return -1;
@@ -1583,7 +1577,7 @@ int SwiftRngApi::sha512_generateHash(uint64_t *src, int16_t len, uint64_t *dst) 
  * @return int 0 for successful operation, -1 for invalid parameters
  *
  */
-int SwiftRngApi::sha256_generateHash(uint32_t *src, int16_t len, uint32_t *dst) {
+int SwiftRngApi::sha256_generateHash(const uint32_t *src, int16_t len, uint32_t *dst) {
 
 	uint16_t blockNum;
 	uint8_t ui8;
@@ -1676,10 +1670,8 @@ int SwiftRngApi::sha256_generateHash(uint32_t *src, int16_t len, uint32_t *dst) 
  */
 void SwiftRngApi::sha512_hashCurrentBlock() {
 
-	uint8_t t;
-
 	// Process elements 16...79
-	for (t = 16; t <= 79; t++) {
+	for (uint8_t t = 16; t <= 79; t++) {
 		m_sha512_ctxt.w[t] = sha512_sigma1(&m_sha512_ctxt.w[t-2]) + m_sha512_ctxt.w[t-7] + sha512_sigma0(&m_sha512_ctxt.w[t-15]) + m_sha512_ctxt.w[t-16];
 	}
 
@@ -1694,7 +1686,7 @@ void SwiftRngApi::sha512_hashCurrentBlock() {
 	m_sha512_ctxt.h = m_sha512_ctxt.h7;
 
 	// Process elements 0...79
-	for (t = 0; t <= 79; t++) {
+	for (uint8_t t = 0; t <= 79; t++) {
 		m_sha512_ctxt.tmp1 = m_sha512_ctxt.h + sha512_sum1(&m_sha512_ctxt.e) + sha512_ch(&m_sha512_ctxt.e, &m_sha512_ctxt.f, &m_sha512_ctxt.g) + c_sha512_k[t] + m_sha512_ctxt.w[t];
 		m_sha512_ctxt.tmp2 = sha512_sum0(&m_sha512_ctxt.a) + sha512_maj(&m_sha512_ctxt.a, &m_sha512_ctxt.b, &m_sha512_ctxt.c);
 		m_sha512_ctxt.h = m_sha512_ctxt.g;
@@ -1723,10 +1715,8 @@ void SwiftRngApi::sha512_hashCurrentBlock() {
  *
  */
 void SwiftRngApi::sha256_hashCurrentBlock() {
-	uint8_t t;
-
 	// Process elements 16...63
-	for (t = 16; t <= 63; t++) {
+	for (uint8_t t = 16; t <= 63; t++) {
 		m_sha256_ctxt.w[t] = sha256_sigma1(&m_sha256_ctxt.w[t - 2]) + m_sha256_ctxt.w[t - 7] + sha256_sigma0(
 				&m_sha256_ctxt.w[t - 15]) + m_sha256_ctxt.w[t - 16];
 	}
@@ -1742,7 +1732,7 @@ void SwiftRngApi::sha256_hashCurrentBlock() {
 	m_sha256_ctxt.h = m_sha256_ctxt.h7;
 
 	// Process elements 0...63
-	for (t = 0; t <= 63; t++) {
+	for (uint8_t t = 0; t <= 63; t++) {
 		m_sha256_ctxt.tmp1 = m_sha256_ctxt.h + sha256_sum1(&m_sha256_ctxt.e) + sha256_ch(&m_sha256_ctxt.e, &m_sha256_ctxt.f, &m_sha256_ctxt.g)
 				+ c_sha256_k[t] + m_sha256_ctxt.w[t];
 		m_sha256_ctxt.tmp2 = sha256_sum0(&m_sha256_ctxt.a) + sha256_maj(&m_sha256_ctxt.a, &m_sha256_ctxt.b, &m_sha256_ctxt.c);
@@ -1789,7 +1779,7 @@ uint32_t SwiftRngApi::sha256_ch(uint32_t *x, uint32_t *y, uint32_t *z) {
  * $return uint32_t Maj value
  *
  */
-uint32_t SwiftRngApi::sha256_maj(uint32_t *x, uint32_t *y, uint32_t *z) {
+uint32_t SwiftRngApi::sha256_maj(const uint32_t *x, const uint32_t *y, const uint32_t *z) {
 	return ((*x) & (*y)) ^ ((*x) & (*z)) ^ ((*y) & (*z));
 }
 
@@ -1800,7 +1790,7 @@ uint32_t SwiftRngApi::sha256_maj(uint32_t *x, uint32_t *y, uint32_t *z) {
  * $return uint32_t Sum0 value
  *
  */
-uint32_t SwiftRngApi::sha256_sum0(uint32_t *x) {
+uint32_t SwiftRngApi::sha256_sum0(const uint32_t *x) {
 	return rotr32(2, *x) ^ rotr32(13, *x) ^ rotr32(22, *x);
 }
 
@@ -1811,7 +1801,7 @@ uint32_t SwiftRngApi::sha256_sum0(uint32_t *x) {
  * $return uint32_t Sum1 value
  *
  */
-uint32_t SwiftRngApi::sha256_sum1(uint32_t *x) {
+uint32_t SwiftRngApi::sha256_sum1(const uint32_t *x) {
 	return rotr32(6, *x) ^ rotr32(11, *x) ^ rotr32(25, *x);
 }
 
@@ -1822,7 +1812,7 @@ uint32_t SwiftRngApi::sha256_sum1(uint32_t *x) {
  * $return uint32_t sigma0 value
  *
  */
-uint32_t SwiftRngApi::sha256_sigma0(uint32_t *x) {
+uint32_t SwiftRngApi::sha256_sigma0(const uint32_t *x) {
 	return rotr32(7, *x) ^ rotr32(18, *x) ^ ((*x) >> 3);
 }
 
@@ -1833,7 +1823,7 @@ uint32_t SwiftRngApi::sha256_sigma0(uint32_t *x) {
  * $return uint32_t sigma1 value
  *
  */
-uint32_t SwiftRngApi::sha256_sigma1(uint32_t *x) {
+uint32_t SwiftRngApi::sha256_sigma1(const uint32_t *x) {
 	return rotr32(17, *x) ^ rotr32(19, *x) ^ ((*x) >> 10);
 }
 
@@ -1846,7 +1836,7 @@ uint32_t SwiftRngApi::sha256_sigma1(uint32_t *x) {
  * $return uint64_t ch value
  *
  */
-uint64_t SwiftRngApi::sha512_ch(uint64_t *x, uint64_t *y, uint64_t *z) {
+uint64_t SwiftRngApi::sha512_ch(const uint64_t *x, const uint64_t *y, const uint64_t *z) {
 	return  ((*x) & (*y)) ^ (~(*x) & (*z));
 }
 
@@ -1859,7 +1849,7 @@ uint64_t SwiftRngApi::sha512_ch(uint64_t *x, uint64_t *y, uint64_t *z) {
  * $return uint64_t maj value
  *
  */
-uint64_t SwiftRngApi::sha512_maj(uint64_t *x, uint64_t *y, uint64_t *z) {
+uint64_t SwiftRngApi::sha512_maj(const uint64_t *x, const uint64_t *y, const uint64_t *z) {
 	return ((*x) & (*y)) ^ ((*x) & (*z)) ^ ((*y) & (*z));
 }
 
@@ -1870,7 +1860,7 @@ uint64_t SwiftRngApi::sha512_maj(uint64_t *x, uint64_t *y, uint64_t *z) {
  * $return uint64_t sum0 value
  *
  */
-uint64_t SwiftRngApi::sha512_sum0(uint64_t *x) {
+uint64_t SwiftRngApi::sha512_sum0(const uint64_t *x) {
 	return rotr64(28, *x) ^ rotr64(34, *x) ^ rotr64(39, *x);
 }
 
@@ -1881,7 +1871,7 @@ uint64_t SwiftRngApi::sha512_sum0(uint64_t *x) {
  * $return uint64_t sum1 value
  *
  */
-uint64_t SwiftRngApi::sha512_sum1(uint64_t *x) {
+uint64_t SwiftRngApi::sha512_sum1(const uint64_t *x) {
 	return rotr64(14, *x) ^ rotr64(18, *x) ^ rotr64(41, *x);
 }
 
@@ -1892,7 +1882,7 @@ uint64_t SwiftRngApi::sha512_sum1(uint64_t *x) {
  * $return uint64_t sigma0 value
  *
  */
-uint64_t SwiftRngApi::sha512_sigma0(uint64_t *x) {
+uint64_t SwiftRngApi::sha512_sigma0(const uint64_t *x) {
 	return rotr64(1, *x) ^ rotr64(8, *x) ^ ((*x) >> 7);
 }
 
@@ -1903,7 +1893,7 @@ uint64_t SwiftRngApi::sha512_sigma0(uint64_t *x) {
  * $return uint64_t sigma1 value
  *
  */
-uint64_t SwiftRngApi::sha512_sigma1(uint64_t *x) {
+uint64_t SwiftRngApi::sha512_sigma1(const uint64_t *x) {
 	return rotr64(19, *x) ^ rotr64(61, *x) ^ ((*x) >> 6);
 }
 
@@ -1918,8 +1908,7 @@ int SwiftRngApi::sha256_selfTest() {
 	uint32_t results[8];
 	int retVal;
 
-	retVal = sha256_generateHash((uint32_t*) c_sha256_test_seq_1, (uint16_t) 11,
-			(uint32_t*) results);
+	retVal = sha256_generateHash(c_sha256_test_seq_1, (uint16_t) 11, (uint32_t*) results);
 	if (retVal == 0) {
 		// Compare the expected with actual results
 		retVal = memcmp(results, c_sha256_expt_hash_seq_1, 8);
@@ -1940,7 +1929,7 @@ int SwiftRngApi::sha512_selfTest() {
 		return -1;
 	}
 
-	retVal = sha512_generateHash((uint64_t *)"8765432187654321876543218765432187654321876543218765432187654321",
+	retVal = sha512_generateHash((const uint64_t *)"8765432187654321876543218765432187654321876543218765432187654321",
 			(uint16_t) 8, (uint64_t*) results);
 	if (retVal == 0) {
 		// Compare the expected with actual results
@@ -1971,7 +1960,7 @@ int SwiftRngApi::xorshift64_selfTest() {
 * Apply Xorshift64 (Marsaglia's PPRNG method) to the raw word
 * @param raw_word - word to post process
 */
-uint64_t SwiftRngApi::xorshift64_postProcessWord(uint64_t raw_word) {
+uint64_t SwiftRngApi::xorshift64_postProcessWord(uint64_t raw_word) const {
 	uint64_t trueWord = raw_word;
 
 	trueWord ^= trueWord >> 12;
@@ -1986,8 +1975,7 @@ uint64_t SwiftRngApi::xorshift64_postProcessWord(uint64_t raw_word) {
 * @param num_elements - number of elements in the input buffer
 */
 void SwiftRngApi::xorshift64_postProcessWords(uint64_t *buffer, int num_elements) {
-	int i;
-	for(i = 0; i < num_elements; i++) {
+	for(int i = 0; i < num_elements; i++) {
 		buffer[i] = xorshift64_postProcessWord(buffer[i]);
 	}
 }

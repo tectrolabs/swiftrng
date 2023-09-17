@@ -1,6 +1,6 @@
 /*
  * SWRNGRandomSeqGenerator.cpp
- * Ver 2.2
+ * Ver 2.3
  *
  */
 
@@ -26,13 +26,13 @@ namespace swiftrng {
  * @param  uint32_t range - sequence range
  */
 RandomSeqGenerator::RandomSeqGenerator(int deviceNumber, uint32_t range) {
-	this->m_device_number = deviceNumber;
-	this->m_range = range;
-	m_number_buffer_1 = new (nothrow) int32_t[range];
+	m_device_number = deviceNumber;
+	m_range = range;
+	m_number_buffer_1 = new (std::nothrow) int32_t[range];
 	if (m_number_buffer_1 != nullptr) {
-		m_number_buffer_2 = new (nothrow) int32_t[range];
+		m_number_buffer_2 = new (std::nothrow) int32_t[range];
 		if (m_number_buffer_2 != nullptr) {
-			mn_random_buffer = new (nothrow) int32_t[range + 1];
+			mn_random_buffer = new (std::nothrow) int32_t[range + 1];
 			if (mn_random_buffer != nullptr) {
 				m_is_memory_allocated = true;
 				init(range);
@@ -51,14 +51,14 @@ int RandomSeqGenerator::open_device() {
 	if (!m_is_device_open) {
 		status = swrngInitializeContext(&ctxt);
 		if (status != SWRNG_SUCCESS) {
-			return(status);
+			return status;
 		}
 
 		// Open SwiftRNG device if available
 		status = swrngOpen(&ctxt, m_device_number);
 		if (status != SWRNG_SUCCESS) {
 			m_error_log_oss << swrngGetLastErrorMessage(&ctxt);
-			return(status);
+			return status;
 		}
 		m_is_device_open = true;
 		return status;

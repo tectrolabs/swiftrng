@@ -1,6 +1,6 @@
  /*
  * swrng.h
- * ver. 3.2
+ * ver. 3.3
  *
  */
 
@@ -126,7 +126,7 @@ static int validate_argument_count(int curIdx, int act_argument_count);
 static int parse_device_num(int idx, int argc, char **argv);
 static int process_download_request(void);
 static int handle_download_request(void);
-static void write_bytes(uint8_t *bytes, uint32_t num_bytes);
+static void write_bytes(const uint8_t *bytes, uint32_t num_bytes);
 static int parse_pp_num(int idx, int argc, char **argv);
 static void close_handle(void);
 static void initialize(void);
