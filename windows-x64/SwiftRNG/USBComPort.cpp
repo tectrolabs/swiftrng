@@ -1,11 +1,11 @@
 /*
 * USBComPort.cpp
-* Ver 1.1
+* Ver 1.2
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2021 TectroLabs L.L.C. https://tectrolabs.com
+Copyright (C) 2014-2023 TectroLabs L.L.C. https://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -21,8 +21,7 @@ This class may only be used in conjunction with TectroLabs devices.
 
 USBComPort::USBComPort()
 {
-	this->deviceConnected = false;
-	clearErrMsg();
+	clear_error_log();
 }
 
 void USBComPort::initialize() {
@@ -30,10 +29,11 @@ void USBComPort::initialize() {
 }
 
 /**
-* Clear the last error message
+* Clear error message log
 */
-void USBComPort::clearErrMsg() {
-	setErrMsg("");
+void USBComPort::clear_error_log() {
+	m_error_log_oss.str("");
+	m_error_log_oss.clear();
 }
 
 /**
@@ -42,31 +42,32 @@ void USBComPort::clearErrMsg() {
 * @param  true if there is an active connection
 *
 */
-bool USBComPort::isConnected() {
-	return this->deviceConnected;
+bool USBComPort::is_connected() {
+	return m_device_connected;
 }
 
 /**
 * Connect to SwiftRNG device through COM port name provided
 *
 * @param WCHAR *comPort - pointer to a COM port pathname
+* 
 * @return true - successful operation
 *
 */
 bool USBComPort::connect(WCHAR *comPort) {
-	if (this->isConnected()) {
+	if (is_connected()) {
 		return false;
 	}
 
-	clearErrMsg();
+	clear_error_log();
 
-	this->cdcUsbDevHandle = CreateFile(comPort, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
-	if (this->cdcUsbDevHandle == INVALID_HANDLE_VALUE) {
+	m_cdc_usb_dev_handle = CreateFile(comPort, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL, NULL);
+	if (m_cdc_usb_dev_handle == INVALID_HANDLE_VALUE) {
 		if (GetLastError() == ERROR_FILE_NOT_FOUND) {
-			setErrMsg("COM port not found");
+			set_error_message("COM port not found");
 		}
 		else {
-			setErrMsg("Could not open COM port");
+			set_error_message("Could not open COM port");
 		}
 		return false;
 	}
@@ -77,21 +78,21 @@ bool USBComPort::connect(WCHAR *comPort) {
 	timeOut.ReadTotalTimeoutMultiplier = 0;
 	timeOut.WriteTotalTimeoutConstant = 50;
 	timeOut.WriteTotalTimeoutMultiplier = 0;
-	SetCommTimeouts(cdcUsbDevHandle, &timeOut);
+	SetCommTimeouts(m_cdc_usb_dev_handle, &timeOut);
 
-	purgeComm();
-	this->deviceConnected = true;
+	purge_comm_data();
+	m_device_connected = true;
 	return true;
 }
 
 /**
 * Save error message so it can be retrieved at later time
 *
-* @param const char *errMessage - pointer to error ASCIIZ text
+* @param const char *error_message - pointer to error ASCIIZ text
 * 
 */
-void USBComPort::setErrMsg(const char *errMessage) {
-	strcpy(this->lastError, errMessage);
+void USBComPort::set_error_message(const char* error_message) {
+	m_error_log_oss << error_message;
 }
 
 /**
@@ -101,44 +102,46 @@ void USBComPort::setErrMsg(const char *errMessage) {
 *
 */
 bool USBComPort::disconnect() {
-	if (!this->isConnected()) {
+	if (!is_connected()) {
 		return false;
 	}
-	CloseHandle(this->cdcUsbDevHandle);
-	this->deviceConnected = false;
-	clearErrMsg();
+	CloseHandle(m_cdc_usb_dev_handle);
+	m_device_connected = false;
+	clear_error_log();
 	return true;
 }
 
 /**
 * Send specified command to SwiftRNG device
 * 
-* @param unsigned char *snd - pointer to a command to send
+* @param const unsigned char *snd - pointer to a command to send
 * @param int sizeSnd - the size of command in bytes
+* @param int *bytesSend - pointer to store the number of bytes actually sent
+* 
 * @return 0 - successful operation, otherwise the error code
 *
 */
-int USBComPort::sendCommand(unsigned char *snd, int sizeSnd, int *bytesSend) {
+int USBComPort::send_command(const unsigned char *snd, int sizeSnd, int *bytesSend){
 	DWORD actualBytesSent;
 	int retStatus = -1;
-	if (!this->isConnected()) {
+	if (!is_connected()) {
 		return retStatus;
 	}
 
-	BOOL status = WriteFile(this->cdcUsbDevHandle, (void *)snd, sizeSnd, &actualBytesSent, 0);
+	BOOL status = WriteFile(m_cdc_usb_dev_handle, (void *)snd, sizeSnd, &actualBytesSent, 0);
 	*bytesSend = (int)actualBytesSent;
 	if (!status || *bytesSend != sizeSnd)
 	{
 		if (status && *bytesSend != sizeSnd) {
 			retStatus = -7; // Time out
-			setErrMsg("Got timeout while sending data to device");
+			set_error_message("Got timeout while sending data to device");
 		}
 		else {
-			setErrMsg("Could not send data to device");
+			set_error_message("Could not send data to device");
 		}
 
-		clearCommErr();
-		purgeComm();
+		clear_comm_err();
+		purge_comm_data();
 		return retStatus;
 	}
 	return 0;
@@ -149,56 +152,58 @@ int USBComPort::sendCommand(unsigned char *snd, int sizeSnd, int *bytesSend) {
 *
 * @param unsigned char *rcv - a pointer to receive buffer
 * @param int sizeRcv - how many bytes to receive
+* @param int *bytesReveived -pointer to store the number of bytes actually received
+* 
 * @return 0 - successful operation, otherwise the error code
 *
 */
-int USBComPort::receiveDeviceData(unsigned char *rcv, int sizeRcv, int *bytesReveived) {
+int USBComPort::receive_data(unsigned char *rcv, int sizeRcv, int *bytesReveived) {
 	DWORD actualBytesReceived;
 	int retStatus = -1;
-	if (!this->isConnected()) {
+	if (!is_connected()) {
 		return retStatus;
 	}
 
-	BOOL status = ReadFile(this->cdcUsbDevHandle, (void *)rcv, sizeRcv, &actualBytesReceived, NULL);
+	BOOL status = ReadFile(m_cdc_usb_dev_handle, (void *)rcv, sizeRcv, &actualBytesReceived, NULL);
 	*bytesReveived = (int)actualBytesReceived;
 	if (!status || *bytesReveived != sizeRcv) {
 		if (status && *bytesReveived != sizeRcv) {
 			retStatus = -7; // Time out
-			setErrMsg("Got timeout while receiving data from the device");
+			set_error_message("Got timeout while receiving data from the device");
 		} else {
-			setErrMsg("Could not receive data from the device");
+			set_error_message("Could not receive data from the device");
 		}
 
-		clearCommErr();
-		purgeComm();
+		clear_comm_err();
+		purge_comm_data();
 		return retStatus;
 	}
 	return 0;
 }
 
 /**
-* Retrieve the last error message
+* Retrieve the current error log
 *
-* @return pointer to the last error message
+* @return error log as string
 *
 */
-const char * USBComPort::getLastErrMsg() {
-	return this->lastError;
+std::string USBComPort::get_error_log() const {
+	return m_error_log_oss.str();
 }
 
 /**
 * Send a command to SwiftRNG and receive data as a result
 * 
-* @param unsigned char *snd - pointer to a command to send
+* @param const unsigned char *snd - pointer to a command to send
 * @param int sizeSnd - the size of command in bytes
 * @param unsigned char *rcv - a pointer to receive buffer
 * @param int sizeRcv - how many bytes to receive
 * @return 0 - successful operation, otherwise the error code
 *
 */
-int USBComPort::executeDeviceCommand(unsigned char *snd, int sizeSnd, unsigned char *rcv, int sizeRcv) {
+int USBComPort::execute_device_cmd(const unsigned char *snd, int sizeSnd, unsigned char *rcv, int sizeRcv) {
 	int actualBytesSent;
-	int status = sendCommand(snd, sizeSnd, &actualBytesSent);
+	int status = send_command(snd, sizeSnd, &actualBytesSent);
 	if (status) {
 		return status;
 	}
@@ -206,30 +211,27 @@ int USBComPort::executeDeviceCommand(unsigned char *snd, int sizeSnd, unsigned c
 		return status;
 	}
 	int actualBytesReceived;
-	return receiveDeviceData(rcv, sizeRcv, &actualBytesReceived);
+	return receive_data(rcv, sizeRcv, &actualBytesReceived);
 }
 
 /**
 * Clear COM port receive and transmit buffers
-*
-* @param unsigned char *rcv - a pointer to receive buffer
-* @param int sizeRcv - how many bytes to receive
-* @return 0 - successful operation, otherwise the error code
-*
 */
-
-void USBComPort::purgeComm() {
-	if (!this->isConnected()) {
+void USBComPort::purge_comm_data() {
+	if (!is_connected()) {
 		return;
 	}
-	PurgeComm(this->cdcUsbDevHandle, PURGE_RXCLEAR | PURGE_TXCLEAR);
+	PurgeComm(m_cdc_usb_dev_handle, PURGE_RXCLEAR | PURGE_TXCLEAR);
 }
 
-void USBComPort::clearCommErr() {
-	if (!this->isConnected()) {
+/**
+* Clear COM port errors
+*/
+void USBComPort::clear_comm_err() {
+	if (!is_connected()) {
 		return;
 	}
-	ClearCommError(this->cdcUsbDevHandle, &this->commError, &this->commStatus);
+	ClearCommError(m_cdc_usb_dev_handle, &m_comm_error, &m_comm_status);
 }
 
 /**
@@ -237,13 +239,13 @@ void USBComPort::clearCommErr() {
 *
 * @param int ports[] - an array of integers that represent all of the SwiftRNG COM ports found 
 * @param int maxPorts - the maximum number of SwiftRNG devices to discover
-* @param actualCount - a pointer to receive buffer
 * @param  int *actualCount - a pointer to the actual number of SwiftRNG devices found
 * @param  WCHAR *hardwareId - a pointer to SwiftRNG device hardware ID 
+* 
 * @return 0 - successful operation, otherwise the error code
 *
 */
-void USBComPort::getConnectedPorts(int ports[], int maxPorts, int *actualCount, WCHAR *hardwareId) {
+void USBComPort::get_connected_ports(int ports[], int maxPorts, int *actualCount, WCHAR *hardwareId) {
 
 	DWORD devIdx = 0;
 	int foundPortIndex = 0;
@@ -323,7 +325,6 @@ void USBComPort::getConnectedPorts(int ports[], int maxPorts, int *actualCount, 
 *
 * @param int portNum - COM port number as integer
 * @paramW CHAR* portName - a pointer to converted fully qualified COM port pathname
-* @param actualCount - a pointer to receive buffer
 * @param  int portNameSize - the max number of characters available for portName
 *
 */
@@ -333,7 +334,7 @@ void USBComPort::toPortName(int portNum, WCHAR* portName, int portNameSize) {
 
 USBComPort::~USBComPort()
 {
-	if (this->isConnected()) {
+	if (is_connected()) {
 		disconnect();
 	}
 }

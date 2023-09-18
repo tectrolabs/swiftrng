@@ -143,7 +143,7 @@ private:
 	static const int c_max_cdc_com_ports {80};
 
 	// USB device hardware ID string used in windows
-	static const wstring c_hardware_id;
+	static const std::wstring c_hardware_id;
 #endif
 
 	// Device specific USB bulk end point number for OUT operation

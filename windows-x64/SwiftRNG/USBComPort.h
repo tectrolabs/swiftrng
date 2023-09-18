@@ -1,6 +1,6 @@
 /*
 * USBComPort.h
-* Ver 1.2
+* Ver 1.3
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -27,6 +27,7 @@ This class may only be used in conjunction with TectroLabs devices.
 #include <stdlib.h>
 #include <tchar.h>
 #include <combaseapi.h>
+#include <sstream>
 
 class USBComPort
 {
@@ -34,27 +35,28 @@ public:
 	USBComPort();
 	~USBComPort();
 	void initialize();
-	bool isConnected();
+	bool is_connected();
 	bool connect(WCHAR *comPort);
 	bool disconnect();
-	int executeDeviceCommand(unsigned char *snd, int sizeSnd, unsigned char *rcv, int sizeRcv);
-	void getConnectedPorts(int ports[], int maxPorts, int* actualCount, WCHAR *hardwareId);
+	std::string get_error_log() const;
+	void clear_error_log();
+	int execute_device_cmd(const unsigned char *snd, int sizeSnd, unsigned char *rcv, int sizeRcv);
+	void get_connected_ports(int ports[], int maxPorts, int* actualCount, WCHAR *hardwareId);
 	void toPortName(int portNum, WCHAR* portName, int portNameSize);
-	const char* getLastErrMsg();
-	int sendCommand(unsigned char *snd, int sizeSnd, int *bytesSend);
-	int receiveDeviceData(unsigned char *rcv, int sizeRcv, int *bytesReveived);
+	int send_command(const unsigned char *snd, int sizeSnd, int *bytesSend);
+	int receive_data(unsigned char *rcv, int sizeRcv, int *bytesReveived);
 
 private:
-	HANDLE cdcUsbDevHandle;
-	bool deviceConnected;
-	char lastError[512];
-	COMSTAT commStatus;
-	DWORD commError;
-	void setErrMsg(const char* errMessage);
-	void clearErrMsg();
-	void purgeComm();
-	void clearCommErr();
+	void set_error_message(const char* error_message);
+	void purge_comm_data();
+	void clear_comm_err();
 
+private:
+	HANDLE m_cdc_usb_dev_handle;
+	bool m_device_connected{ false };
+	COMSTAT m_comm_status;
+	DWORD m_comm_error;
+	std::ostringstream m_error_log_oss;
 };
 
 #endif /* SWRNGUSBCOMPORT_H_ */

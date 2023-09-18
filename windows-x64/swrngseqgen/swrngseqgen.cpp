@@ -1,6 +1,6 @@
 /*
  * swrngseqgen.cpp
- * Ver. 2.3
+ * Ver. 2.5
  *
  * A program for generating random sequences of unique integer numbers based
  * on true random bytes produced by a SwiftRNG device.
@@ -44,7 +44,7 @@ static uint32_t numberCount;
 static uint32_t range;
 
 // How many times to repeat the sequence generation
-int repeatCount = 1;
+static int repeatCount = 1;
 
 static const uint32_t maxSequenceRange = 10000000;
 static uint32_t deviceBytesBuffer[maxSequenceRange];
@@ -54,7 +54,7 @@ static int64_t  sequenceBuffer[maxSequenceRange];
 // Function prototypes
 //
 int generateSequences();
-void printRandomSequence(int64_t *buffer);
+void printRandomSequence(const int64_t *buffer);
 
 /**
  * Main entry
@@ -62,24 +62,24 @@ void printRandomSequence(int64_t *buffer);
  */
 int main(int argc, char **argv) {
 
-	std::cerr << "-------------------------------------------------------------------------------------------------" << std::endl;
+	std::cout << "-------------------------------------------------------------------------------------------------" << std::endl;
 	std::cout << "--- A program for generating random sequences of unique integer numbers using SwiftRNG device ---" << std::endl;
 	std::cout << "-------------------------------------------------------------------------------------------------" << std::endl;
 
 	if (argc >= 4) {
-		deviceNumber = atol(argv[1]);
+		deviceNumber = atoi(argv[1]);
 		if (deviceNumber < 0 || deviceNumber > 127) {
 			std::cerr << "Invalid SwiftRNG device number" << std::endl;
 			return -1;
 		}
 
-		minNumber = atol(argv[2]);
+		minNumber = (int32_t)atol(argv[2]);
 		if (minNumber < -100000000) {
 			std::cerr << "The smallest number in the range cannot be smaller then -100000000" << std::endl;
 			return -1;
 		}
 
-		maxNumber = atol(argv[3]);
+		maxNumber = (int32_t)atol(argv[3]);
 		if (maxNumber > 100000000) {
 			std::cerr << "The largest number in the range cannot be bigger then 100000000" << std::endl;
 			return -1;
@@ -98,7 +98,7 @@ int main(int argc, char **argv) {
 		numberCount = range;
 
 		if (argc > 4) {
-			numberCount = atol(argv[4]);
+			numberCount = (int32_t)atol(argv[4]);
 			if (numberCount > range || numberCount == 0) {
 				std::cerr << "Invalid sequence limit value" << std::endl;
 				return -1;
@@ -129,7 +129,7 @@ int main(int argc, char **argv) {
 		std::cout << "       To generate one number between 1 and 50 and repeat 5 times" << std::endl;
 		std::cout << "          swrngseqgen 0 1 50 1 5" << std::endl;
 		std::cout << std::endl;
-		return(1);
+		return 1;
 	}
 
 	return generateSequences();
@@ -167,7 +167,7 @@ int generateSequences() {
  *
  * @param buffer - array of numbers to print
  */
-void printRandomSequence(int64_t *buffer) {
+void printRandomSequence(const int64_t *buffer) {
 	std::cout << std::endl << "-- Beginning of random sequence --" << std::endl;
 	for (uint32_t i = 0; i < numberCount; i++) {
 		std::cout << (int)buffer[i] << std::endl;
