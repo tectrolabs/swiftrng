@@ -12,9 +12,9 @@
 
 /**
  *    @file AlphaRngApiCWrapper.cpp
- *    @date 06/28/2023
+ *    @date 9/17/2023
  *    @Author: Andrian Belinski
- *    @version 1.0
+ *    @version 1.1
  *
  *    @brief Implements a C wrapper around the C++ API for interacting with the SwiftRNG device.
  */
@@ -41,7 +41,7 @@ static const uint32_t s_ctxt_sig_end =   0b10100011010111000101111000011011;
 * @param ctxt - pointer to SwrngContext structure
 * @return true - if context has valid markers
  */
-static bool is_context_valid(SwrngContext *ctxt);
+static bool is_context_valid(const SwrngContext *ctxt);
 
 //
 // Static functions
@@ -54,7 +54,7 @@ static bool is_context_valid(SwrngContext *ctxt);
 * @param ctxt - pointer to SwrngContext structure
 * @return true - if context has valid markers
  */
-static bool is_context_valid(SwrngContext *ctxt) {
+static bool is_context_valid(const SwrngContext *ctxt) {
 	if (ctxt == nullptr
 			|| ctxt->sig_begin != s_ctxt_sig_begin
 			|| ctxt->sig_end != s_ctxt_sig_end
@@ -82,7 +82,7 @@ int swrngInitializeContext(SwrngContext *ctxt) {
 
 	memset(ctxt, 9, sizeof(SwrngContext));
 
-	ctxt->api = new (nothrow) SwiftRngApi();
+	ctxt->api = new (std::nothrow) SwiftRngApi();
 	if (ctxt->api == nullptr) {
 		return -1;
 	}
@@ -105,7 +105,7 @@ int swrngDestroyContext(SwrngContext *ctxt) {
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	api->close();
 	delete api;
 	ctxt->api = nullptr;
@@ -126,7 +126,7 @@ int swrngOpen(SwrngContext *ctxt, int dev_num) {
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->open(dev_num);
 }
 
@@ -141,7 +141,7 @@ int swrngClose(SwrngContext *ctxt) {
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->close();
 }
 
@@ -156,7 +156,7 @@ int swrngIsOpen(SwrngContext *ctxt) {
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->is_open() != 0 ? 0 : -1;
 }
 
@@ -174,7 +174,7 @@ int swrngGetEntropy(SwrngContext *ctxt, unsigned char *buffer, long length) {
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_entropy(buffer, length);
 }
 
@@ -193,7 +193,7 @@ int swrngGetEntropyEx(SwrngContext *ctxt, unsigned char *buffer, long length) {
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_entropy_ex(buffer, length);
 }
 
@@ -214,7 +214,7 @@ int swrngGetRawDataBlock(SwrngContext *ctxt, NoiseSourceRawData *noise_source_ra
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_raw_data_block(noise_source_raw_data, noise_source_num);
 }
 
@@ -237,7 +237,7 @@ int swrngGetFrequencyTables(SwrngContext *ctxt, FrequencyTables *frequency_table
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_frequency_tables(frequency_tables);
 }
 
@@ -255,7 +255,7 @@ int swrngGetDeviceList(SwrngContext *ctxt, DeviceInfoList *dev_info_list) {
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_device_list(dev_info_list);
 
 }
@@ -274,7 +274,7 @@ int swrngGetModel(SwrngContext *ctxt, DeviceModel *model) {
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_model(model);
 }
 
@@ -292,7 +292,7 @@ int swrngGetVersion(SwrngContext *ctxt, DeviceVersion *version) {
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_version(version);
 }
 
@@ -309,7 +309,7 @@ int swrngGetVersionNumber(SwrngContext *ctxt, double *version) {
 	if (!is_context_valid(ctxt)) {
 		return -1;
 	}
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_version_number(version);
 }
 
@@ -327,7 +327,7 @@ int swrngGetSerialNumber(SwrngContext *ctxt, DeviceSerialNumber *serial_number) 
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_serial_number(serial_number);
 }
 
@@ -341,7 +341,7 @@ void swrngResetStatistics(SwrngContext *ctxt) {
 		return;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->reset_statistics();
 }
 
@@ -359,7 +359,7 @@ int swrngSetPowerProfile(SwrngContext *ctxt, int power_profile_number) {
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->set_power_profile(power_profile_number);
 }
 
@@ -375,7 +375,7 @@ int swrngRunDeviceDiagnostics(SwrngContext *ctxt) {
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->run_device_diagnostics();
 }
 
@@ -394,7 +394,7 @@ int swrngDisablePostProcessing(SwrngContext *ctxt) {
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->disable_post_processing();
 }
 
@@ -413,7 +413,7 @@ int swrngDisableStatisticalTests(SwrngContext *ctxt) {
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->disable_statistical_tests();
 }
 
@@ -430,7 +430,7 @@ int swrngGetPostProcessingStatus(SwrngContext *ctxt, int *post_processing_status
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_post_processing_status(post_processing_status);
 }
 
@@ -447,7 +447,7 @@ int swrngGetStatisticalTestsStatus(SwrngContext *ctxt, int *statistical_tests_en
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_statistical_tests_status(statistical_tests_enabled_status);
 }
 
@@ -464,7 +464,7 @@ int swrngGetPostProcessingMethod(SwrngContext *ctxt, int *post_processing_method
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_post_processing_method(post_processing_method_id);
 }
 
@@ -482,7 +482,7 @@ int swrngGetEmbeddedCorrectionMethod(SwrngContext *ctxt, int *dev_emb_corr_metho
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_embedded_correction_method(dev_emb_corr_method_id);
 }
 
@@ -500,7 +500,7 @@ int swrngEnablePostProcessing(SwrngContext *ctxt, int post_processing_method_id)
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->enable_post_processing(post_processing_method_id);
 }
 
@@ -517,7 +517,7 @@ int swrngEnableStatisticalTests(SwrngContext *ctxt) {
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->enable_statistical_tests();
 }
 
@@ -530,7 +530,7 @@ DeviceStatistics* swrngGenerateDeviceStatistics(SwrngContext *ctxt) {
 	if (!is_context_valid(ctxt)) {
 		return nullptr;
 	}
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->generate_device_statistics();
 }
 
@@ -544,7 +544,7 @@ const char* swrngGetLastErrorMessage(SwrngContext *ctxt) {
 	if (!is_context_valid(ctxt)) {
 		return swrng_empty_msg;
 	}
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_last_error_message();
 }
 
@@ -556,7 +556,7 @@ void swrngEnablePrintingErrorMessages(SwrngContext *ctxt) {
 	if (!is_context_valid(ctxt)) {
 		return;
 	}
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	api->enable_printing_error_messages();
 }
 
@@ -573,7 +573,7 @@ int swrngGetMaxAptFailuresPerBlock(SwrngContext *ctxt, uint16_t *max_apt_failure
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_max_apt_failures_per_block(max_apt_failures_per_block);
 }
 
@@ -590,7 +590,7 @@ int swrngGetMaxRctFailuresPerBlock(SwrngContext *ctxt, uint16_t *max_rct_failure
 		return -1;
 	}
 
-	SwiftRngApi *api = (SwiftRngApi*) ctxt->api;
+	auto api = (SwiftRngApi*) ctxt->api;
 	return api->get_max_rct_failures_per_block(max_rct_failures_per_block);
 }
 

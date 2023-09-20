@@ -13,7 +13,7 @@
 
 /*
  * swperftest.c
- * Ver. 2.3
+ * Ver. 2.4
  *
  */
 #include <stdio.h>
@@ -30,7 +30,8 @@ static SwrngContext ctxt;
 static DeviceInfoList dil;
 
 static int status;
-static time_t start, end;
+static time_t start;
+static time_t end;
 static long l;
 static int emb_corr_method_id;
 
@@ -89,7 +90,7 @@ int main() {
 	status = swrngInitializeContext(&ctxt);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Could not initialize context\n");
-		return(status);
+		return status;
 	}
 
 	status = swrngGetDeviceList(&ctxt, &dil);
@@ -107,8 +108,7 @@ int main() {
 		return -1;
 	}
 
-	int i;
-	for (i = 0; i < dil.numDevs; i++) {
+	for (int i = 0; i < dil.numDevs; i++) {
 		printf("\n\n");
 		printf("Testing ");
 		printf("%s", dil.devInfoList[i].dm.value);

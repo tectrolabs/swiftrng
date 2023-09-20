@@ -1,6 +1,6 @@
 /*
  * sample.c
- * Ver. 2.6
+ * Ver. 2.7
  *
  * This is a sample C program that demonstrates how to retrieve random bytes
  * from a SwiftRNG using 'swrngapi' API for C language.
@@ -35,14 +35,14 @@ int main() {
 	/* Initialize the context */
 	if (swrngInitializeContext(&ctxt) != SWRNG_SUCCESS) {
 		printf("Could not initialize context\n");
-		return(1);
+		return 1;
 	}
 
 	/* Open the first (device number 0) SwiftRNG device if available */
 	if (swrngOpen(&ctxt, 0) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
 		swrngDestroyContext(&ctxt);
-		return(1);
+		return 1;
 	}
 	printf("\nSwiftRNG device open successfully\n\n");
 
@@ -50,7 +50,7 @@ int main() {
 	if (swrngGetEntropy(&ctxt, random_byte, BYTE_BUFF_SIZE) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
 		swrngDestroyContext(&ctxt);
-		return (1);
+		return 1;
 	}
 
 	printf("*** Generating %d random bytes ***\n", BYTE_BUFF_SIZE);
@@ -64,7 +64,7 @@ int main() {
 	if (swrngGetEntropy(&ctxt, (unsigned char*)random_int, DEC_BUFF_SIZE * sizeof(unsigned int)) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
 		swrngDestroyContext(&ctxt);
-		return (1);
+		return 1;
 	}
 
 	printf("\n*** Generating %d random numbers between 0 and 1 with 5 decimals  ***\n", DEC_BUFF_SIZE);
@@ -78,5 +78,5 @@ int main() {
 
 	printf("\n");
 	swrngDestroyContext(&ctxt);
-	return (0);
+	return 0;
 }

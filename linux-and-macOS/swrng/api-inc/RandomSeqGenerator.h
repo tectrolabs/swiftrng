@@ -1,6 +1,6 @@
 /*
  * RandomSeqGenerator.h
- * Ver 2.2
+ * Ver 2.3
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -23,15 +23,13 @@
 #include <cstring>
 #include <sstream>
 
-using namespace std;
-
 namespace swiftrng {
 
 class RandomSeqGenerator {
 public:
 	RandomSeqGenerator(int deviceNumber, uint32_t range);
 	int generateSequence(uint32_t *dest, uint32_t size);
-	string getLastErrorMessage() const {return m_error_log_oss.str();}
+	std::string getLastErrorMessage() const {return m_error_log_oss.str();}
 	virtual ~RandomSeqGenerator();
 
 private:
@@ -42,7 +40,7 @@ private:
 	int open_device();
 
 private:
-	ostringstream m_error_log_oss;
+	std::ostringstream m_error_log_oss;
 
 	int32_t *m_number_buffer_1;
 

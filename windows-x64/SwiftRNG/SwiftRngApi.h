@@ -12,9 +12,9 @@
 
 /**
  *    @file SwiftRngApi.h
- *    @date 7/8/2022
+ *    @date 9/17/2023
  *    @Author: Andrian Belinski
- *    @version 1.0
+ *    @version 1.1
  *
  *    @brief Implements the API for interacting with the SwiftRNG device.
  */
@@ -41,8 +41,6 @@
 	#include <USBSerialDevice.h>
 #endif
 
-using namespace std;
-
 namespace swiftrng {
 
 class SwiftRngApi {
@@ -51,7 +49,7 @@ public:
 	SwiftRngApi();
 	int open(int devNum);
 	int close();
-	int is_open();
+	int is_open() const;
 	int get_entropy(unsigned char *buffer, long length);
 	int get_entropy_ex(unsigned char *buffer, long length);
 	int get_raw_data_block(NoiseSourceRawData *noise_source_raw_data, int noise_source_num);
@@ -74,17 +72,17 @@ public:
 	int enable_statistical_tests();
 	DeviceStatistics* generate_device_statistics();
 	const char* get_last_error_message();
-	string get_last_error_log() {return m_last_error_log_oss.str();}
+	std::string get_last_error_log() const {return m_last_error_log_oss.str();}
 	void enable_printing_error_messages();
-	int get_max_apt_failures_per_block(uint16_t *max_apt_failures_per_block);
-	int get_max_rct_failures_per_block(uint16_t *max_rct_failures_per_block);
+	int get_max_apt_failures_per_block(uint16_t *max_apt_failures_per_block) const;
+	int get_max_rct_failures_per_block(uint16_t *max_rct_failures_per_block) const;
 
 
 	virtual	~SwiftRngApi();
 
 
 private:
-	bool is_context_initialized() { return m_is_initialized; }
+	bool is_context_initialized() const { return m_is_initialized; }
 	void initialize();
 	void clear_last_error_msg();
 	void close_USB_lib();
@@ -95,42 +93,42 @@ private:
 
 	void sha256_initialize();
 	void sha512_initialize();
-	void sha256_stampSerialNumber(void *input_block);
+	void sha256_stampSerialNumber(uint32_t *input_block);
 	void sha256_initializeSerialNumber(uint32_t init_value);
-	int sha512_generateHash(uint64_t *src, int16_t len, uint64_t *dst);
+	int sha512_generateHash(const uint64_t *src, int16_t len, uint64_t *dst);
 	void sha512_hashCurrentBlock();
-	uint64_t sha512_sigma1(uint64_t *x);
+	uint64_t sha512_sigma1(const uint64_t *x);
 	int sha256_selfTest();
 	int sha512_selfTest();
 	int xorshift64_selfTest();
 	uint32_t sha256_ch(uint32_t *x, uint32_t *y, uint32_t *z);
-	uint32_t sha256_maj(uint32_t *x, uint32_t *y, uint32_t *z);
-	uint32_t sha256_sum0(uint32_t *x);
-	uint32_t sha256_sum1(uint32_t *x);
-	uint32_t sha256_sigma0(uint32_t *x);
-	uint32_t sha256_sigma1(uint32_t *x);
-	uint64_t sha512_ch(uint64_t *x, uint64_t *y, uint64_t *z);
-	uint64_t sha512_maj(uint64_t *x, uint64_t *y, uint64_t *z);
-	uint64_t sha512_sum0(uint64_t *x);
-	uint64_t sha512_sum1(uint64_t *x);
-	uint64_t sha512_sigma0(uint64_t *x);
+	uint32_t sha256_maj(const uint32_t *x, const uint32_t *y, const uint32_t *z);
+	uint32_t sha256_sum0(const uint32_t *x);
+	uint32_t sha256_sum1(const uint32_t *x);
+	uint32_t sha256_sigma0(const uint32_t *x);
+	uint32_t sha256_sigma1(const uint32_t *x);
+	uint64_t sha512_ch(const uint64_t *x, const uint64_t *y, const uint64_t *z);
+	uint64_t sha512_maj(const uint64_t *x, const uint64_t *y, const uint64_t *z);
+	uint64_t sha512_sum0(const uint64_t *x);
+	uint64_t sha512_sum1(const uint64_t *x);
+	uint64_t sha512_sigma0(const uint64_t *x);
 	void sha256_hashCurrentBlock();
-	int sha256_generateHash(uint32_t *src, int16_t len, uint32_t *dst);
-	void swrng_printErrorMessage(const string &err_msg);
+	int sha256_generateHash(const uint32_t *src, int16_t len, uint32_t *dst);
+	void swrng_printErrorMessage(const std::string &err_msg);
 	int swrng_handleDeviceVersion();
 	void swrng_clearReceiverBuffer();
-	uint64_t xorshift64_postProcessWord(uint64_t raw_word);
+	uint64_t xorshift64_postProcessWord(uint64_t raw_word) const;
 	void xorshift64_postProcessWords(uint64_t *buffer, int num_elements);
 	void xorshift64_postProcess(uint8_t *buffer, int num_elements);
-	int swrng_snd_rcv_usb_data(char *snd, int size_snd, char *rcv, int size_rcv, int op_timeout_secs);
+	int swrng_snd_rcv_usb_data(const char *snd, int size_snd, char *rcv, int size_rcv, int op_timeout_secs);
 	int swrng_chip_read_data(char *buff, int length, int op_timeout_secs);
 	void swrng_contextReset();
 	int swrng_getEntropyBytes();
 	int swrng_rcv_rnd_bytes();
 	void test_samples();
-	void swrng_updateDevInfoList(DeviceInfoList* dev_info_list, int *curt_found_dev_num);
-	uint32_t rotr32(uint32_t sb, uint32_t w) { return (((w) >> (sb)) | ((w) << (32-(sb)))); }
-	uint64_t rotr64(uint64_t sb, uint64_t w) { return (((w) >> (sb)) | ((w) << (64-(sb)))); }
+	void swrng_updateDevInfoList(DeviceInfoList* dev_info_list, int *curt_found_dev_num) const;
+	uint32_t rotr32(uint32_t sb, uint32_t w) const { return ((w) >> (sb)) | ((w) << (32-(sb))); }
+	uint64_t rotr64(uint64_t sb, uint64_t w) const { return ((w) >> (sb)) | ((w) << (64-(sb))); }
 
 private:
 
@@ -145,14 +143,14 @@ private:
 	static const int c_max_cdc_com_ports {80};
 
 	// USB device hardware ID string used in windows
-	static const wstring c_hardware_id;
+	static const std::wstring c_hardware_id;
 #endif
 
 	// Device specific USB bulk end point number for OUT operation
-	const int SWRNG_BULK_EP_OUT {0x01};
+	const unsigned char c_bulk_ep_out {0x01};
 
 	// Device specific USB bulk end point number for IN operation
-	const int SWRNG_BULK_EP_IN {0x81};
+	const unsigned char c_bulk_ep_in {0x81};
 
 	// Method id for using SHA-256 for post processing
 	const int c_sha256_pp_method_id {0};
@@ -191,18 +189,48 @@ private:
 
 	// A structure used for generating SHA-256 hash
 	struct {
-		uint32_t a, b, c, d, e, f, g, h;
-		uint32_t h0, h1, h2, h3, h4, h5, h6, h7;
-		uint32_t tmp1, tmp2;
+		uint32_t a;
+		uint32_t b;
+		uint32_t c;
+		uint32_t d;
+		uint32_t e;
+		uint32_t f;
+		uint32_t g;
+		uint32_t h;
+		uint32_t h0;
+		uint32_t h1;
+		uint32_t h2;
+		uint32_t h3;
+		uint32_t h4;
+		uint32_t h5;
+		uint32_t h6;
+		uint32_t h7;
+		uint32_t tmp1;
+		uint32_t tmp2;
 		uint32_t w[64];
 		uint32_t blockSerialNumber;
 	} m_sha256_ctxt;
 
 	// A structure used for generating SHA-512 hash
 	struct {
-		uint64_t a,b,c,d,e,f,g,h;
-		uint64_t h0,h1,h2,h3,h4,h5,h6,h7;
-		uint64_t tmp1, tmp2;
+		uint64_t a;
+		uint64_t b;
+		uint64_t c;
+		uint64_t d;
+		uint64_t e;
+		uint64_t f;
+		uint64_t g;
+		uint64_t h;
+		uint64_t h0;
+		uint64_t h1;
+		uint64_t h2;
+		uint64_t h3;
+		uint64_t h4;
+		uint64_t h5;
+		uint64_t h6;
+		uint64_t h7;
+		uint64_t tmp1;
+		uint64_t tmp2;
 		uint64_t w[80];
 	} m_sha512_ctxt;
 
@@ -292,7 +320,7 @@ private:
 
 	// A storage for holding the last error message. Many operations, when failed, will store the error message in this buffer.
 	// The error text message can be retrieved with `get_last_error_message()` method.
-	ostringstream m_last_error_log_oss;
+	std::ostringstream m_last_error_log_oss;
 
 	// Number of bytes to allocate for `m_last_error_log_char`;
 	const int c_max_last_error_log_size {256};
@@ -338,16 +366,16 @@ private:
 	//
 	// Text constants
 	//
-	static const string c_dev_not_open_msg;
-	static const string c_freq_table_invalid_msg;
-	static const string c_cannot_disable_pp_msg;
-	static const string c_pp_op_not_supported_msg;
-	static const string c_diag_op_not_supported_msg;
-	static const string c_pp_method_not_supported_msg;
-	static const string c_cannot_get_freq_table_for_device_msg;
-	static const string c_too_many_devices_msg;
-	static const string c_cannot_read_device_descriptor_msg;
-	static const string c_libusb_init_failure_msg;
+	static const std::string c_dev_not_open_msg;
+	static const std::string c_freq_table_invalid_msg;
+	static const std::string c_cannot_disable_pp_msg;
+	static const std::string c_pp_op_not_supported_msg;
+	static const std::string c_diag_op_not_supported_msg;
+	static const std::string c_pp_method_not_supported_msg;
+	static const std::string c_cannot_get_freq_table_for_device_msg;
+	static const std::string c_too_many_devices_msg;
+	static const std::string c_cannot_read_device_descriptor_msg;
+	static const std::string c_libusb_init_failure_msg;
 
 };
 

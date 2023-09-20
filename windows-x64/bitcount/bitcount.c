@@ -1,6 +1,6 @@
 /*
  * bitcount.c
- * Ver. 3.3
+ * Ver. 3.4
  *
  * A C program for counting '1' and '0' bits retrieved from SwiftRNG device or from a file
  *
@@ -53,14 +53,14 @@ int main(int argc, char **argv) {
 
 	if (argc < 2) {
 		display_usage();
-		return(1);
+		return 1;
 	}
 
 	if (strcmp("-fn", argv[1]) == 0) {
 		if (argc < 3) {
 			printf("File name not provided\n");
 			display_usage();
-			return(1);
+			return 1;
 		}
 		return count_bits_from_file(argv[2]);
 	}
@@ -69,15 +69,15 @@ int main(int argc, char **argv) {
 	if (total_blocks <= 0) {
 		printf("Total blocks parameter invalid\n");
 		display_usage();
-		return(1);
+		return 1;
 	}
 
 	if (argc > 2) {
-		device_num = atol(argv[2]);
+		device_num = atoi(argv[2]);
 		if (device_num < 0) {
 			printf("Device number parameter invalid\n");
 			display_usage();
-			return(1);
+			return 1;
 		}
 		if (argc > 3) {
 			strcpy(pp_method_char, argv[3]);
@@ -89,7 +89,7 @@ int main(int argc, char **argv) {
 				pp_method_id = 1;
 			} else {
 				printf("Post processing %s not supported\n", pp_method_char);
-				return(1);
+				return 1;
 			}
 		}
 	}
@@ -105,9 +105,8 @@ int main(int argc, char **argv) {
  */
 
 static void count_one_bits(uint8_t byte, uint8_t *ones) {
-	int i;
 	uint8_t val = byte;
-	for (i = 0; i < 8; i++) {
+	for (int i = 0; i < 8; i++) {
 		if (val & 0x1) {
 			(*ones)++;
 		}
@@ -120,10 +119,9 @@ static void count_one_bits(uint8_t byte, uint8_t *ones) {
  */
 static void init_stats_data(void) {
 	uint8_t oneCounter;
-	int i;
-	for (i = 0; i < 256; i++) {
+	for (int i = 0; i < 256; i++) {
 		oneCounter = 0;
-		count_one_bits(i, &oneCounter);
+		count_one_bits((uint8_t)i, &oneCounter);
 		byte_value_to_one_bit_count[i] = oneCounter;
 	}
 }
@@ -150,8 +148,6 @@ static void display_usage(void) {
 static int count_bits_from_device(void) {
 
 	SwrngContext ctxt;
-	long l;
-	int i;
 	int act_pp_method_id;
 	int pp_status;
 	int emb_corr_method_id;
@@ -160,7 +156,7 @@ static int count_bits_from_device(void) {
 	if (swrngInitializeContext(&ctxt) != SWRNG_SUCCESS) {
 		printf("Could not initialize context\n");
 		swrngDestroyContext(&ctxt);
-		return(1);
+		return 1;
 	}
 
 	init_stats_data();
@@ -169,23 +165,21 @@ static int count_bits_from_device(void) {
 	if (swrngOpen(&ctxt, device_num) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
 		swrngDestroyContext(&ctxt);
-		return(1);
+		return 1;
 	}
 
 	/* Set post processing method if provided */
-	if (pp_method_id != -1) {
-		if (swrngEnablePostProcessing(&ctxt, pp_method_id) != SWRNG_SUCCESS) {
-			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
-			swrngDestroyContext(&ctxt);
-			return(1);
-		}
+	if (pp_method_id != -1 && swrngEnablePostProcessing(&ctxt, pp_method_id) != SWRNG_SUCCESS) {
+		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
+		swrngDestroyContext(&ctxt);
+		return 1;
 	}
 	printf("\nSwiftRNG device number %d open successfully\n\n", device_num);
 
 	if (swrngGetPostProcessingStatus(&ctxt, &pp_status) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
 		swrngDestroyContext(&ctxt);
-		return(1);
+		return 1;
 	}
 
 	if (pp_status == 0) {
@@ -194,7 +188,7 @@ static int count_bits_from_device(void) {
 		if (swrngGetPostProcessingMethod(&ctxt, &act_pp_method_id) != SWRNG_SUCCESS) {
 			printf("%s\n", swrngGetLastErrorMessage(&ctxt));
 			swrngDestroyContext(&ctxt);
-			return(1);
+			return 1;
 		}
 		switch (act_pp_method_id) {
 		case 0:
@@ -216,7 +210,7 @@ static int count_bits_from_device(void) {
 	if (swrngGetEmbeddedCorrectionMethod(&ctxt, &emb_corr_method_id) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetLastErrorMessage(&ctxt));
 		swrngDestroyContext(&ctxt);
-		return(1);
+		return 1;
 	}
 
 	switch(emb_corr_method_id) {
@@ -233,13 +227,13 @@ static int count_bits_from_device(void) {
 	printf("*** retrieving random bytes and counting bits, post-processing: %s, embedded correction: %s ***\n", pp_method_char, emb_corr_method_char);
 	total_ones = 0;
 	total_zeros = 0;
-	for (l = 0; l < total_blocks; l++) {
+	for (long l = 0; l < total_blocks; l++) {
 		if (swrngGetEntropy(&ctxt, buffer, BLOCK_SIZE) != SWRNG_SUCCESS) {
 			printf("Could not retrieve entropy from device. %s\n", swrngGetLastErrorMessage(&ctxt));
 			swrngDestroyContext(&ctxt);
-			return (1);
+			return 1;
 		}
-		for(i = 0; i < BLOCK_SIZE; i++) {
+		for(int i = 0; i < BLOCK_SIZE; i++) {
 			int valPos = buffer[i];
 			int oneCounter = byte_value_to_one_bit_count[valPos];
 			total_ones += oneCounter;
@@ -248,7 +242,7 @@ static int count_bits_from_device(void) {
 	}
 	print_final_stats();
 	swrngDestroyContext(&ctxt);
-	return (0);
+	return 0;
 }
 
 /**
@@ -259,7 +253,7 @@ static int count_bits_from_device(void) {
  */
 static int count_bits_from_file(char *fileName) {
 	FILE *file;
-	size_t bytesRead, i;
+	size_t bytesRead;
 
 	init_stats_data();
 	file = NULL;
@@ -268,7 +262,7 @@ static int count_bits_from_file(char *fileName) {
 	if (file == NULL) {
 		printf("File %s not found\n", fileName);
 		display_usage();
-		return (1);
+		return 1;
 	}
 
 	printf("*** reading bytes and counting bits from file: %s ***\n", fileName);
@@ -278,7 +272,7 @@ static int count_bits_from_file(char *fileName) {
 
 
 	while ((bytesRead = fread(buffer, 1, sizeof(buffer), file)) > 0) {
-		for (i = 0; i < bytesRead; i++) {
+		for (size_t i = 0; i < bytesRead; i++) {
 			int valPos = buffer[i];
 			int oneCounter = byte_value_to_one_bit_count[valPos];
 			total_ones += oneCounter;

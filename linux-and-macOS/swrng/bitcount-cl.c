@@ -1,6 +1,6 @@
 /*
  * bitcount-cl.c
- * Ver. 2.2
+ * Ver. 2.3
  *
  * A C program for counting '1' and '0' bits retrieved from a SwiftRNG device cluster
  * using default configuration.
@@ -27,9 +27,8 @@ static void init_stats_data(void);
  * @return int 0 - successful or error code
  */
 int main(int argc, char **argv) {
-	int i;
 	int clusterSize;
-	long totalBlocks, l;
+	long totalBlocks;
 	SwrngCLContext ctxt;
 	long long totalOnes;
 	long long totalZeros;
@@ -49,10 +48,10 @@ int main(int argc, char **argv) {
 		totalBlocks = atol(argv[1]);
 		if (totalBlocks <= 0) {
 			printf("Total blocks parameter invalid\n");
-			return(1);
+			return 1;
 		}
 
-		clusterSize = atol(argv[2]);
+		clusterSize = atoi(argv[2]);
 		if (argc > 3) {
 			strcpy(postProcessingMethodStr, argv[3]);
 			if (!strcmp("SHA256", postProcessingMethodStr)) {
@@ -63,7 +62,7 @@ int main(int argc, char **argv) {
 				postProcessingMethod = 1;
 			} else {
 				printf("Post processing %s not supported\n", postProcessingMethodStr);
-				return(1);
+				return 1;
 			}
 		}
 	} else if (argc > 1) {
@@ -72,13 +71,13 @@ int main(int argc, char **argv) {
 	} else {
 		printf("Usage: bitcount-cl <number of blocks> <cluster size> [SHA256, SHA512 or xorshift64]\n");
 		printf("Note: One block equals to 16000 bytes\n");
-		return(1);
+		return 1;
 	}
 
 	/* Initialize the context */
 	if (swrngInitializeCLContext(&ctxt) != SWRNG_SUCCESS) {
 		printf("Could not initialize context\n");
-		return(1);
+		return 1;
 	}
 
 	init_stats_data();
@@ -87,16 +86,14 @@ int main(int argc, char **argv) {
 	if (swrngCLOpen(&ctxt, clusterSize) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
 		swrngCLClose(&ctxt);
-		return(1);
+		return 1;
 	}
 
 	/* Set post processing method if provided */
-	if (postProcessingMethod != -1) {
-		if (swrngEnableCLPostProcessing(&ctxt, postProcessingMethod) != SWRNG_SUCCESS) {
-			printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
-			swrngCLClose(&ctxt);
-			return(1);
-		}
+	if (postProcessingMethod != -1 && swrngEnableCLPostProcessing(&ctxt, postProcessingMethod) != SWRNG_SUCCESS) {
+		printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
+		swrngCLClose(&ctxt);
+		return 1;
 	}
 
 	printf("\nSwiftRNG cluster of %d devices open successfully\n\n", swrngGetCLSize(&ctxt));
@@ -104,13 +101,13 @@ int main(int argc, char **argv) {
 	printf("*** retrieving random bytes and counting bits using post processing method: %s ***\n", postProcessingMethodStr);
 	totalOnes = 0;
 	totalZeros = 0;
-	for (l = 0; l < totalBlocks; l++) {
+	for (long l = 0; l < totalBlocks; l++) {
 		if (swrngGetCLEntropy(&ctxt, buffer, BLOCK_SIZE) != SWRNG_SUCCESS) {
 			printf("Could not retrieve entropy from device cluster. %s\n", swrngGetCLLastErrorMessage(&ctxt));
 			swrngCLClose(&ctxt);
-			return (1);
+			return 1;
 		}
-		for(i = 0; i < BLOCK_SIZE; i++) {
+		for(int i = 0; i < BLOCK_SIZE; i++) {
 			int valPos = buffer[i];
 			int oneCounter = byteValueToOneBitCount[valPos];
 			totalOnes += oneCounter;
@@ -124,7 +121,7 @@ int main(int argc, char **argv) {
 
 	printf("\n");
 	swrngCLClose(&ctxt);
-	return (0);
+	return 0;
 
 }
 
@@ -136,9 +133,8 @@ int main(int argc, char **argv) {
  */
 
 static void count_one_bits(uint8_t byte, uint8_t *ones) {
-	int i;
 	uint8_t val = byte;
-	for (i = 0; i < 8; i++) {
+	for (int i = 0; i < 8; i++) {
 		if (val & 0x1) {
 			(*ones)++;
 		}
@@ -151,10 +147,9 @@ static void count_one_bits(uint8_t byte, uint8_t *ones) {
  */
 static void init_stats_data(void) {
 	uint8_t oneCounter;
-	int i;
-	for (i = 0; i < 256; i++) {
+	for (int i = 0; i < 256; i++) {
 		oneCounter = 0;
-		count_one_bits(i, &oneCounter);
+		count_one_bits((uint8_t)i, &oneCounter);
 		byteValueToOneBitCount[i] = oneCounter;
 	}
 }

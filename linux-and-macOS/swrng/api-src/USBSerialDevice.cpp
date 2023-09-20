@@ -1,11 +1,11 @@
 /*
  * USBSerialDevice.cpp
- * Ver 1.3
+ * Ver 1.4
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2022 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -19,53 +19,51 @@
 #include "USBSerialDevice.h"
 
 USBSerialDevice::USBSerialDevice() {
-	this-> deviceConnected = false;
-	this->fd = -1;
-	activeDevCount = 0;
-	clearErrMsg();
+	clear_error_log();
+}
+
+void USBSerialDevice::clear_error_log() {
+	m_error_log_oss.str("");
+	m_error_log_oss.clear();
 }
 
 void USBSerialDevice::initialize() {
 	disconnect();
 }
 
-void USBSerialDevice::clearErrMsg() {
-	setErrMsg("");
-}
-
-bool USBSerialDevice::isConnected() {
-	return this->deviceConnected;
+bool USBSerialDevice::is_connected() const {
+	return m_device_connected;
 }
 
 
 bool USBSerialDevice::connect(const char *devicePath) {
-	if (isConnected()) {
+	if (is_connected()) {
 		return false;
 	}
 
-	clearErrMsg();
+	clear_error_log();
 
-	this->fd = open(devicePath, O_RDWR | O_NOCTTY);
-	if (this->fd == -1) {
-		snprintf(lastError, sizeof(lastError), "Could not open serial device: %s", devicePath);
-		return false;;
+	m_fd = open(devicePath, O_RDWR | O_NOCTTY);
+	if (m_fd == -1) {
+		m_error_log_oss << "Could not open serial device: " << devicePath << ". ";
+		return false;
 	}
 
 	// Lock the device
-	this->lock = flock(this->fd, LOCK_EX | LOCK_NB);
-	if (this->lock != 0) {
-		snprintf(lastError, sizeof(lastError), "Could not lock device: %s", devicePath);
-		close(fd);
+	m_lock = flock(m_fd, LOCK_EX | LOCK_NB);
+	if (m_lock != 0) {
+		m_error_log_oss << "Could not lock device: " << devicePath << ". ";
+		close(m_fd);
 		return false;
 	}
 
-	purgeComm();
+	purge_comm_data();
 
 	struct termios opts;
-	int retVal = tcgetattr(fd, &opts);
+	int retVal = tcgetattr(m_fd, &opts);
 	if (retVal) {
-		snprintf(lastError, sizeof(lastError), "Could not retrieve configuration from serial device: %s", devicePath);
-		close(fd);
+		m_error_log_oss << "Could not retrieve configuration from serial device: " << devicePath << ". ";
+		close(m_fd);
 		return false;
 	}
 
@@ -77,102 +75,103 @@ bool USBSerialDevice::connect(const char *devicePath) {
 	opts.c_cc[VTIME] = 1;
 	opts.c_cc[VMIN] = 0;
 
-	retVal = tcsetattr(fd, TCSANOW, &opts);
+	retVal = tcsetattr(m_fd, TCSANOW, &opts);
 	if (retVal) {
-		snprintf(lastError, sizeof(lastError), "Could not set configuration for serial device: %s", devicePath);
-		close(fd);
+		m_error_log_oss << "Could not set configuration for serial device: " << devicePath << ". ";
+		close(m_fd);
 		return false;
 	}
 
-	this->deviceConnected = true;
+	m_device_connected = true;
 	return true;
 }
 
-void USBSerialDevice::setErrMsg(const char *errMessage) {
-	strcpy(this->lastError, errMessage);
+void USBSerialDevice::set_error_message(const char *error_message) {
+	m_error_log_oss << error_message;
 }
 
 bool USBSerialDevice::disconnect() {
-	if (!isConnected()) {
+	if (!is_connected()) {
 		return false;
 	}
-	flock(this->fd, LOCK_UN);
-	close(fd);
-	this->deviceConnected = false;
-	clearErrMsg();
+	flock(m_fd, LOCK_UN);
+	close(m_fd);
+	m_device_connected = false;
+	clear_error_log();
 	return true;
 }
 
-int USBSerialDevice::sendCommand(unsigned char *snd, int sizeSnd, int *bytesSent) {
-	if (!isConnected()) {
+int USBSerialDevice::send_command(const unsigned char *snd, int sizeSnd, int *bytesSent) {
+	if (!is_connected()) {
 		return -1;
 	}
-	ssize_t retVal = write(this->fd, snd, sizeSnd);
+	ssize_t retVal = write(m_fd, snd, sizeSnd);
 	if (retVal != (ssize_t)sizeSnd) {
-		setErrMsg("Could not send command to serial device");
+		m_error_log_oss << "Could not send command to serial device.";
 		return -1;
 	}
-	*bytesSent = retVal;
+	*bytesSent = (int)retVal;
 	return 0;
 }
 
-const char* USBSerialDevice::getLastErrMsg() {
-	return this->lastError;
+std::string USBSerialDevice::get_error_log() const {
+	return m_error_log_oss.str();
 }
 
-void USBSerialDevice::purgeComm() {
-	if (this->fd != -1) {
-		tcflush(this->fd, TCIOFLUSH);
+void USBSerialDevice::purge_comm_data() const {
+	if (m_fd != -1) {
+		tcflush(m_fd, TCIOFLUSH);
 	}
 }
 
-int USBSerialDevice::receiveDeviceData(unsigned char *rcv, int sizeRcv, int *bytesReceived) {
+int USBSerialDevice::receive_data(unsigned char *rcv, int sizeRcv, int *bytesReceived) {
 	int returnStatus = 0;
-	if (!isConnected()) {
+	if (!is_connected()) {
 		return -1;
 	}
 
 	size_t actualReceivedBytes = 0;
-	while (actualReceivedBytes < (size_t)sizeRcv) {
-		ssize_t receivedCount = read(this->fd, rcv + actualReceivedBytes, sizeRcv - actualReceivedBytes);
+	bool inLoop = true;
+	while (actualReceivedBytes < (size_t)sizeRcv && inLoop) {
+		ssize_t receivedCount = read(m_fd, rcv + actualReceivedBytes, sizeRcv - actualReceivedBytes);
 		if (receivedCount < 0) {
-			setErrMsg("Could not receive data from serial device");
+			m_error_log_oss << "Could not receive data from serial device.";
 			returnStatus = -1;
-			break;
-		}
-		if (receivedCount == 0) {
+			inLoop = false;
+		} else if (receivedCount == 0) {
 			// Operation timed out
 			returnStatus = -7;
-			break;
+			inLoop = false;
+		} else {
+			actualReceivedBytes += receivedCount;
 		}
-		actualReceivedBytes += receivedCount;
 	  }
-	*bytesReceived = actualReceivedBytes;
+	*bytesReceived = (int)actualReceivedBytes;
 	return returnStatus;
 }
 
 USBSerialDevice::~USBSerialDevice() {
-	if (isConnected()) {
+	if (is_connected()) {
 		disconnect();
 	}
 }
 
 
 #ifndef __FreeBSD__
-void USBSerialDevice::scanForConnectedDevices() {
-	activeDevCount = 0;
+void USBSerialDevice::scan_available_devices() {
+	m_active_device_count = 0;
 #ifdef __linux__
 	char command[] = "/bin/ls -1l /dev/serial/by-id 2>&1 | grep -i \"TectroLabs_SwiftRNG\"";
 #else
 	char command[] = "/bin/ls -1a /dev/cu.usbmodemSWRNG* /dev/cu.usbmodemFD* 2>&1";
 #endif
 	FILE *pf = popen(command,"r");
-	if (pf == NULL) {
+	if (pf == nullptr) {
 		return;
 	}
 
 	char line[512];
-	while (fgets(line, sizeof(line), pf) && activeDevCount < MAX_DEVICE_COUNT) {
+	while (fgets(line, sizeof(line), pf) && m_active_device_count < c_max_devices) {
 #ifdef __linux__
 		char *tty = strstr(line, "ttyACM");
 		if (tty == NULL) {
@@ -186,27 +185,27 @@ void USBSerialDevice::scanForConnectedDevices() {
 		}
 		char *tty = line;
 #endif
-		int sizeTty = strlen(tty);
+		auto sizeTty = (int)strlen(tty);
 		for (int i = 0; i < sizeTty; i++) {
 			if(tty[i] < 33 || tty[i] > 125) {
 				tty[i] = 0;
 			}
 		}
 #ifdef __linux__
-		strcpy(devNames[activeDevCount], "/dev/");
-		strcat(devNames[activeDevCount], tty);
+		strcpy(c_device_names[m_active_device_count], "/dev/");
+		strcat(c_device_names[m_active_device_count], tty);
 #else
-		strcpy(devNames[activeDevCount], tty);
+		strcpy(c_device_names[m_active_device_count], tty);
 #endif
-		activeDevCount++;
+		m_active_device_count++;
 	}
 	pclose(pf);
 }
 #endif
 
 #ifdef __FreeBSD__
-void USBSerialDevice::scanForConnectedDevices() {
-	activeDevCount = 0;
+void USBSerialDevice::scan_available_devices() {
+	m_active_device_count = 0;
 	int device_candidate = false;
 	char command[] = "usbconfig show_ifdrv | grep -E \"TectroLabs SwiftRNG|VCOM\" | grep -vi \"(tectrolabs)\"";
 	FILE *pf = popen(command,"r");
@@ -215,7 +214,7 @@ void USBSerialDevice::scanForConnectedDevices() {
 	}
 
 	char line[512];
-	while (fgets(line, sizeof(line), pf) && activeDevCount < MAX_DEVICE_COUNT) {
+	while (fgets(line, sizeof(line), pf) && m_active_device_count < c_max_devices) {
 		if (device_candidate == false && strstr(line, "SwiftRNG") != nullptr) {
 			device_candidate = true;
 			continue;
@@ -229,9 +228,9 @@ void USBSerialDevice::scanForConnectedDevices() {
 				}
 				char *tkn = strtok(p + strlen("umodem"), ":");
 				if (tkn != nullptr) {
-					strcpy(devNames[activeDevCount], "/dev/cuaU");
-					strcat(devNames[activeDevCount], tkn);
-					activeDevCount++;
+					strcpy(c_device_names[m_active_device_count], "/dev/cuaU");
+					strcat(c_device_names[m_active_device_count], tkn);
+					m_active_device_count++;
 					device_candidate = false;
 				}
 			} else {
@@ -243,14 +242,14 @@ void USBSerialDevice::scanForConnectedDevices() {
 }
 #endif
 
-int USBSerialDevice::getConnectedDeviceCount() {
-	return activeDevCount;
+int USBSerialDevice::get_device_count() const {
+	return m_active_device_count;
 }
 
-bool USBSerialDevice::retrieveConnectedDevice(char *devName, int devNum) {
-	if (devNum >= activeDevCount) {
+bool USBSerialDevice::retrieve_device_path(char *devName, int devNum) const {
+	if (devNum >= m_active_device_count) {
 		return false;
 	}
-	strcpy(devName, devNames[devNum]);
+	strcpy(devName, c_device_names[devNum]);
 	return true;
 }

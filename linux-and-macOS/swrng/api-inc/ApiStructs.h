@@ -12,9 +12,9 @@
 
 /**
  *    @file ApiStructs.h
- *    @date 7/8/2023
+ *    @date 9/17/2023
  *    @Author: Andrian Belinski
- *    @version 1.0
+ *    @version 1.1
  *
  *    @brief Data structures used in the API implementation.
  */
@@ -36,7 +36,9 @@ typedef struct {
 	int64_t totalRetries;
 
 	/* Used for measuring performance */
-	time_t beginTime, endTime, totalTime;
+	time_t beginTime;
+	time_t endTime;
+	time_t totalTime;
 
 	/* Measured download speed in KB/sec */
 	int downloadSpeedKBsec;

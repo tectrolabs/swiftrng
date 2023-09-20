@@ -1,6 +1,6 @@
 /*
  * swrng-cl.c
- * ver. 3.4
+ * ver. 3.5
  *
  */
 
@@ -35,7 +35,6 @@
  */
 static int display_devices(void) {
 	DeviceInfoList dil;
-	int i;
 
 	int status = swrngGetDeviceList(&hcxt, &dil);
 
@@ -47,7 +46,7 @@ static int display_devices(void) {
 
 	if (dil.numDevs > 0) {
 		printf("\n");
-		for (i = 0; i < dil.numDevs; i++) {
+		for (int i = 0; i < dil.numDevs; i++) {
 			printf("{");
 			printf("DevNum=%d", i);
 			printf(" DevModel=%s", dil.devInfoList[i].dm.value);
@@ -67,7 +66,7 @@ static int display_devices(void) {
  */
 static void display_usage(void) {
 	printf("*********************************************************************************\n");
-	printf("             TectroLabs - swrng-cl - cluster download utility Ver 3.4          \n");
+	printf("             TectroLabs - swrng-cl - cluster download utility Ver 3.5          \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng-cl - Download true random bytes from a cluster of SwiftRNG devices\n");
@@ -155,7 +154,7 @@ static void display_usage(void) {
  * @param int act_argument_count
  * @return int - 1 if run successfully
  */
-int validate_argument_count(int curIdx, int act_argument_count) {
+static int validate_argument_count(int curIdx, int act_argument_count) {
 	if (curIdx >= act_argument_count) {
 		fprintf(stderr, "\nMissing command line arguments\n\n");
 		display_usage();
@@ -304,10 +303,10 @@ static void closeHandle() {
 /**
  * Write bytes out to the file
  *
- * @param uint8_t* bytes - pointer to the byte array
+ * @param const uint8_t* bytes - pointer to the byte array
  * @param uint32_t num_bytes - number of bytes to write
  */
-static void write_bytes(uint8_t *bytes, uint32_t num_bytes) {
+static void write_bytes(const uint8_t *bytes, uint32_t num_bytes) {
 	FILE *handle = p_output_file;
 	fwrite(bytes, 1, num_bytes, handle);
 }
@@ -408,8 +407,7 @@ static int handle_download_request(void) {
 	uint32_t chunkRemaindBytes = (uint32_t)(num_gen_bytes % SWRNG_BUFF_FILE_SIZE_BYTES);
 
 	/* Process each chunk */
-	int64_t chunkNum;
-	for (chunkNum = 0; chunkNum < numCompleteChunks; chunkNum++) {
+	for (int64_t chunkNum = 0; chunkNum < numCompleteChunks; chunkNum++) {
 		status = swrngGetCLEntropy(&cxt, receiveByteBuffer, SWRNG_BUFF_FILE_SIZE_BYTES);
 		if (status != SWRNG_SUCCESS) {
 			fprintf(stderr, "Failed to receive %d bytes, error code %d. ",
@@ -472,18 +470,18 @@ static int process_download_request() {
  * @param char ** argv - parameters
  * @return int - 0 when run successfully
  */
-int process(int argc, char **argv) {
+static int process(int argc, char **argv) {
 	/* Initialize the context */
 	int status = swrngInitializeContext(&hcxt);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Could not initialize context\n");
-		return(status);
+		return status;
 	}
 
 	status = swrngInitializeCLContext(&cxt);
 	if (status != SWRNG_SUCCESS) {
 		fprintf(stderr, "Could not initialize cluster context\n");
-		return(status);
+		return status;
 	}
 
 	swrngEnableCLPrintingErrorMessages(&cxt);

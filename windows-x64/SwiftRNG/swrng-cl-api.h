@@ -1,6 +1,6 @@
 /*
  * swrng-cl-api.h
- * Ver. 2.2
+ * Ver. 2.3
  *
  */
 
@@ -178,7 +178,7 @@ int swrngCLOpen(SwrngCLContext *ctxt, int cluster_size);
 * @param ctxt - pointer to SwrngCLContext structure
 * @return int - 0 when cluster is open
 */
-int swrngIsCLOpen(SwrngCLContext *ctxt);
+int swrngIsCLOpen(const SwrngCLContext *ctxt);
 
 /**
  * Close the cluster if open
@@ -201,7 +201,7 @@ const char* swrngGetCLLastErrorMessage(SwrngCLContext *ctxt);
 * @param ctxt - pointer to SwrngCLContext structure
 * @return - number of devices used by the cluster
 */
-int swrngGetCLSize(SwrngCLContext *ctxt);
+int swrngGetCLSize(const SwrngCLContext *ctxt);
 
 /**
 * Retrieve number of cluster fail-over events. That number will be incremented each
@@ -209,7 +209,7 @@ int swrngGetCLSize(SwrngCLContext *ctxt);
 * @param ctxt - pointer to SwrngCLContext structure
 * @return - number of cluster fail-over events
 */
-long swrngGetCLFailoverEventCount(SwrngCLContext *ctxt);
+long swrngGetCLFailoverEventCount(const SwrngCLContext *ctxt);
 
 /**
 * Retrieve number of cluster resize attempts. That number will be incremented each
@@ -217,7 +217,7 @@ long swrngGetCLFailoverEventCount(SwrngCLContext *ctxt);
 * @param ctxt - pointer to SwrngCLContext structure
 * @return - number of cluster resize attempts
 */
-long swrngGetCLResizeAttemptCount(SwrngCLContext *ctxt);
+long swrngGetCLResizeAttemptCount(const SwrngCLContext *ctxt);
 
 /**
 * A function to retrieve random bytes from a cluster of SwiftRNG devices

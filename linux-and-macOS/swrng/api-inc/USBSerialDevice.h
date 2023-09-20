@@ -1,11 +1,11 @@
 /*
  * USBSerialDevice.h
- * Ver 1.1
+ * Ver 1.2
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2020 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -28,34 +28,37 @@
 #include <sys/types.h>
 #include <sys/file.h>
 #include <ctype.h>
-
-#define MAX_DEVICE_COUNT (25)
-#define MAX_SIZE_DEVICE_NAME (128)
+#include <sstream>
 
 class USBSerialDevice {
-private:
-	int fd;
-	int lock;
-	char devNames[MAX_DEVICE_COUNT][MAX_SIZE_DEVICE_NAME];
-	int activeDevCount;
-	bool deviceConnected;
-	char lastError[512];
-	void setErrMsg(const char *errMessage);
-	void clearErrMsg();
-	void purgeComm();
 public:
 	USBSerialDevice();
 	virtual ~USBSerialDevice();
 	void initialize();
-	bool isConnected();
+	bool is_connected() const;
 	bool connect(const char *devicePath);
 	bool disconnect();
-	const char* getLastErrMsg();
-	int sendCommand(unsigned char *snd, int sizeSnd, int *bytesSent);
-	int receiveDeviceData(unsigned char *rcv, int sizeRcv, int *bytesReceived);
-	int getConnectedDeviceCount();
-	void scanForConnectedDevices();
-	bool retrieveConnectedDevice(char *devName, int devNum);
+	void clear_error_log();
+	std::string get_error_log() const;
+	int send_command(const unsigned char *snd, int sizeSnd, int *bytesSent);
+	int receive_data(unsigned char *rcv, int sizeRcv, int *bytesReceived);
+	int get_device_count() const;
+	void scan_available_devices();
+	bool retrieve_device_path(char *devName, int devNum) const;
+
+private:
+	void set_error_message(const char *error_message);
+	void purge_comm_data() const;
+
+private:
+	static const int c_max_devices = 25;
+	static const int c_max_size_device_name = 128;
+	int m_fd {-1};
+	int m_lock;
+	char c_device_names[c_max_devices][c_max_size_device_name];
+	int m_active_device_count {0};
+	bool m_device_connected {false};
+	std::ostringstream m_error_log_oss;
 
 };
 

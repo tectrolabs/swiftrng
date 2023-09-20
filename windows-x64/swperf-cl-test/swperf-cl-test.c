@@ -1,6 +1,6 @@
 /*
  * swperf-cl-test.c
- * Ver. 2.2
+ * Ver. 2.3
  *
  */
 
@@ -30,7 +30,8 @@ static unsigned char rnd_buffer[SAMPLES];
 static SwrngCLContext ctxt;
 
 static int status;
-static time_t start, end;
+static time_t start;
+static time_t end;
 static long l;
 
 
@@ -92,7 +93,7 @@ int main(int argc, char **argv) {
 	/* Open SwiftRNG device cluster if available */
 	if (swrngCLOpen(&ctxt, cluster_size) != SWRNG_SUCCESS) {
 		printf("%s\n", swrngGetCLLastErrorMessage(&ctxt));
-		return(1);
+		return 1;
 	}
 
 	printf("\nCluster preferred size: %d, actual cluster size: %d (successfully open)\n\n", cluster_size, swrngGetCLSize(&ctxt));

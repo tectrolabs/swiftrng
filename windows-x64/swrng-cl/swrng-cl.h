@@ -1,6 +1,6 @@
 /*
  * swrng-cl.h
- * Ver. 3.2
+ * Ver. 3.3
  *
  */
 
@@ -119,7 +119,7 @@ static int process_arguments(int argc, char **argv);
 static int validate_argument_count(int curIdx, int act_argument_count);
 static int process_download_request(void);
 static int handle_download_request(void);
-static void write_bytes(uint8_t *bytes, uint32_t num_bytes);
+static void write_bytes(const uint8_t *bytes, uint32_t num_bytes);
 
 
 #ifdef __linux__
