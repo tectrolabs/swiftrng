@@ -1283,14 +1283,10 @@ void SwiftRngApi::swrng_clearReceiverBuffer() {
 			retval = m_usb_serial_device->receive_data(m_bulk_in_buffer, c_rnd_in_buff_size + 1, &transferred);
 		}
 		else {
-			retval = libusb_bulk_transfer(m_libusb_devh, SWRNG_BULK_EP_IN, m_bulk_in_buffer, c_rnd_in_buff_size + 1, &transferred, c_usb_bulk_read_timeout_mlsecs);
+			retval = libusb_bulk_transfer(m_libusb_devh, c_bulk_ep_in, m_bulk_in_buffer, c_rnd_in_buff_size + 1, &transferred, c_usb_bulk_read_timeout_mlsecs);
 		}
 
-		if (retval) {
-			break;
-		}
-
-		if (transferred == 0) {
+		if (retval || transferred == 0) {
 			break;
 		}
 	}
@@ -1318,7 +1314,7 @@ int SwiftRngApi::swrng_snd_rcv_usb_data(const char *snd, int sizeSnd, char *rcv,
 			retval = m_usb_serial_device->send_command((const unsigned char*)snd, sizeSnd, &actualc_cnt);
 		}
 		else {
-			retval = libusb_bulk_transfer(m_libusb_devh, (unsigned char)SWRNG_BULK_EP_OUT, (unsigned char*)snd, sizeSnd, &actualc_cnt, 100);
+			retval = libusb_bulk_transfer(m_libusb_devh, c_bulk_ep_out, (unsigned char*)snd, sizeSnd, &actualc_cnt, 100);
 		}
 
 		if (retval == SWRNG_SUCCESS && actualc_cnt == sizeSnd) {
@@ -1369,7 +1365,7 @@ int SwiftRngApi::swrng_chip_read_data(char *buff, int length, int op_timeout_sec
 			retval = m_usb_serial_device->receive_data(m_bulk_in_buffer, length, &transferred);
 		}
 		else {
-			retval = libusb_bulk_transfer(m_libusb_devh, (unsigned char)SWRNG_BULK_EP_IN, m_bulk_in_buffer, length, &transferred, c_usb_bulk_read_timeout_mlsecs);
+			retval = libusb_bulk_transfer(m_libusb_devh, c_bulk_ep_in, m_bulk_in_buffer, length, &transferred, c_usb_bulk_read_timeout_mlsecs);
 		}
 
 #ifdef inDebugMode
