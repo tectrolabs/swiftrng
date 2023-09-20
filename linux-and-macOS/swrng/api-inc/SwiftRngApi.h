@@ -147,10 +147,10 @@ private:
 #endif
 
 	// Device specific USB bulk end point number for OUT operation
-	const int SWRNG_BULK_EP_OUT {0x01};
+	const unsigned char c_bulk_ep_out {0x01};
 
 	// Device specific USB bulk end point number for IN operation
-	const int SWRNG_BULK_EP_IN {0x81};
+	const unsigned char c_bulk_ep_in {0x81};
 
 	// Method id for using SHA-256 for post processing
 	const int c_sha256_pp_method_id {0};
