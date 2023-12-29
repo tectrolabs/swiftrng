@@ -27,7 +27,7 @@
 #include <string>
 #include <iostream>
 
-static swiftrng::SwiftRngApi api;
+static swiftrng::SwiftRngApi hwrng;
 static const std::string engine_e_swft_id {"swiftrng"};
 static const std::string engine_e_swft_name {"SWiftRNG RAND engine"};
 
@@ -37,9 +37,9 @@ static const std::string engine_e_swft_name {"SWiftRNG RAND engine"};
  * @return 0 - successful operation, otherwise the error code
  */
 static int setupRNG() {
-	int status = api.open(0);
+	int status = hwrng.open(0);
 	if (status != SWRNG_SUCCESS) {
-		std::cerr << api.get_last_error_log() << std::endl;
+		std::cerr << hwrng.get_last_error_log() << std::endl;
 	}
 	return status;
 }
@@ -53,7 +53,7 @@ static int setupRNG() {
  * @return 1 - successful operation
  */
 static int get_random_bytes(unsigned char *outputBuffer, int numGenBytes) {
-	int status = api.get_entropy_ex(outputBuffer, numGenBytes);
+	int status = hwrng.get_entropy_ex(outputBuffer, numGenBytes);
 	if (status != SWRNG_SUCCESS) {
 		std::cerr
 				<< "Failed to retrieve entropy from SwiftRNG device, error code: "
