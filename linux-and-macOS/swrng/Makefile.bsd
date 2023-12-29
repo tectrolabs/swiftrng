@@ -15,6 +15,8 @@ LDCPPFLAGS = $(LDFLAGS) -lstdc++
 
 OBJECTS = SwiftRngApi.o USBSerialDevice.o SwiftRngApiCWrapper.o RandomSeqGenerator.o
 CLOBJECTS = swrng-cl-api.o
+CFLAGS_ENGINE= -I$(IDIR) -fPIC -Wall -std=c++11
+LDFLAGS_ENGINE= -shared -lstdc++ -lusb-1.0 -lcrypto
 
 
 SWDIAG = swdiag
@@ -29,7 +31,7 @@ SWRAWRANDOM = swrawrandom
 SWRNGSEQGEN = swrngseqgen
 SAMPLE = sample
 SAMPLE_CL = sample-cl
-
+SWRNG_ENGINE = eng_swiftrng
 
 all: $(SAMPLE) $(SWDIAG) $(SWPERFTEST) $(BITCOUNT) $(SWRNG) $(SWRAWRANDOM) $(SWRNGSEQGEN) $(SAMPLE_CL) $(BITCOUNT_CL) $(SWDIAG_CL) $(SWPERFTEST_CL) $(SWRNG_CL)
 
@@ -105,6 +107,10 @@ $(SAMPLE_CL): $(SAMPLE_CL).c $(OBJECTS) $(CLOBJECTS)
 	$(CC) -c $(SAMPLE_CL).c $(CFLAGS) $(CLANGSTD)
 	$(GPP) $(SAMPLE_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SAMPLE_CL) $(LDFLAGS) $(CFLAGS_THREAD)
 
+$(SWRNG_ENGINE): $(SWRNG_ENGINE).cpp
+	@echo
+	@echo "Creating $(SWRNG_ENGINE) ..."
+	$(CC) $(SWRNG_ENGINE).cpp $(ENG_API_SRCS) -o $(SWRNG_ENGINE).so $(CFLAGS_ENGINE) $(LDFLAGS_ENGINE)
 
 SwiftRngApi.o:
 	$(GPP) -c $(SDIR)/SwiftRngApi.cpp $(CPPFLAGS)
@@ -124,7 +130,7 @@ swrng-cl-api.o:
 
 
 clean:
-	rm -f *.o ; rm -fr $(SAMPLE) $(SWDIAG) $(SWPERFTEST) $(BITCOUNT) $(SWRNG) $(SWRAWRANDOM) $(SWRNGSEQGEN) $(SAMPLE_CL) $(BITCOUNT_CL) $(SWDIAG_CL) $(SWPERFTEST_CL) $(SWRNG_CL)
+	rm -f *.o ; rm -fr $(SAMPLE) $(SWDIAG) $(SWPERFTEST) $(BITCOUNT) $(SWRNG) $(SWRAWRANDOM) $(SWRNGSEQGEN) $(SAMPLE_CL) $(BITCOUNT_CL) $(SWDIAG_CL) $(SWPERFTEST_CL) $(SWRNG_CL) $(SWRNG_ENGINE).so
 
 install:
 	install $(SWDIAG) $(BINDIR)/$(SWDIAG)

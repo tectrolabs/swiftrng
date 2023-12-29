@@ -1,0 +1,12 @@
+# This must be in the default section
+openssl_conf = openssl_init
+
+[openssl_init]
+engines = engine_section
+
+[engine_section]
+swiftrng = swiftrng_section
+
+[swiftrng_section]
+engine_id = swiftrng
+dynamic_path = ./eng_swiftrng.so
