@@ -12,9 +12,9 @@
 
 /**
  *    @file SwiftRngApi.h
- *    @date 9/17/2023
+ *    @date 12/28/2023
  *    @Author: Andrian Belinski
- *    @version 1.1
+ *    @version 1.2
  *
  *    @brief Implements the API for interacting with the SwiftRNG device.
  */
@@ -47,7 +47,7 @@ class SwiftRngApi {
 
 public:
 	SwiftRngApi();
-	int open(int devNum);
+	int open(int device_number);
 	int close();
 	int is_open() const;
 	int get_entropy(unsigned char *buffer, long length);
@@ -114,19 +114,19 @@ private:
 	uint64_t sha512_sigma0(const uint64_t *x);
 	void sha256_hashCurrentBlock();
 	int sha256_generateHash(const uint32_t *src, int16_t len, uint32_t *dst);
-	void swrng_printErrorMessage(const std::string &err_msg);
-	int swrng_handleDeviceVersion();
-	void swrng_clearReceiverBuffer();
+	void print_err_msg(const std::string &err_msg);
+	int handle_device_version();
+	void clr_rcv_buff();
 	uint64_t xorshift64_postProcessWord(uint64_t raw_word) const;
 	void xorshift64_postProcessWords(uint64_t *buffer, int num_elements);
 	void xorshift64_postProcess(uint8_t *buffer, int num_elements);
-	int swrng_snd_rcv_usb_data(const char *snd, int size_snd, char *rcv, int size_rcv, int op_timeout_secs);
-	int swrng_chip_read_data(char *buff, int length, int op_timeout_secs);
-	void swrng_contextReset();
-	int swrng_getEntropyBytes();
-	int swrng_rcv_rnd_bytes();
+	int snd_rcv_usb_data(const char *snd, int size_snd, char *rcv, int size_rcv, int op_timeout_secs);
+	int chip_read_data(char *buff, int length, int op_timeout_secs);
+	void ctxt_reset();
+	int get_entropy_bytes();
+	int rcv_rnd_bytes();
 	void test_samples();
-	void swrng_updateDevInfoList(DeviceInfoList* dev_info_list, int *curt_found_dev_num) const;
+	void update_dev_info_list(DeviceInfoList* dev_info_list, int *curt_found_dev_num) const;
 	uint32_t rotr32(uint32_t sb, uint32_t w) const { return ((w) >> (sb)) | ((w) << (32-(sb))); }
 	uint64_t rotr64(uint64_t sb, uint64_t w) const { return ((w) >> (sb)) | ((w) << (64-(sb))); }
 

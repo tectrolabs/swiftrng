@@ -12,9 +12,9 @@
 
 /**
  *    @file SwiftRngApi.h
- *    @date 9/17/2023
+ *    @date 12/28/2023
  *    @Author: Andrian Belinski
- *    @version 1.1
+ *    @version 1.2
  *
  *    @brief Implements the API for interacting with the SwiftRNG device.
  */
@@ -172,7 +172,7 @@ void SwiftRngApi::close_USB_lib() {
  * Print and/or save error message
  * @param err_msg - pointer to error message
  */
-void SwiftRngApi::swrng_printErrorMessage(const string &err_msg) {
+void SwiftRngApi::print_err_msg(const string &err_msg) {
 	if (m_print_error_messages) {
 		cerr << err_msg << endl;
 	}
@@ -188,9 +188,17 @@ void SwiftRngApi::swrng_printErrorMessage(const string &err_msg) {
 	m_last_error_log_char[err_msg_size] = '\0';
 }
 
-int SwiftRngApi::open(int devNum) {
+/**
+ * Open a connection with SwiftRNG device specified by `device_number`
+ *
+ * @param[in] device_number device number, 0 for the first device
+ *
+ * @return 0 if connection was successful, otherwise the error code
+ *
+ */
+int SwiftRngApi::open(int device_number) {
 	int ret;
-	int actualDeviceNum = devNum;
+	int actualDeviceNum = device_number;
 
 	if (is_context_initialized() == false) {
 		return -1;
@@ -224,17 +232,17 @@ int SwiftRngApi::open(int devNum) {
 
 	sha256_initializeSerialNumber((uint32_t)m_device_stats.beginTime);
 	if (sha256_selfTest() != SWRNG_SUCCESS) {
-		swrng_printErrorMessage("SHA256 post processing logic failed the self-test");
+		print_err_msg("SHA256 post processing logic failed the self-test");
 		return -EPERM;
 	}
 
 	if (sha512_selfTest() != SWRNG_SUCCESS) {
-		swrng_printErrorMessage("SHA512 post processing logic failed the self-test");
+		print_err_msg("SHA512 post processing logic failed the self-test");
 		return -EPERM;
 	}
 
 	if (xorshift64_selfTest() != SWRNG_SUCCESS) {
-		swrng_printErrorMessage("Xorshift64 post processing logic failed the self-test");
+		print_err_msg("Xorshift64 post processing logic failed the self-test");
 		return -EPERM;
 	}
 
@@ -243,16 +251,16 @@ int SwiftRngApi::open(int devNum) {
 	int ports[c_max_cdc_com_ports];
 	// Retrieve devices connected as USB CDC in Windows
 	m_usb_serial_device->get_connected_ports(ports, c_max_cdc_com_ports, &portsConnected, (WCHAR*)c_hardware_id.c_str());
-	if (portsConnected > devNum) {
+	if (portsConnected > device_number) {
 		WCHAR portName[80];
-		m_usb_serial_device->toPortName(ports[devNum], portName, 80);
+		m_usb_serial_device->toPortName(ports[device_number], portName, 80);
 		bool comPortStatus = m_usb_serial_device->connect(portName);
 		if (!comPortStatus) {
-			swrng_printErrorMessage(m_usb_serial_device->get_error_log());
+			print_err_msg(m_usb_serial_device->get_error_log());
 			return -1;
 		}
 		else {
-			return swrng_handleDeviceVersion();
+			return handle_device_version();
 		}
 	}
 	else {
@@ -262,16 +270,16 @@ int SwiftRngApi::open(int devNum) {
 	// Retrieve devices connected as USB CDC in Linux/macOS
 	m_usb_serial_device->scan_available_devices();
 	int portsConnected = m_usb_serial_device->get_device_count();
-	if (portsConnected > devNum) {
+	if (portsConnected > device_number) {
 		char devicePath[128];
-		m_usb_serial_device->retrieve_device_path(devicePath, devNum);
+		m_usb_serial_device->retrieve_device_path(devicePath, device_number);
 		bool comPortStatus = m_usb_serial_device->connect(devicePath);
 		if (!comPortStatus) {
-			swrng_printErrorMessage(m_usb_serial_device->get_error_log().c_str());
+			print_err_msg(m_usb_serial_device->get_error_log().c_str());
 			return -1;
 		}
 		else {
-			return swrng_handleDeviceVersion();
+			return handle_device_version();
 		}
 	}
 	else {
@@ -283,7 +291,7 @@ int SwiftRngApi::open(int devNum) {
 		int r = libusb_init(&m_libusb_luctx);
 		if (r < 0) {
 			close_USB_lib();
-			swrng_printErrorMessage(c_libusb_init_failure_msg);
+			print_err_msg(c_libusb_init_failure_msg);
 			return r;
 		}
 		m_libusb_initialized = true;
@@ -301,7 +309,7 @@ int SwiftRngApi::open(int devNum) {
 		ret = libusb_get_device_descriptor(m_libusb_dev, &desc);
 		if (ret < 0) {
 			close_USB_lib();
-			swrng_printErrorMessage(c_cannot_read_device_descriptor_msg);
+			print_err_msg(c_cannot_read_device_descriptor_msg);
 			return ret;
 		}
 		uint16_t idVendorCur = desc.idVendor;
@@ -312,42 +320,42 @@ int SwiftRngApi::open(int devNum) {
 				switch (ret) {
 				case LIBUSB_ERROR_NO_MEM:
 					close_USB_lib();
-					swrng_printErrorMessage("Memory allocation failure");
+					print_err_msg("Memory allocation failure");
 					return ret;
 				case LIBUSB_ERROR_ACCESS:
 					close_USB_lib();
-					swrng_printErrorMessage("User has insufficient permissions");
+					print_err_msg("User has insufficient permissions");
 					return ret;
 				case LIBUSB_ERROR_NO_DEVICE:
 					close_USB_lib();
-					swrng_printErrorMessage("Device has been disconnected");
+					print_err_msg("Device has been disconnected");
 					return ret;
 				}
 				if (ret < 0) {
 					close_USB_lib();
-					swrng_printErrorMessage("Failed to open USB device");
+					print_err_msg("Failed to open USB device");
 					return ret;
 				}
 
 				if (libusb_kernel_driver_active(m_libusb_devh, 0) == 1) { //find out if kernel driver is attached
 					close_USB_lib();
-					swrng_printErrorMessage("Device is already in use by kernel driver");
+					print_err_msg("Device is already in use by kernel driver");
 					return -1;
 				}
 
 				ret = libusb_claim_interface(m_libusb_devh, 0);
 				if (ret < 0) {
 					close_USB_lib();
-					swrng_printErrorMessage("Cannot claim the USB interface");
+					print_err_msg("Cannot claim the USB interface");
 					return ret;
 				}
 
-				return swrng_handleDeviceVersion();
+				return handle_device_version();
 			}
 		}
 	}
 	close_USB_lib();
-	swrng_printErrorMessage("Could not find any SwiftRNG device");
+	print_err_msg("Could not find any SwiftRNG device");
 	return -1;
 
 }
@@ -373,7 +381,7 @@ int SwiftRngApi::close() {
 	return SWRNG_SUCCESS;
 }
 
-void SwiftRngApi::swrng_contextReset() {
+void SwiftRngApi::ctxt_reset() {
 	if (m_usb_serial_device != nullptr) {
 		m_usb_serial_device->disconnect();
 	}
@@ -402,10 +410,10 @@ int SwiftRngApi::is_open() const {
  * @return 0 - successful operation, otherwise the error code (a negative number)
  *
  */
-int SwiftRngApi::swrng_getEntropyBytes() {
+int SwiftRngApi::get_entropy_bytes() {
 	int status;
 	if (m_cur_rng_out_idx >= c_rnd_out_buff_size) {
-		status = swrng_rcv_rnd_bytes();
+		status = rcv_rnd_bytes();
 	} else {
 		status = SWRNG_SUCCESS;
 	}
@@ -418,7 +426,7 @@ int SwiftRngApi::swrng_getEntropyBytes() {
  * @return 0 - successful operation, otherwise the error code (a negative number)
  *
  */
-int SwiftRngApi::swrng_rcv_rnd_bytes() {
+int SwiftRngApi::rcv_rnd_bytes() {
 	int retval;
 	uint32_t *dst32, *src32;
 	uint64_t *dst64, *src64;
@@ -429,7 +437,7 @@ int SwiftRngApi::swrng_rcv_rnd_bytes() {
 
 	m_bulk_out_buffer[0] = 'x';
 
-	retval = swrng_snd_rcv_usb_data((char *)m_bulk_out_buffer, 1, m_buff_rnd_in,
+	retval = snd_rcv_usb_data((char *)m_bulk_out_buffer, 1, m_buff_rnd_in,
 			c_rnd_in_buff_size, c_usb_read_timeout_secs);
 	if (retval == SWRNG_SUCCESS) {
 		if (m_stat_tests_enabled == true) {
@@ -465,7 +473,7 @@ int SwiftRngApi::swrng_rcv_rnd_bytes() {
 				memcpy(m_buff_rnd_out, m_buff_rnd_in, c_rnd_out_buff_size);
 				xorshift64_postProcess((uint8_t *)m_buff_rnd_out, c_rnd_out_buff_size);
 			} else {
-				swrng_printErrorMessage(c_pp_op_not_supported_msg);
+				print_err_msg(c_pp_op_not_supported_msg);
 				return -1;
 			}
 		} else {
@@ -473,10 +481,10 @@ int SwiftRngApi::swrng_rcv_rnd_bytes() {
 		}
 		m_cur_rng_out_idx = 0;
 		if (m_rct.statusByte != SWRNG_SUCCESS) {
-			swrng_printErrorMessage("Repetition Count Test failure");
+			print_err_msg("Repetition Count Test failure");
 			retval = -EPERM;
 		} else if (m_apt.statusByte != SWRNG_SUCCESS) {
-			swrng_printErrorMessage("Adaptive Proportion Test failure");
+			print_err_msg("Adaptive Proportion Test failure");
 			retval = -EPERM;
 		}
 	}
@@ -572,7 +580,7 @@ void SwiftRngApi::test_samples() {
 }
 
 /**
-* This function is an enhanced version of 'swrngGetEntropy'.
+* This function is an enhanced version of 'get_entropy'.
 * Use it to retrieve more than 100000 random bytes in one call
 *
 * @param unsigned char *buffer - a pointer to the data receive buffer
@@ -587,7 +595,7 @@ int SwiftRngApi::get_entropy_ex(unsigned char *buffer, long length) {
 	long leftover_bytes;
 
 	if (length <= 0) {
-		retval = -EPERM;
+		return -EPERM;
 	} else {
 		total_byte_blocks = length / c_max_request_size_bytes;
 		leftover_bytes = length % c_max_request_size_bytes;
@@ -595,11 +603,13 @@ int SwiftRngApi::get_entropy_ex(unsigned char *buffer, long length) {
 		for (long l = 0; l < total_byte_blocks; l++) {
 			retval = get_entropy(dst, c_max_request_size_bytes);
 			if (retval != SWRNG_SUCCESS) {
-				break;
+				return retval;
 			}
 			dst += c_max_request_size_bytes;
 		}
-		retval = get_entropy(dst, leftover_bytes);
+		if (leftover_bytes > 0) {
+			retval = get_entropy(dst, leftover_bytes);
+		}
 	}
 
 	return retval;
@@ -625,12 +635,12 @@ int SwiftRngApi::get_raw_data_block(NoiseSourceRawData *noise_source_raw_data, i
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 
 	if (noise_source_num < 0 || noise_source_num > 1) {
-		swrng_printErrorMessage("Noise source number must be 0 or 1");
+		print_err_msg("Noise source number must be 0 or 1");
 		return -1;
 	}
 
@@ -640,12 +650,12 @@ int SwiftRngApi::get_raw_data_block(NoiseSourceRawData *noise_source_raw_data, i
 		device_command = '>';
 	}
 
-	int resp = swrng_snd_rcv_usb_data(&device_command, 1, noise_source_raw_data->value,
+	int resp = snd_rcv_usb_data(&device_command, 1, noise_source_raw_data->value,
 			sizeof(NoiseSourceRawData) - 1, c_usb_read_timeout_secs);
 	// Replace status byte with \0 for ASCIIZ
 	noise_source_raw_data->value[sizeof(NoiseSourceRawData) - 1] = '\0';
 	if (resp != 0) {
-		swrng_printErrorMessage("Could not retrieve RAW data from a noise source");
+		print_err_msg("Could not retrieve RAW data from a noise source");
 	}
 	return resp;
 }
@@ -668,24 +678,24 @@ int SwiftRngApi::get_frequency_tables(FrequencyTables *frequency_tables) {
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 
 	if (m_device_version_double < 1.2) {
-		swrng_printErrorMessage(c_cannot_get_freq_table_for_device_msg);
+		print_err_msg(c_cannot_get_freq_table_for_device_msg);
 		return -1;
 	}
 
 	if (frequency_tables == nullptr) {
-		swrng_printErrorMessage(c_freq_table_invalid_msg);
+		print_err_msg(c_freq_table_invalid_msg);
 		return -1;
 	}
 
-	int resp = swrng_snd_rcv_usb_data("f", 1, (char *)frequency_tables,
+	int resp = snd_rcv_usb_data("f", 1, (char *)frequency_tables,
 			sizeof(FrequencyTables) - 2, c_usb_read_timeout_secs);
 	if (resp != 0) {
-		swrng_printErrorMessage("Could not retrieve device frequency tables");
+		print_err_msg("Could not retrieve device frequency tables");
 	}
 	return resp;
 }
@@ -707,14 +717,14 @@ int SwiftRngApi::get_device_list(DeviceInfoList *dev_info_list) {
 	}
 
 	if (m_device_open == true) {
-		swrng_printErrorMessage("Cannot invoke listDevices when there is a USB session in progress");
+		print_err_msg("Cannot invoke listDevices when there is a USB session in progress");
 		return -1;
 	}
 
 	if (m_libusb_initialized == false) {
 		int r = libusb_init(&m_libusb_luctx);
 		if (r < 0) {
-			swrng_printErrorMessage(c_libusb_init_failure_msg);
+			print_err_msg(c_libusb_init_failure_msg);
 			return r;
 		}
 		m_libusb_initialized = true;
@@ -731,7 +741,7 @@ int SwiftRngApi::get_device_list(DeviceInfoList *dev_info_list) {
 	// Add devices connected as USB CDC in Windows
 	usbComPort.get_connected_ports(ports, c_max_cdc_com_ports, &portsConnected, (WCHAR*)c_hardware_id.c_str());
 	while (portsConnected-- > 0) {
-		swrng_updateDevInfoList(dev_info_list, &curFoundDevNum);
+		update_dev_info_list(dev_info_list, &curFoundDevNum);
 	}
 #else
 	USBSerialDevice usbSerialDevice;
@@ -739,7 +749,7 @@ int SwiftRngApi::get_device_list(DeviceInfoList *dev_info_list) {
 	usbSerialDevice.scan_available_devices();
 	int portsConnected = usbSerialDevice.get_device_count();
 	while (portsConnected-- > 0) {
-		swrng_updateDevInfoList(dev_info_list, &curFoundDevNum);
+		update_dev_info_list(dev_info_list, &curFoundDevNum);
 	}
 #endif
 
@@ -754,7 +764,7 @@ int SwiftRngApi::get_device_list(DeviceInfoList *dev_info_list) {
 			libusb_free_device_list(devs, 1);
 			close_USB_lib();
 			// This should never happen, cannot have more than 127 USB devices
-			swrng_printErrorMessage(c_too_many_devices_msg);
+			print_err_msg(c_too_many_devices_msg);
 			return -1;
 		}
 		struct libusb_device_descriptor desc;
@@ -762,13 +772,13 @@ int SwiftRngApi::get_device_list(DeviceInfoList *dev_info_list) {
 		if (r < 0) {
 			libusb_free_device_list(devs, 1);
 			close_USB_lib();
-			swrng_printErrorMessage(c_cannot_read_device_descriptor_msg);
+			print_err_msg(c_cannot_read_device_descriptor_msg);
 			return r;
 		}
 		uint16_t idVendorCur = desc.idVendor;
 		uint16_t idProductCur = desc.idProduct;
 		if (idVendorCur == c_usb_vendor_id && idProductCur == c_usb_product_id) {
-			swrng_updateDevInfoList(dev_info_list, &curFoundDevNum);
+			update_dev_info_list(dev_info_list, &curFoundDevNum);
 		}
 	}
 	libusb_free_device_list(devs, 1);
@@ -776,7 +786,7 @@ int SwiftRngApi::get_device_list(DeviceInfoList *dev_info_list) {
 	return 0;
 }
 
-void SwiftRngApi::swrng_updateDevInfoList(DeviceInfoList* dev_info_list, int *curt_found_dev_num) const {
+void SwiftRngApi::update_dev_info_list(DeviceInfoList* dev_info_list, int *curt_found_dev_num) const {
 	dev_info_list->devInfoList[*curt_found_dev_num].devNum = *curt_found_dev_num;
 	SwiftRngApi api;
 	if (api.is_context_initialized() == false) {
@@ -807,15 +817,15 @@ int SwiftRngApi::get_serial_number(DeviceSerialNumber *serial_number) {
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 
-	int resp = swrng_snd_rcv_usb_data("s", 1, serial_number->value, sizeof(DeviceSerialNumber) - 1, c_usb_read_timeout_secs);
+	int resp = snd_rcv_usb_data("s", 1, serial_number->value, sizeof(DeviceSerialNumber) - 1, c_usb_read_timeout_secs);
 	// Replace status byte with \0 for ASCIIZ
 	serial_number->value[sizeof(DeviceSerialNumber) - 1] = '\0';
 	if (resp != 0) {
-		swrng_printErrorMessage("Could not retrieve device serial number");
+		print_err_msg("Could not retrieve device serial number");
 	}
 	return resp;
 }
@@ -836,15 +846,15 @@ int SwiftRngApi::set_power_profile(int power_profile_number) {
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 
 	ppn[0] = '0' + (char)power_profile_number;
 
-	int resp = swrng_snd_rcv_usb_data(ppn, 1, ppn, 0, c_usb_read_timeout_secs);
+	int resp = snd_rcv_usb_data(ppn, 1, ppn, 0, c_usb_read_timeout_secs);
 	if (resp != 0) {
-		swrng_printErrorMessage("Could not set power profile");
+		print_err_msg("Could not set power profile");
 	}
 	return resp;
 }
@@ -865,12 +875,12 @@ int SwiftRngApi::disable_post_processing() {
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 
 	if (m_device_version_double < 1.2) {
-		swrng_printErrorMessage(c_cannot_disable_pp_msg);
+		print_err_msg(c_cannot_disable_pp_msg);
 		return -1;
 	}
 
@@ -891,7 +901,7 @@ int SwiftRngApi::get_post_processing_status(int *post_processing_status) {
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 
@@ -912,7 +922,7 @@ int SwiftRngApi::get_post_processing_method(int *post_processing_method_id) {
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 	*post_processing_method_id = m_post_processing_method_id;
@@ -933,7 +943,7 @@ int SwiftRngApi::get_embedded_correction_method(int *dev_emb_corr_method_id) {
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 	*dev_emb_corr_method_id = m_dev_embedded_corr_method_id;
@@ -955,7 +965,7 @@ int SwiftRngApi::enable_post_processing(int post_processing_method_id) {
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 
@@ -965,7 +975,7 @@ int SwiftRngApi::enable_post_processing(int post_processing_method_id) {
 		break;
 	case 1:
 		if (m_device_version_double < 1.2) {
-			swrng_printErrorMessage(c_pp_op_not_supported_msg);
+			print_err_msg(c_pp_op_not_supported_msg);
 			return -1;
 		}
 		m_post_processing_method_id = c_xorshift64_pp_method_id;
@@ -974,7 +984,7 @@ int SwiftRngApi::enable_post_processing(int post_processing_method_id) {
 		m_post_processing_method_id = c_sha512_pp_method_id;
 		break;
 	default:
-		swrng_printErrorMessage(c_pp_method_not_supported_msg);
+		print_err_msg(c_pp_method_not_supported_msg);
 		return -1;
 	}
 	m_post_processing_enabled = true;
@@ -994,7 +1004,7 @@ int SwiftRngApi::enable_statistical_tests() {
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 
@@ -1031,7 +1041,7 @@ const char* SwiftRngApi::get_last_error_message() {
 
 	if (is_context_initialized() == false) {
 		clear_last_error_msg();
-		swrng_printErrorMessage("Context not initialized");
+		print_err_msg("Context not initialized");
 	}
 
 	return m_last_error_log_char;
@@ -1090,7 +1100,7 @@ int SwiftRngApi::get_statistical_tests_status(int *statistical_tests_enabled_sta
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 
@@ -1114,7 +1124,7 @@ int SwiftRngApi::disable_statistical_tests() {
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 
@@ -1137,20 +1147,20 @@ int SwiftRngApi::run_device_diagnostics() {
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 
 
 	if (m_device_version_double < 2.0) {
-		swrng_printErrorMessage(c_diag_op_not_supported_msg);
+		print_err_msg(c_diag_op_not_supported_msg);
 		return -1;
 	}
 	command = 'd';
 
-	int resp = swrng_snd_rcv_usb_data(&command, 1, &command, 0, c_usb_read_timeout_secs);
+	int resp = snd_rcv_usb_data(&command, 1, &command, 0, c_usb_read_timeout_secs);
 	if (resp != 0) {
-		swrng_printErrorMessage("Device diagnostics failed");
+		print_err_msg("Device diagnostics failed");
 	}
 	return resp;
 }
@@ -1187,15 +1197,15 @@ int SwiftRngApi::get_model(DeviceModel *model) {
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 
-	int resp = swrng_snd_rcv_usb_data("m", 1, model->value,	sizeof(DeviceModel) - 1, c_usb_read_timeout_secs);
+	int resp = snd_rcv_usb_data("m", 1, model->value,	sizeof(DeviceModel) - 1, c_usb_read_timeout_secs);
 	// Replace status byte with \0 for ASCIIZ
 	model->value[sizeof(DeviceModel) - 1] = '\0';
 	if (resp != 0) {
-		swrng_printErrorMessage("Could not retrieve device model");
+		print_err_msg("Could not retrieve device model");
 	}
 	return resp;
 }
@@ -1214,7 +1224,7 @@ int SwiftRngApi::get_version_number(double *version) {
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 
@@ -1247,7 +1257,7 @@ int SwiftRngApi::get_entropy(unsigned char *buffer, long length) {
 		total = 0;
 		do {
 			if (m_cur_rng_out_idx >= c_rnd_out_buff_size) {
-				retval = swrng_getEntropyBytes();
+				retval = get_entropy_bytes();
 			}
 			if (retval == SWRNG_SUCCESS) {
 				act = c_rnd_out_buff_size - m_cur_rng_out_idx;
@@ -1274,7 +1284,7 @@ int SwiftRngApi::get_entropy(unsigned char *buffer, long length) {
 /**
  * Clear potential random bytes from the receiver buffer if any
  */
-void SwiftRngApi::swrng_clearReceiverBuffer() {
+void SwiftRngApi::clr_rcv_buff() {
 	int transferred;
 	int retval;
 	for (int i = 0; i < 3; i++) {
@@ -1304,7 +1314,7 @@ void SwiftRngApi::swrng_clearReceiverBuffer() {
  * @return 0 - successful operation, otherwise the error code (a negative number)
  *
  */
-int SwiftRngApi::swrng_snd_rcv_usb_data(const char *snd, int sizeSnd, char *rcv, int sizeRcv,	int op_timeout_secs) {
+int SwiftRngApi::snd_rcv_usb_data(const char *snd, int sizeSnd, char *rcv, int sizeRcv,	int op_timeout_secs) {
 	int retry;
 	int actualc_cnt;
 	int retval = SWRNG_SUCCESS;
@@ -1318,7 +1328,7 @@ int SwiftRngApi::swrng_snd_rcv_usb_data(const char *snd, int sizeSnd, char *rcv,
 		}
 
 		if (retval == SWRNG_SUCCESS && actualc_cnt == sizeSnd) {
-			retval = swrng_chip_read_data(rcv, sizeRcv + 1, op_timeout_secs);
+			retval = chip_read_data(rcv, sizeRcv + 1, op_timeout_secs);
 			if (retval == SWRNG_SUCCESS) {
 				if (rcv[sizeRcv] != 0) {
 					retval = -EFAULT;
@@ -1332,7 +1342,7 @@ int SwiftRngApi::swrng_snd_rcv_usb_data(const char *snd, int sizeSnd, char *rcv,
 			fprintf(stderr, "It was an error during data communication. Cleaning up the receiving queue and continue.\n");
 		#endif
 			m_device_stats.totalRetries++;
-		swrng_chip_read_data(m_buff_rnd_in, c_rnd_in_buff_size + 1, op_timeout_secs);
+		chip_read_data(m_buff_rnd_in, c_rnd_in_buff_size + 1, op_timeout_secs);
 	}
 	if (retry >= c_usb_read_max_retry_count && retval == SWRNG_SUCCESS) {
 		retval = -ETIMEDOUT;
@@ -1349,7 +1359,7 @@ int SwiftRngApi::swrng_snd_rcv_usb_data(const char *snd, int sizeSnd, char *rcv,
  * @return 0 - successful operation, otherwise the error code (a negative number)
  *
  */
-int SwiftRngApi::swrng_chip_read_data(char *buff, int length, int op_timeout_secs) {
+int SwiftRngApi::chip_read_data(char *buff, int length, int op_timeout_secs) {
 	long secs_waited;
 	int transferred;
 	time_t start;
@@ -1376,7 +1386,7 @@ int SwiftRngApi::swrng_chip_read_data(char *buff, int length, int op_timeout_sec
 		}
 
 		if (transferred > length) {
-			swrng_printErrorMessage("Received unexpected bytes when processing USB device request");
+			print_err_msg("Received unexpected bytes when processing USB device request");
 			return -EFAULT;
 		}
 
@@ -1414,24 +1424,24 @@ int SwiftRngApi::get_version(DeviceVersion *version) {
 	}
 
 	if (m_device_open == false) {
-		swrng_printErrorMessage(c_dev_not_open_msg);
+		print_err_msg(c_dev_not_open_msg);
 		return -1;
 	}
 
-	int resp = swrng_snd_rcv_usb_data("v", 1, version->value, sizeof(DeviceVersion) - 1, c_usb_read_timeout_secs);
+	int resp = snd_rcv_usb_data("v", 1, version->value, sizeof(DeviceVersion) - 1, c_usb_read_timeout_secs);
 	// Replace status byte with \0 for ASCIIZ
 	version->value[sizeof(DeviceVersion) - 1] = '\0';
 	if (resp != 0) {
-		swrng_printErrorMessage("Could not retrieve device version");
+		print_err_msg("Could not retrieve device version");
 	}
 	return resp;
 }
 
-int SwiftRngApi::swrng_handleDeviceVersion() {
+int SwiftRngApi::handle_device_version() {
 	int status;
 
 	// Clear the receive buffer
-	swrng_clearReceiverBuffer();
+	clr_rcv_buff();
 	m_device_open = true;
 
 	// Retrieve device version number

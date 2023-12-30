@@ -8,10 +8,16 @@ BINDIR = $(PREFIX)/bin
 
 OS:=$(shell uname -s)
 ifeq ($(OS),Darwin)
-IDIR_MACOS = -I/usr/local/include/
-LDIR_MACOS = -L/usr/local/lib/
+	IDIR_MACOS = -I/usr/local/include/
+	LDIR_MACOS = -L/usr/local/lib/
+	ifneq ($(wildcard /usr/local/opt/openssl/.),)
+		OPENSSL_DIR_MACOS = /usr/local/opt/openssl
+	else
+		OPENSSL_DIR_MACOS = /opt/homebrew/opt/openssl
+	endif
+	OPENSSL_SUPPORT_INC_MACOS = -I$(OPENSSL_DIR_MACOS)/include
+	OPENSSL_SUPPORT_LIB_MACOS = -L$(OPENSSL_DIR_MACOS)/lib
 endif
-
 
 CFLAGS = -O2 -I$(IDIR) $(IDIR_MACOS) -Wall -Wextra
 CFLAGS_THREAD = -lpthread
@@ -19,8 +25,11 @@ CPPFLAGS = $(CFLAGS) -std=c++11
 #CLANGSTD = -std=c99
 LDFLAGS = -lusb-1.0 $(LDIR_MACOS)
 LDCPPFLAGS = $(LDFLAGS) -lstdc++
+CFLAGS_ENGINE= -I$(IDIR) $(IDIR_MACOS) $(OPENSSL_SUPPORT_INC_MACOS) -fPIC -Wall -std=c++11
+LDFLAGS_ENGINE= -shared -lstdc++ -lusb-1.0 -lcrypto $(LDIR_MACOS) $(OPENSSL_SUPPORT_LIB_MACOS)
 
 OBJECTS = SwiftRngApi.o USBSerialDevice.o SwiftRngApiCWrapper.o RandomSeqGenerator.o
+ENG_API_SRCS = $(SDIR)/SwiftRngApi.cpp $(SDIR)/USBSerialDevice.cpp
 CLOBJECTS = swrng-cl-api.o
 
 SWDIAG = swdiag
@@ -36,7 +45,7 @@ SWRNGSEQGEN = swrngseqgen
 SAMPLE = sample
 SAMPLECPP = sample++
 SAMPLE_CL = sample-cl
-
+SWRNG_ENGINE = eng_swiftrng
 
 all: $(SAMPLE) $(SWDIAG) $(SWPERFTEST) $(BITCOUNT) $(SWRNG) $(SWRAWRANDOM) $(SWRNGSEQGEN) $(SAMPLE_CL) $(BITCOUNT_CL) $(SWDIAG_CL) $(SWPERFTEST_CL) $(SWRNG_CL) $(SAMPLECPP)
 
@@ -118,6 +127,10 @@ $(SAMPLE_CL): $(SAMPLE_CL).c $(OBJECTS) $(CLOBJECTS)
 	$(CC) -c $(SAMPLE_CL).c $(CFLAGS) $(CLANGSTD)
 	$(GPP) $(SAMPLE_CL).o $(OBJECTS) $(CLOBJECTS) -o $(SAMPLE_CL) $(LDFLAGS) $(CFLAGS_THREAD)
 
+$(SWRNG_ENGINE): $(SWRNG_ENGINE).cpp
+	@echo
+	@echo "Creating $(SWRNG_ENGINE) ..."
+	$(CC) $(SWRNG_ENGINE).cpp $(ENG_API_SRCS) -o $(SWRNG_ENGINE).so $(CFLAGS_ENGINE) $(LDFLAGS_ENGINE)
 
 SwiftRngApi.o:
 	$(GPP) -c $(SDIR)/SwiftRngApi.cpp $(CPPFLAGS)
@@ -137,7 +150,7 @@ swrng-cl-api.o:
 
 
 clean:
-	rm -f *.o ; rm -fr $(SAMPLE) $(SWDIAG) $(SWPERFTEST) $(BITCOUNT) $(SWRNG) $(SWRAWRANDOM) $(SWRNGSEQGEN) $(SAMPLE_CL) $(BITCOUNT_CL) $(SWDIAG_CL) $(SWPERFTEST_CL) $(SWRNG_CL) $(SAMPLECPP)
+	rm -f *.o ; rm -fr $(SAMPLE) $(SWDIAG) $(SWPERFTEST) $(BITCOUNT) $(SWRNG) $(SWRAWRANDOM) $(SWRNGSEQGEN) $(SAMPLE_CL) $(BITCOUNT_CL) $(SWDIAG_CL) $(SWPERFTEST_CL) $(SWRNG_CL) $(SAMPLECPP) $(SWRNG_ENGINE).so
 
 install:
 	install $(SWDIAG) $(BINDIR)/$(SWDIAG)
