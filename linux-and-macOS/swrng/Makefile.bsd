@@ -15,8 +15,9 @@ LDCPPFLAGS = $(LDFLAGS) -lstdc++
 
 OBJECTS = SwiftRngApi.o USBSerialDevice.o SwiftRngApiCWrapper.o RandomSeqGenerator.o
 CLOBJECTS = swrng-cl-api.o
+ENG_API_SRCS = $(SDIR)/SwiftRngApi.cpp $(SDIR)/USBSerialDevice.cpp
 CFLAGS_ENGINE= -I$(IDIR) -fPIC -Wall -std=c++11
-LDFLAGS_ENGINE= -shared -lstdc++ -lusb-1.0 -lcrypto
+LDFLAGS_ENGINE= -shared -lstdc++ -lusb -lcrypto
 
 
 SWDIAG = swdiag
