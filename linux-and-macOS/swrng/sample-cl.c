@@ -1,9 +1,9 @@
 /*
  * sample-cl.c
- * Ver. 2.7
+ * Ver. 2.8
  *
- * This is a sample C program that demonstrates how to retrieve random bytes
- * from a cluster of two SwiftRNG devices using 'swrng-cl-api' API for C language.
+ * @brief This is a sample C program that demonstrates how to retrieve random bytes from
+ * a cluster of two SwiftRNG devices using 'swrng-cl-api' API for C language.
  *
  */
 #include <swrng-cl-api.h>

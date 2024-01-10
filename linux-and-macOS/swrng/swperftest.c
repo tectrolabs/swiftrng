@@ -1,11 +1,9 @@
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2024 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
-
- This program is used for testing the performance of the SwiftRNG devices.
 
  This program may require 'sudo' permissions when running on Linux or macOS.
 
@@ -13,8 +11,9 @@
 
 /*
  * swperftest.c
- * Ver. 2.4
+ * Ver. 2.5
  *
+ * @brief This program is used for testing the performance of the SwiftRNG devices.
  */
 #include <stdio.h>
 #include <swrngapi.h>

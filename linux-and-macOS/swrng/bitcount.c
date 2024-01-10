@@ -1,8 +1,8 @@
 /*
  * bitcount.c
- * Ver. 3.4
+ * Ver. 3.5
  *
- * A C program for counting '1' and '0' bits retrieved from SwiftRNG device or from a file
+ * @brief A C program for counting '1' and '0' bits retrieved from SwiftRNG device or from a file
  *
  */
 #include <stdio.h>

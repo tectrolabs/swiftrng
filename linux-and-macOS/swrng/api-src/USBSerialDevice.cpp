@@ -1,11 +1,11 @@
 /*
  * USBSerialDevice.cpp
- * Ver 1.4
+ * Ver 1.5
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2024 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -163,7 +163,7 @@ void USBSerialDevice::scan_available_devices() {
 #ifdef __linux__
 	char command[] = "/bin/ls -1l /dev/serial/by-id 2>&1 | grep -i \"TectroLabs_SwiftRNG\"";
 #else
-	char command[] = "/bin/ls -1a /dev/cu.usbmodemSWRNG* /dev/cu.usbmodemFD* 2>&1";
+	char command[] = "/bin/ls -1a /dev/cu.usbmodemSWRNG* /dev/cu.usbmodemF* 2>&1";
 #endif
 	FILE *pf = popen(command,"r");
 	if (pf == nullptr) {
@@ -179,7 +179,7 @@ void USBSerialDevice::scan_available_devices() {
 		}
 #else
 		int cmp1  = strncmp(line, "/dev/cu.usbmodemSWRNG", 21);
-		int cmp2  = strncmp(line, "/dev/cu.usbmodemFD", 18);
+		int cmp2  = strncmp(line, "/dev/cu.usbmodemF", 17);
 		if (cmp1 != 0 && cmp2 != 0 ) {
 			continue;
 		}
