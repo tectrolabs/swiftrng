@@ -6,8 +6,9 @@ Our latest SwiftRNG devices work with Linux, macOS, freeBSD, Windows 10/11 (64-b
 
 This repository contains the SwiftRNG Software Kit, which provides everything you need to use SwiftRNG with Linux, macOS, freeBSD and Windows.
 
-* [More about SwiftRNG](https://tectrolabs.com/swiftrng/)
+* [SwiftRNG quick start guide](https://tectrolabs.com/docs/swiftrng/quick-start/)
 * [SwiftRNG Documentation](https://tectrolabs.com/docs/swiftrng/)
+* [More about SwiftRNG](https://tectrolabs.com/swiftrng/)
 
 ## Contents
 
