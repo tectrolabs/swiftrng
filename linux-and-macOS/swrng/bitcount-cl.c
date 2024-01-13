@@ -1,9 +1,8 @@
 /*
  * bitcount-cl.c
- * Ver. 2.3
+ * Ver. 2.4
  *
- * A C program for counting '1' and '0' bits retrieved from a SwiftRNG device cluster
- * using default configuration.
+ * @brief A C program for counting '1' and '0' bits retrieved from a SwiftRNG device cluster using default configuration.
  *
  */
 

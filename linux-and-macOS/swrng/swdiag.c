@@ -1,22 +1,20 @@
-/*
- * swdiag.c
- * Ver. 2.7
- *
- */
-
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2024 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
-
- This program is used for running diagnostics for one or more SwiftRNG devices.
 
  This program may require 'sudo' permissions when running on Linux or macOS.
 
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
+/*
+ * swdiag.c
+ * Ver. 2.8
+ *
+ * @brief This program is used for running diagnostics for one or more SwiftRNG devices.
+ */
 
 #include <math.h>
 #include <stdlib.h>
@@ -73,7 +71,7 @@ int main() {
 	uint16_t max_rct_failures_per_block;
 
 	printf("-------------------------------------------------------------------\n");
-	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.7  ---\n");
+	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.8  ---\n");
 	printf("-------------------------------------------------------------------\n");
 	printf("Searching for devices ------------------ ");
 

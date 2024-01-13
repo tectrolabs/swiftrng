@@ -1,9 +1,8 @@
 /*
  * sample++.cpp
- * Ver. 1.0
+ * Ver. 1.1
  *
- * A sample C++ program that demonstrates how to retrieve random bytes
- * from a SwiftRNG device using SwiftRNG C++ API.
+ * @brief A sample C++ program that demonstrates how to retrieve random bytes from a SwiftRNG device using SwiftRNG C++ API.
  *
  *
  */

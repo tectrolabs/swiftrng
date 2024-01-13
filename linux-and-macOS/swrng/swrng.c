@@ -1,12 +1,6 @@
-/*
- * swrng.c
- * Ver. 3.5
- *
- */
-
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2023 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2024 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -25,6 +19,12 @@
  This program may require 'sudo' permissions when running on Linux or macOS.
 
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+/*
+ * swrng.c
+ * Ver. 3.6
+ *
+ */
 
 #include "swrng.h"
 
@@ -70,7 +70,7 @@ static int display_devices(void) {
  */
 static void display_usage(void) {
 	printf("*********************************************************************************\n");
-	printf("                   TectroLabs - swrng - download utility Ver 3.5  \n");
+	printf("                   TectroLabs - swrng - download utility Ver 3.6  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     swrng  - True Random Number Generator SwiftRNG download \n");

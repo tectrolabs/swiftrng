@@ -1,8 +1,8 @@
 /*
  * swrawrandom.c
- * Ver. 2.4
+ * Ver. 2.5
  *
- * A C program for retrieving raw (unprocessed) random bytes from SwiftRNG noise sources.
+ * @brief A C program for retrieving raw (unprocessed) random bytes from SwiftRNG noise sources.
  *
  */
 
