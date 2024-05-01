@@ -1,12 +1,12 @@
 /*
 * entropy-server.h
-* Ver. 2.1
+* Ver. 2.2
 *
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2021 TectroLabs, http://tectrolabs.com
+Copyright (C) 2014-2024 TectroLabs, http://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -103,7 +103,7 @@ DeviceVersion dv;
 static wchar_t pipeEndPoint[PIPENAME_MAX_CHARS + 1];
 static char defaultPipeEndpoint[] = "\\\\.\\pipe\\SwiftRNG";
 static char serverMajorVersion = 2;
-static char serverMinorVersion = 2;
+static char serverMinorVersion = 3;
 size_t numCharConverted;
 char embeddedCorrectionMethodStr[MAX_CORRECTION_NAME_SIZE];
 int embeddedCorrectionMethodId;

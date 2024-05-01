@@ -1,5 +1,5 @@
 /**
- Copyright (C) 2014-2023 TectroLabs L.L.C. https://tectrolabs.com
+ Copyright (C) 2014-2024 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -12,9 +12,9 @@
 
 /**
  *    @file SwiftRngApi.h
- *    @date 9/17/2023
+ *    @date 05/01/2024
  *    @Author: Andrian Belinski
- *    @version 1.1
+ *    @version 1.2
  *
  *    @brief Implements the API for interacting with the SwiftRNG device.
  */
@@ -242,7 +242,7 @@ int SwiftRngApi::open(int devNum) {
 	int portsConnected;
 	int ports[c_max_cdc_com_ports];
 	// Retrieve devices connected as USB CDC in Windows
-	m_usb_serial_device->get_connected_ports(ports, c_max_cdc_com_ports, &portsConnected, (WCHAR*)c_hardware_id.c_str());
+	m_usb_serial_device->get_connected_ports(ports, c_max_cdc_com_ports, &portsConnected, (WCHAR*)c_hardware_id.c_str(), (WCHAR*)L"SWRNG");
 	if (portsConnected > devNum) {
 		WCHAR portName[80];
 		m_usb_serial_device->toPortName(ports[devNum], portName, 80);
@@ -729,7 +729,7 @@ int SwiftRngApi::get_device_list(DeviceInfoList *dev_info_list) {
 	int portsConnected;
 	int ports[c_max_cdc_com_ports];
 	// Add devices connected as USB CDC in Windows
-	usbComPort.get_connected_ports(ports, c_max_cdc_com_ports, &portsConnected, (WCHAR*)c_hardware_id.c_str());
+	usbComPort.get_connected_ports(ports, c_max_cdc_com_ports, &portsConnected, (WCHAR*)c_hardware_id.c_str(), (WCHAR*)L"SWRNG");
 	while (portsConnected-- > 0) {
 		swrng_updateDevInfoList(dev_info_list, &curFoundDevNum);
 	}

@@ -1,12 +1,12 @@
 /*
 * entropy-cl-server.c
-* Ver. 2.3
+* Ver. 2.4
 *
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2023 TectroLabs L.L.C. https://tectrolabs.com
+Copyright (C) 2014-2024 TectroLabs L.L.C. https://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -33,7 +33,7 @@ This program may only be used in conjunction with SwiftRNG devices.
 */
 void displayUsage() {
 	printf("*********************************************************************************\n");
-	printf("                   SwiftRNG entropy-cl-server Ver 2.3  \n");
+	printf("                   SwiftRNG entropy-cl-server Ver 2.4  \n");
 	printf("*********************************************************************************\n");
 	printf("NAME\n");
 	printf("     entropy-cl-server - An application server for distributing random bytes \n");
