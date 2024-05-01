@@ -1,11 +1,11 @@
 /*
 * USBComPort.cpp
-* Ver 1.2
+* Ver 1.3
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2023 TectroLabs L.L.C. https://tectrolabs.com
+Copyright (C) 2014-2024 TectroLabs L.L.C. https://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -241,11 +241,12 @@ void USBComPort::clear_comm_err() {
 * @param int maxPorts - the maximum number of SwiftRNG devices to discover
 * @param  int *actualCount - a pointer to the actual number of SwiftRNG devices found
 * @param  WCHAR *hardwareId - a pointer to SwiftRNG device hardware ID 
+* @param WCHAR* serialId - a pointer to SwiftRNG device hardware serial ID
 * 
 * @return 0 - successful operation, otherwise the error code
 *
 */
-void USBComPort::get_connected_ports(int ports[], int maxPorts, int *actualCount, WCHAR *hardwareId) {
+void USBComPort::get_connected_ports(int ports[], int maxPorts, int *actualCount, WCHAR *hardwareId, WCHAR* serialId) {
 
 	DWORD devIdx = 0;
 	int foundPortIndex = 0;
@@ -295,13 +296,22 @@ void USBComPort::get_connected_ports(int ports[], int maxPorts, int *actualCount
 					if (_tcsnicmp(curPortName, _T("COM"), 3) == 0)
 					{
 						TCHAR* src = (TCHAR*)curHardwareId;
-						int size = (int)_tcsnlen(hardwareId, 80);
-
 						if (_tcsnicmp(hardwareId, (TCHAR*)curHardwareId, _tcsnlen(hardwareId, 80)) == 0) {
-							int nPortNr = _ttoi(curPortName + 3);
-							if (nPortNr != 0)
+							int port_nr = _ttoi(curPortName + 3);
+							if (port_nr != 0)
 							{
-								ports[foundPortIndex++] = nPortNr;
+								DEVINST dev_instance_parent_id;
+								TCHAR sz_dev_instance_id[MAX_DEVICE_ID_LEN];
+								CONFIGRET status = CM_Get_Parent(&dev_instance_parent_id, devInfoData.DevInst, 0);
+								if (status == CR_SUCCESS)
+								{
+									status = CM_Get_Device_ID(dev_instance_parent_id, sz_dev_instance_id, MAX_DEVICE_ID_LEN, 0);
+									if (status == CR_SUCCESS) {
+										if (std::wstring(sz_dev_instance_id).find(serialId) != std::string::npos) {
+											ports[foundPortIndex++] = port_nr;
+										}
+									}
+								}
 							}
 						}
 
