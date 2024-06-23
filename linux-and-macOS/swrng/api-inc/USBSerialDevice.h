@@ -1,6 +1,6 @@
 /*
  * USBSerialDevice.h
- * Ver 1.2
+ * Ver 1.3
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -29,6 +29,10 @@
 #include <sys/file.h>
 #include <ctype.h>
 #include <sstream>
+
+#ifdef __FreeBSD__
+#include <sys/param.h>
+#endif
 
 class USBSerialDevice {
 public:
