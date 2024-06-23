@@ -1,6 +1,6 @@
 /*
  * USBSerialDevice.cpp
- * Ver 1.5
+ * Ver 1.6
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -71,8 +71,12 @@ bool USBSerialDevice::connect(const char *devicePath) {
 	opts.c_iflag &= ~(INLCR | IGNCR | ICRNL | IXON | IXOFF);
 	opts.c_oflag &= ~(ONLCR | OCRNL);
 
-	// Set time out to 100 milliseconds for read serial device operations
+	// Set time out or read serial device operations
+#ifdef __FreeBSD__
+	opts.c_cc[VTIME] = 2;
+#else
 	opts.c_cc[VTIME] = 1;
+#endif
 	opts.c_cc[VMIN] = 0;
 
 	retVal = tcsetattr(m_fd, TCSANOW, &opts);
@@ -220,8 +224,13 @@ void USBSerialDevice::scan_available_devices() {
 			continue;
 		}
 		if (device_candidate) {
+		#if __FreeBSD_version < 1400000
 			if (strstr(line, "VCOM") != nullptr && strstr(line, "umodem") != nullptr) {
-				// Found VCOM description. Extract 'cuaU' number.
+		#else
+			if (strstr(line, "umodem") != nullptr) {
+
+		#endif
+				// Found description. Extract 'cuaU' number.
 				char *p = strstr(line, "umodem");
 				if (p == nullptr) {
 					continue;
