@@ -1,6 +1,6 @@
 /*
  * swrandom.c
- * ver. 2.5
+ * ver. 2.6
  *
  */
 
@@ -2179,8 +2179,13 @@ static bool acm_lock_device(void)
 {
    int op_status;
    locks_init_lock(&acmCtxt->fl);
+#ifndef TL_MIN_KERNEL_6_9
    acmCtxt->fl.fl_flags = FL_FLOCK | FL_EXISTS;
    acmCtxt->fl.fl_type = LOCK_READ | LOCK_WRITE;
+#else
+   acmCtxt->fl.c.flc_flags = FL_FLOCK | FL_EXISTS;
+   acmCtxt->fl.c.flc_type = LOCK_READ | LOCK_WRITE;
+#endif
    op_status = locks_lock_inode_wait(acmCtxt->inode, &acmCtxt->fl);
    if (op_status != 0) {
       pr_info("%s: acm_lock_device(): Could not lock device %s\n", DRIVER_NAME, acmCtxt->dev_name);
@@ -2243,7 +2248,11 @@ static void acm_clean_up(void)
    }
 
    if (acmCtxt->device_locked) {
+#ifndef TL_MIN_KERNEL_6_9
       acmCtxt->fl.fl_type = F_UNLCK;
+#else
+      acmCtxt->fl.c.flc_type = F_UNLCK;
+#endif
       op_status = locks_lock_inode_wait(acmCtxt->inode, &acmCtxt->fl);
       if (op_status != 0) {
          pr_err("%s: acm_clean_up(): Could not unlock %s\n", DRIVER_NAME, acmCtxt->dev_name);
