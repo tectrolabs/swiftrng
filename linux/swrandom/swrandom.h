@@ -1,6 +1,6 @@
 /*
  * swrandom.h
- * ver. 2.5
+ * ver. 2.6
  *
  */
 
@@ -62,7 +62,7 @@
 #define SUCCESS 0
 #define DEVICE_NAME "swrandom"
 #define PROC_NAME "info"
-#define DRIVER_VERSION "2.5"
+#define DRIVER_VERSION "2.6"
 #define DRIVER_NAME "SWRNG"
 
 
@@ -89,6 +89,10 @@
 
 // Max amount of entropy bytes that user can request at a time.
 #define MAX_BYTES_USER_CAN_REQUEST (100000)
+
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(6,9,00)
+#define TL_MIN_KERNEL_6_9
+#endif
 
 #if LINUX_VERSION_CODE >= KERNEL_VERSION(6,01,00)
 #define TL_MIN_KERNEL_6_1
