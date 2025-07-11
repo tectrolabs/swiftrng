@@ -1,8 +1,8 @@
 /*
  * bitcount.c
- * Ver. 3.4
+ * Ver. 3.6
  *
- * A C program for counting '1' and '0' bits retrieved from SwiftRNG device or from a file
+ * @brief A C program for counting '1' and '0' bits retrieved from SwiftRNG device or from a file
  *
  */
 #include <stdio.h>
@@ -12,16 +12,63 @@
 
 #define BLOCK_SIZE (16000)
 
+
+struct bitcount_pos {
+	int8_t pos_0;
+	int8_t pos_1;
+	int8_t pos_2;
+	int8_t pos_3;
+	int8_t pos_4;
+	int8_t pos_5;
+	int8_t pos_6;
+	int8_t pos_7;
+   };
+
 /**
  * Local variables
  */
 static uint8_t buffer[BLOCK_SIZE];
 static uint8_t byte_value_to_one_bit_count[256];
+static struct bitcount_pos byte_value_to_bitcount_pos[256];
 static long long total_ones;
+static long long total_ones_pos_0;
+static long long total_ones_pos_1;
+static long long total_ones_pos_2;
+static long long total_ones_pos_3;
+static long long total_ones_pos_4;
+static long long total_ones_pos_5;
+static long long total_ones_pos_6;
+static long long total_ones_pos_7;
+
+static long long total_zeros_pos_0;
+static long long total_zeros_pos_1;
+static long long total_zeros_pos_2;
+static long long total_zeros_pos_3;
+static long long total_zeros_pos_4;
+static long long total_zeros_pos_5;
+static long long total_zeros_pos_6;
+static long long total_zeros_pos_7;
 static long long total_zeros;
+
 static long long total_bits;
+static long long total_bits_pos_0;
+static long long total_bits_pos_1;
+static long long total_bits_pos_2;
+static long long total_bits_pos_3;
+static long long total_bits_pos_4;
+static long long total_bits_pos_5;
+static long long total_bits_pos_6;
+static long long total_bits_pos_7;
 static long total_blocks;
 static double arithmetic_zero_mean;
+static double arithmetic_zero_mean_pos_0;
+static double arithmetic_zero_mean_pos_1;
+static double arithmetic_zero_mean_pos_2;
+static double arithmetic_zero_mean_pos_3;
+static double arithmetic_zero_mean_pos_4;
+static double arithmetic_zero_mean_pos_5;
+static double arithmetic_zero_mean_pos_6;
+static double arithmetic_zero_mean_pos_7;
 static int device_num = 0;
 static int pp_method_id = -1;
 static char emb_corr_method_char[32];
@@ -32,10 +79,12 @@ static char pp_method_char[256];
  */
 static void count_one_bits(uint8_t byte, uint8_t *ones);
 static void init_stats_data(void);
+static void init_bitcount_pos_data(uint8_t value);
 static void display_usage(void);
 static int count_bits_from_device(void);
 static int count_bits_from_file(char *fileName);
 static void print_final_stats(void);
+static void count_bits_from_byte(uint8_t valPos);
 
 /**
  * Main entry
@@ -119,11 +168,52 @@ static void count_one_bits(uint8_t byte, uint8_t *ones) {
  */
 static void init_stats_data(void) {
 	uint8_t oneCounter;
+	memset(byte_value_to_bitcount_pos, 0, sizeof(byte_value_to_bitcount_pos));
 	for (int i = 0; i < 256; i++) {
 		oneCounter = 0;
 		count_one_bits((uint8_t)i, &oneCounter);
 		byte_value_to_one_bit_count[i] = oneCounter;
+		init_bitcount_pos_data((uint8_t) i);
 	}
+}
+
+/**
+ * Initialize byte value to bit position counters
+ */
+static void init_bitcount_pos_data(uint8_t value) {
+
+	if (value & 0b1) {
+		byte_value_to_bitcount_pos[value].pos_0 = 1;
+	}
+
+	if (value & 0b10) {
+		byte_value_to_bitcount_pos[value].pos_1 = 1;
+	}
+
+	if (value & 0b100) {
+		byte_value_to_bitcount_pos[value].pos_2 = 1;
+	}
+
+	if (value & 0b1000) {
+		byte_value_to_bitcount_pos[value].pos_3 = 1;
+	}
+
+	if (value & 0b10000) {
+		byte_value_to_bitcount_pos[value].pos_4 = 1;
+	}
+
+	if (value & 0b100000) {
+		byte_value_to_bitcount_pos[value].pos_5 = 1;
+	}
+
+	if (value & 0b1000000) {
+		byte_value_to_bitcount_pos[value].pos_6 = 1;
+	}
+
+	if (value & 0b10000000) {
+		byte_value_to_bitcount_pos[value].pos_7 = 1;
+	}
+
 }
 
 /**
@@ -225,8 +315,6 @@ static int count_bits_from_device(void) {
 	}
 
 	printf("*** retrieving random bytes and counting bits, post-processing: %s, embedded correction: %s ***\n", pp_method_char, emb_corr_method_char);
-	total_ones = 0;
-	total_zeros = 0;
 	for (long l = 0; l < total_blocks; l++) {
 		if (swrngGetEntropy(&ctxt, buffer, BLOCK_SIZE) != SWRNG_SUCCESS) {
 			printf("Could not retrieve entropy from device. %s\n", swrngGetLastErrorMessage(&ctxt));
@@ -234,15 +322,41 @@ static int count_bits_from_device(void) {
 			return 1;
 		}
 		for(int i = 0; i < BLOCK_SIZE; i++) {
-			int valPos = buffer[i];
-			int oneCounter = byte_value_to_one_bit_count[valPos];
-			total_ones += oneCounter;
-			total_zeros += (8 - oneCounter);
+			count_bits_from_byte(buffer[i]);
 		}
 	}
 	print_final_stats();
 	swrngDestroyContext(&ctxt);
 	return 0;
+}
+
+/**
+ * Analyze bits in a byte
+ */
+static void count_bits_from_byte(uint8_t valPos) {
+	int oneCounter = byte_value_to_one_bit_count[valPos];
+	total_ones += oneCounter;
+	total_zeros += (8 - oneCounter);
+
+	struct bitcount_pos bitCountStruct = byte_value_to_bitcount_pos[valPos];
+	total_ones_pos_0 += bitCountStruct.pos_0;
+	total_ones_pos_1 += bitCountStruct.pos_1;
+	total_ones_pos_2 += bitCountStruct.pos_2;
+	total_ones_pos_3 += bitCountStruct.pos_3;
+	total_ones_pos_4 += bitCountStruct.pos_4;
+	total_ones_pos_5 += bitCountStruct.pos_5;
+	total_ones_pos_6 += bitCountStruct.pos_6;
+	total_ones_pos_7 += bitCountStruct.pos_7;
+
+	total_zeros_pos_0 += (bitCountStruct.pos_0 ^ 1);
+	total_zeros_pos_1 += (bitCountStruct.pos_1 ^ 1);
+	total_zeros_pos_2 += (bitCountStruct.pos_2 ^ 1);
+	total_zeros_pos_3 += (bitCountStruct.pos_3 ^ 1);
+	total_zeros_pos_4 += (bitCountStruct.pos_4 ^ 1);
+	total_zeros_pos_5 += (bitCountStruct.pos_5 ^ 1);
+	total_zeros_pos_6 += (bitCountStruct.pos_6 ^ 1);
+	total_zeros_pos_7 += (bitCountStruct.pos_7 ^ 1);
+
 }
 
 /**
@@ -273,10 +387,7 @@ static int count_bits_from_file(char *fileName) {
 
 	while ((bytesRead = fread(buffer, 1, sizeof(buffer), file)) > 0) {
 		for (size_t i = 0; i < bytesRead; i++) {
-			int valPos = buffer[i];
-			int oneCounter = byte_value_to_one_bit_count[valPos];
-			total_ones += oneCounter;
-			total_zeros += (8 - oneCounter);
+			count_bits_from_byte(buffer[i]);
 		}
 	}
 	print_final_stats();
@@ -294,4 +405,43 @@ static void print_final_stats(void) {
 	printf("retrieved %lld total bits, 0's bit count: %lld, 1's bit count: %lld, 0's arithmetic mean: %.10g\n",
 			total_bits, total_zeros, total_ones, arithmetic_zero_mean);
 	printf("\n");
+
+
+	total_bits_pos_0 = total_zeros_pos_0 + total_ones_pos_0;
+	total_bits_pos_1 = total_zeros_pos_1 + total_ones_pos_1;
+	total_bits_pos_2 = total_zeros_pos_2 + total_ones_pos_2;
+	total_bits_pos_3 = total_zeros_pos_3 + total_ones_pos_3;
+	total_bits_pos_4 = total_zeros_pos_4 + total_ones_pos_4;
+	total_bits_pos_5 = total_zeros_pos_5 + total_ones_pos_5;
+	total_bits_pos_6 = total_zeros_pos_6 + total_ones_pos_6;
+	total_bits_pos_7 = total_zeros_pos_7 + total_ones_pos_7;
+
+	arithmetic_zero_mean_pos_0 = (double)total_zeros_pos_0 / (double)total_bits_pos_0;
+	arithmetic_zero_mean_pos_1 = (double)total_zeros_pos_1 / (double)total_bits_pos_1;
+	arithmetic_zero_mean_pos_2 = (double)total_zeros_pos_2 / (double)total_bits_pos_2;
+	arithmetic_zero_mean_pos_3 = (double)total_zeros_pos_3 / (double)total_bits_pos_3;
+	arithmetic_zero_mean_pos_4 = (double)total_zeros_pos_4 / (double)total_bits_pos_4;
+	arithmetic_zero_mean_pos_5 = (double)total_zeros_pos_5 / (double)total_bits_pos_5;
+	arithmetic_zero_mean_pos_6 = (double)total_zeros_pos_6 / (double)total_bits_pos_6;
+	arithmetic_zero_mean_pos_7 = (double)total_zeros_pos_7 / (double)total_bits_pos_7;
+
+
+	printf("Bit 0 - retrieved %lld total bits, 0's bit count: %lld, 1's bit count: %lld, 0's arithmetic mean: %.10g\n",
+			total_bits_pos_0, total_zeros_pos_0, total_ones_pos_0, arithmetic_zero_mean_pos_0);
+	printf("Bit 1 - retrieved %lld total bits, 0's bit count: %lld, 1's bit count: %lld, 0's arithmetic mean: %.10g\n",
+			total_bits_pos_1, total_zeros_pos_1, total_ones_pos_1, arithmetic_zero_mean_pos_1);
+	printf("Bit 2 - retrieved %lld total bits, 0's bit count: %lld, 1's bit count: %lld, 0's arithmetic mean: %.10g\n",
+			total_bits_pos_2, total_zeros_pos_2, total_ones_pos_2, arithmetic_zero_mean_pos_2);
+	printf("Bit 3 - retrieved %lld total bits, 0's bit count: %lld, 1's bit count: %lld, 0's arithmetic mean: %.10g\n",
+			total_bits_pos_3, total_zeros_pos_3, total_ones_pos_3, arithmetic_zero_mean_pos_3);
+	printf("Bit 4 - retrieved %lld total bits, 0's bit count: %lld, 1's bit count: %lld, 0's arithmetic mean: %.10g\n",
+			total_bits_pos_4, total_zeros_pos_4, total_ones_pos_4, arithmetic_zero_mean_pos_4);
+	printf("Bit 5 - retrieved %lld total bits, 0's bit count: %lld, 1's bit count: %lld, 0's arithmetic mean: %.10g\n",
+			total_bits_pos_5, total_zeros_pos_5, total_ones_pos_5, arithmetic_zero_mean_pos_5);
+	printf("Bit 6 - retrieved %lld total bits, 0's bit count: %lld, 1's bit count: %lld, 0's arithmetic mean: %.10g\n",
+			total_bits_pos_6, total_zeros_pos_6, total_ones_pos_6, arithmetic_zero_mean_pos_6);
+	printf("Bit 7 - retrieved %lld total bits, 0's bit count: %lld, 1's bit count: %lld, 0's arithmetic mean: %.10g\n",
+			total_bits_pos_7, total_zeros_pos_7, total_ones_pos_7, arithmetic_zero_mean_pos_7);
+
+
 }

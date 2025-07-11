@@ -1,6 +1,6 @@
  /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2024 TectroLabs L.L.C. https://tectrolabs.com
+ Copyright (C) 2014-2025 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -11,7 +11,7 @@
 
 /*
  * swrngseqgen.cpp
- * Ver. 2.6
+ * Ver. 2.7
  *
  * @brief A program for generating random sequences of unique integer numbers based on true random bytes
  * produced by a SwiftRNG device.
@@ -21,6 +21,7 @@
 
 #include <iostream>
 #include <string>
+#include <cmath>
 
 #include <RandomSeqGenerator.h>
 
@@ -73,13 +74,13 @@ int main(int argc, char **argv) {
 
 		minNumber = (int32_t)atol(argv[2]);
 		if (minNumber < -100000000) {
-			std::cerr << "The smallest number in the range cannot be smaller then -100000000" << std::endl;
+			std::cerr << "The smallest number in the range cannot be smaller than -100000000" << std::endl;
 			return -1;
 		}
 
 		maxNumber = (int32_t)atol(argv[3]);
 		if (maxNumber > 100000000) {
-			std::cerr << "The largest number in the range cannot be bigger then 100000000" << std::endl;
+			std::cerr << "The largest number in the range cannot be bigger than 100000000" << std::endl;
 			return -1;
 		}
 
