@@ -8,8 +8,8 @@ BINDIR = $(PREFIX)/bin
 
 OS:=$(shell uname -s)
 ifeq ($(OS),Darwin)
-	IDIR_MACOS = -I/usr/local/include/
-	LDIR_MACOS = -L/usr/local/lib/
+	IDIR_MACOS = -I/opt/homebrew/opt/libusb/include/ -I/usr/local/include/
+	LDIR_MACOS = -L/opt/homebrew/opt/libusb/lib/ -L/usr/local/lib/
 	ifneq ($(wildcard /usr/local/opt/openssl/.),)
 		OPENSSL_DIR_MACOS = /usr/local/opt/openssl
 	else
@@ -176,3 +176,4 @@ uninstall:
 	rm $(BINDIR)/$(SWRAWRANDOM)
 	rm $(BINDIR)/$(SWRNGSEQGEN)
 	
+
