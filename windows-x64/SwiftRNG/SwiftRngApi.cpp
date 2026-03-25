@@ -1,5 +1,5 @@
 /**
- Copyright (C) 2014-2024 TectroLabs L.L.C. https://tectrolabs.com
+ Copyright (C) 2014-2026 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -12,9 +12,9 @@
 
 /**
  *    @file SwiftRngApi.h
- *    @date 05/01/2024
+ *    @date 03/24/2026
  *    @Author: Andrian Belinski
- *    @version 1.2
+ *    @version 1.3
  *
  *    @brief Implements the API for interacting with the SwiftRNG device.
  */
@@ -242,7 +242,7 @@ int SwiftRngApi::open(int devNum) {
 	int portsConnected;
 	int ports[c_max_cdc_com_ports];
 	// Retrieve devices connected as USB CDC in Windows
-	m_usb_serial_device->get_connected_ports(ports, c_max_cdc_com_ports, &portsConnected, (WCHAR*)c_hardware_id.c_str(), (WCHAR*)L"SWRNG");
+	m_usb_serial_device->get_connected_ports(ports, c_max_cdc_com_ports, &portsConnected, c_hardware_ids, (WCHAR*)L"SWRNG");
 	if (portsConnected > devNum) {
 		WCHAR portName[80];
 		m_usb_serial_device->toPortName(ports[devNum], portName, 80);
@@ -729,7 +729,7 @@ int SwiftRngApi::get_device_list(DeviceInfoList *dev_info_list) {
 	int portsConnected;
 	int ports[c_max_cdc_com_ports];
 	// Add devices connected as USB CDC in Windows
-	usbComPort.get_connected_ports(ports, c_max_cdc_com_ports, &portsConnected, (WCHAR*)c_hardware_id.c_str(), (WCHAR*)L"SWRNG");
+	usbComPort.get_connected_ports(ports, c_max_cdc_com_ports, &portsConnected, c_hardware_ids, (WCHAR*)L"SWRNG");
 	while (portsConnected-- > 0) {
 		swrng_updateDevInfoList(dev_info_list, &curFoundDevNum);
 	}
@@ -2101,7 +2101,13 @@ const std::string SwiftRngApi::c_too_many_devices_msg = "Cannot have more than 1
 const std::string SwiftRngApi::c_cannot_read_device_descriptor_msg = "Failed to retrieve USB device descriptor";
 const std::string SwiftRngApi::c_libusb_init_failure_msg = "Failed to initialize libusb";
 #ifdef _WIN32
-const std::wstring SwiftRngApi::c_hardware_id = L"USB\\VID_1FC9&PID_8111";
+const std::set<std::wstring> SwiftRngApi::c_hardware_ids = {
+	L"USB\\VID_1FC9&PID_8111",
+	L"USB\\VID_3975&PID_0001",
+	L"USB\\VID_3975&PID_0002",
+	L"USB\\VID_3975&PID_0003",
+	L"USB\\VID_3975&PID_0004"
+};
 #endif
 
 
