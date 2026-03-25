@@ -1,5 +1,5 @@
 /**
- Copyright (C) 2014-2023 TectroLabs L.L.C. https://tectrolabs.com
+ Copyright (C) 2014-2026 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -12,9 +12,9 @@
 
 /**
  *    @file SwiftRngApi.h
- *    @date 9/17/2023
+ *    @date 3/24/2026
  *    @Author: Andrian Belinski
- *    @version 1.1
+ *    @version 1.2
  *
  *    @brief Implements the API for interacting with the SwiftRNG device.
  */
@@ -33,6 +33,7 @@
 #if defined _WIN32
 	#include "libusb.h"
 	#include <USBComPort.h>
+	#include <set>
 #elif defined __FreeBSD__
 	#include <libusb.h>
     #include <USBSerialDevice.h>
@@ -142,8 +143,8 @@ private:
 	// There could be many CDC COM devices connected, limit the amount of devices to search
 	static const int c_max_cdc_com_ports {80};
 
-	// USB device hardware ID string used in windows
-	static const std::wstring c_hardware_id;
+	// USB device hardware ID strings used with windows
+	static const std::set<std::wstring> c_hardware_ids;
 #endif
 
 	// Device specific USB bulk end point number for OUT operation

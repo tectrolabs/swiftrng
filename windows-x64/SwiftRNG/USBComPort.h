@@ -1,11 +1,11 @@
 /*
 * USBComPort.h
-* Ver 1.4
+* Ver 1.5
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2024 TectroLabs L.L.C. https://tectrolabs.com
+Copyright (C) 2014-2026 TectroLabs L.L.C. https://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -29,6 +29,7 @@ This class may only be used in conjunction with TectroLabs devices.
 #include <tchar.h>
 #include <combaseapi.h>
 #include <sstream>
+#include <set>
 
 class USBComPort
 {
@@ -42,7 +43,7 @@ public:
 	std::string get_error_log() const;
 	void clear_error_log();
 	int execute_device_cmd(const unsigned char *snd, int sizeSnd, unsigned char *rcv, int sizeRcv);
-	void get_connected_ports(int ports[], int maxPorts, int* actualCount, WCHAR *hardwareId, WCHAR* serialId);
+	void get_connected_ports(int ports[], int maxPorts, int* actualCount, const std::set<std::wstring> &hardwareIds, WCHAR* serialId);
 	void toPortName(int portNum, WCHAR* portName, int portNameSize);
 	int send_command(const unsigned char *snd, int sizeSnd, int *bytesSend);
 	int receive_data(unsigned char *rcv, int sizeRcv, int *bytesReveived);

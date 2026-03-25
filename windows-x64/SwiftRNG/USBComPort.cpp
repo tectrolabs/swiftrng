@@ -1,11 +1,11 @@
 /*
 * USBComPort.cpp
-* Ver 1.3
+* Ver 1.4
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
-Copyright (C) 2014-2024 TectroLabs L.L.C. https://tectrolabs.com
+Copyright (C) 2014-2026 TectroLabs L.L.C. https://tectrolabs.com
 
 THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
 INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -240,13 +240,13 @@ void USBComPort::clear_comm_err() {
 * @param int ports[] - an array of integers that represent all of the SwiftRNG COM ports found 
 * @param int maxPorts - the maximum number of SwiftRNG devices to discover
 * @param  int *actualCount - a pointer to the actual number of SwiftRNG devices found
-* @param  WCHAR *hardwareId - a pointer to SwiftRNG device hardware ID 
+* @param  std::set<std::wstring> &hardwareIds - a reference to a set of SwiftRNG device hardware IDs 
 * @param WCHAR* serialId - a pointer to SwiftRNG device hardware serial ID
 * 
 * @return 0 - successful operation, otherwise the error code
 *
 */
-void USBComPort::get_connected_ports(int ports[], int maxPorts, int *actualCount, WCHAR *hardwareId, WCHAR* serialId) {
+void USBComPort::get_connected_ports(int ports[], int maxPorts, int *actualCount, const std::set<std::wstring> &hardwareIds, WCHAR* serialId) {
 
 	DWORD devIdx = 0;
 	int foundPortIndex = 0;
@@ -295,8 +295,9 @@ void USBComPort::get_connected_ports(int ports[], int maxPorts, int *actualCount
 				{
 					if (_tcsnicmp(curPortName, _T("COM"), 3) == 0)
 					{
-						TCHAR* src = (TCHAR*)curHardwareId;
-						if (_tcsnicmp(hardwareId, (TCHAR*)curHardwareId, _tcsnlen(hardwareId, 80)) == 0) {
+						wchar_t* szValue = reinterpret_cast<wchar_t*>(curHardwareId);
+						std::wstring strValue(szValue);
+						if (strValue.size() >= 21 && hardwareIds.find(strValue.substr(0, 21)) != hardwareIds.end()) {
 							int port_nr = _ttoi(curPortName + 3);
 							if (port_nr != 0)
 							{
