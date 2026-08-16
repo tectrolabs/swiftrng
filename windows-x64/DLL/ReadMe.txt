@@ -117,7 +117,7 @@ __declspec(dllexport) int swrngGetDataStatisticalTestsStatus();
 
 /**
 *
-* A process-safe and thread-safe function to retrieve a random byte from wiftRNG entropy server.
+* A process-safe and thread-safe function to retrieve a random byte from SwiftRNG entropy server.
 * There should be an entropy server running to successfully call the function.
 * @return random byte value between 0 and 255 (a value of 256 or greater will indicate an error)
 *

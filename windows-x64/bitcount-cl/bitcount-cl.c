@@ -1,13 +1,13 @@
 /*
  * bitcount-cl.c
- * Ver. 2.3
+ * Ver. 2.5
  *
- * A C program for counting '1' and '0' bits retrieved from a SwiftRNG device cluster
- * using default configuration.
+ * @brief A C program for counting '1' and '0' bits retrieved from a SwiftRNG device cluster using default configuration.
  *
  */
 
 #include <swrng-cl-api.h>
+#include <string.h>
 
 #define BLOCK_SIZE (16000)
 
@@ -53,6 +53,10 @@ int main(int argc, char **argv) {
 
 		clusterSize = atoi(argv[2]);
 		if (argc > 3) {
+			if (strlen(argv[3]) >= sizeof(postProcessingMethodStr)) {
+				printf("Post processing method parameter too long\n");
+				return 1;
+			}
 			strcpy(postProcessingMethodStr, argv[3]);
 			if (!strcmp("SHA256", postProcessingMethodStr)) {
 				postProcessingMethod = 0;

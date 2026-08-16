@@ -2,7 +2,7 @@
  * dll-sample.c
  *
  * This is a sample C/C++ program that demonstrates how to download random bytes
- * from Hardware Random Number Generator SwiftRNG using 'SwingRNG.dll' API.
+ * from Hardware Random Number Generator SwiftRNG using 'SwiftRNG.dll' API.
  *
  */
 

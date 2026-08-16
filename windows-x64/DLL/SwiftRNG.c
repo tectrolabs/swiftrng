@@ -1,12 +1,12 @@
 /*
  * SwiftRNG.cpp
- * ver. 2.2
+ * ver. 2.3
  *
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2023 TectroLabs L.L.C. https://tectrolabs.com
+ Copyright (C) 2014-2026 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -327,7 +327,7 @@ __declspec(dllexport) int swftGetEntropyFromEntropyServer(unsigned char *buffer,
 
 /**
 *
-* A process-safe and thread-safe function to retrieve a random byte from wiftRNG entropy server.
+* A process-safe and thread-safe function to retrieve a random byte from SwiftRNG entropy server.
 * There should be an entropy server running to successfully call the function.
 * @return random byte value between 0 and 255 (a value of 256 or greater will indicate an error)
 *

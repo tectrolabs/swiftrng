@@ -4,15 +4,15 @@
 
  This file may only be used in conjunction with TectroLabs devices.
 
- Contributers:
+ Contributors:
  	 Quantum Leap Research LLC
  	 TectroLabs L.L.C. https://tectrolabs.com
 */
 
 /**
  *    @file eng_swiftrng.cpp
- *    @date 12/28/2023
- *    @version 1.0
+ *    @date 8/16/2026
+ *    @version 1.1
  *
  *    @brief Sets a RAND engine for OPENSSL using SwiftRNG API
  */

@@ -1,6 +1,6 @@
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2024 TectroLabs L.L.C. https://tectrolabs.com
+ Copyright (C) 2014-2026 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -11,7 +11,7 @@
 
 /*
  * swdiag.c
- * Ver. 2.8
+ * Ver. 2.9
  *
  * @brief This program is used for running diagnostics for one or more SwiftRNG devices.
  */
@@ -71,7 +71,7 @@ int main() {
 	uint16_t max_rct_failures_per_block;
 
 	printf("-------------------------------------------------------------------\n");
-	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.8  ---\n");
+	printf("--- TectroLabs - swdiag - SwiftRNG diagnostics utility Ver 2.9  ---\n");
 	printf("-------------------------------------------------------------------\n");
 	printf("Searching for devices ------------------ ");
 
@@ -335,9 +335,9 @@ static void chi_sqrd_count_bits(uint8_t byte, double *ones, double *zeros) {
 
 
 /**
- * Calculate chi-squire value
+ * Calculate chi-square value
  *
- * @return double - calculated chi-squire value
+ * @return double - calculated chi-square value
  */
 static double chi_sqrd_calculate() {
 	double val1 = (act_ones - expct_ones);

@@ -1,21 +1,20 @@
-/*
- * swdiag-cl.c
- * Ver. 2.6
- *
- */
-
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2024 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2026 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
 
- This program is used for running diagnostics for a cluster of one or more SwiftRNG devices.
-
  This program may require 'sudo' permissions when running on Linux or macOS.
 
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
+
+/*
+ * swdiag-cl.c
+ * Ver. 2.7
+ *
+ * @brief This program is used for running diagnostics for a cluster of one or more SwiftRNG devices.
+ */
 
 #include <swrng-cl-api.h>
 #include <math.h>
@@ -58,7 +57,7 @@ int main(int argc, char **argv) {
 	int cluster_size = 2;
 
 	printf("------------------------------------------------------------------------------\n");
-	printf("--- TectroLabs - swdiag-cl - SwiftRNG cluster diagnostics utility Ver 2.6  ---\n");
+	printf("--- TectroLabs - swdiag-cl - SwiftRNG cluster diagnostics utility Ver 2.7  ---\n");
 	printf("------------------------------------------------------------------------------\n");
 
 	setbuf(stdout, NULL);
@@ -186,9 +185,9 @@ static void chi_sqrd_count_bits(uint8_t byte, double *ones, double *zeros) {
 }
 
 /**
- * Calculate chi-squire valu
+ * Calculate chi-square value
  *
- * @return double - calculated chi-squire value
+ * @return double - calculated chi-square value
  */
 static double chi_sqrd_calculate() {
 	double val1 = (act_ones - expct_ones);
