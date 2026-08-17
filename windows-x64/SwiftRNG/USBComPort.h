@@ -1,6 +1,6 @@
 /*
 * USBComPort.h
-* Ver 1.5
+* Ver 1.6
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -46,7 +46,7 @@ public:
 	void get_connected_ports(int ports[], int maxPorts, int* actualCount, const std::set<std::wstring> &hardwareIds, WCHAR* serialId);
 	void toPortName(int portNum, WCHAR* portName, int portNameSize);
 	int send_command(const unsigned char *snd, int sizeSnd, int *bytesSend);
-	int receive_data(unsigned char *rcv, int sizeRcv, int *bytesReveived);
+	int receive_data(unsigned char *rcv, int sizeRcv, int *bytesReceived);
 
 private:
 	void set_error_message(const char* error_message);

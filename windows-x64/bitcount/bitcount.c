@@ -1,6 +1,6 @@
 /*
  * bitcount.c
- * Ver. 3.6
+ * Ver. 3.7
  *
  * @brief A C program for counting '1' and '0' bits retrieved from SwiftRNG device or from a file
  *
@@ -129,6 +129,11 @@ int main(int argc, char **argv) {
 			return 1;
 		}
 		if (argc > 3) {
+			if (strlen(argv[3]) >= sizeof(pp_method_char)) {
+				printf("Post processing method parameter too long\n");
+				display_usage();
+				return 1;
+			}
 			strcpy(pp_method_char, argv[3]);
 			if (!strcmp("SHA256", pp_method_char)) {
 				pp_method_id = 0;

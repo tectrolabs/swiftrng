@@ -1,12 +1,6 @@
-/*
- * swrng.c
- * Ver. 3.7
- *
- */
-
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2026 TectroLabs, https://tectrolabs.com
+ Copyright (C) 2014-2026 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -26,6 +20,12 @@
 
  +++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++*/
 
+/*
+ * swrng.c
+ * Ver. 3.7
+ *
+ */
+
 #include "swrng.h"
 
 #ifdef _WIN32
@@ -33,7 +33,7 @@
 #endif
 
 /**
- * Display information about SwifrRNG devices
+ * Display information about SwiftRNG devices
  *
  * @return int - 0 when run successfully
  */

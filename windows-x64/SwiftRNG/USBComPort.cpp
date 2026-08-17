@@ -1,6 +1,6 @@
 /*
 * USBComPort.cpp
-* Ver 1.4
+* Ver 1.5
 */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -152,12 +152,12 @@ int USBComPort::send_command(const unsigned char *snd, int sizeSnd, int *bytesSe
 *
 * @param unsigned char *rcv - a pointer to receive buffer
 * @param int sizeRcv - how many bytes to receive
-* @param int *bytesReveived -pointer to store the number of bytes actually received
+* @param int *bytesReceived -pointer to store the number of bytes actually received
 * 
 * @return 0 - successful operation, otherwise the error code
 *
 */
-int USBComPort::receive_data(unsigned char *rcv, int sizeRcv, int *bytesReveived) {
+int USBComPort::receive_data(unsigned char *rcv, int sizeRcv, int *bytesReceived) {
 	DWORD actualBytesReceived;
 	int retStatus = -1;
 	if (!is_connected()) {
@@ -165,9 +165,9 @@ int USBComPort::receive_data(unsigned char *rcv, int sizeRcv, int *bytesReveived
 	}
 
 	BOOL status = ReadFile(m_cdc_usb_dev_handle, (void *)rcv, sizeRcv, &actualBytesReceived, NULL);
-	*bytesReveived = (int)actualBytesReceived;
-	if (!status || *bytesReveived != sizeRcv) {
-		if (status && *bytesReveived != sizeRcv) {
+	*bytesReceived = (int)actualBytesReceived;
+	if (!status || *bytesReceived != sizeRcv) {
+		if (status && *bytesReceived != sizeRcv) {
 			retStatus = -7; // Time out
 			set_error_message("Got timeout while receiving data from the device");
 		} else {
