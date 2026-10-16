@@ -37,3 +37,22 @@
 .project
 .settings
 .pem
+
+# CMake build directory
+build/
+
+# Binaries built by make in linux-and-macOS/swrng
+/linux-and-macOS/swrng/sample
+/linux-and-macOS/swrng/sample++
+/linux-and-macOS/swrng/swdiag
+/linux-and-macOS/swrng/swperftest
+/linux-and-macOS/swrng/bitcount
+/linux-and-macOS/swrng/swrng
+/linux-and-macOS/swrng/swrawrandom
+/linux-and-macOS/swrng/swrngseqgen
+/linux-and-macOS/swrng/sample-cl
+/linux-and-macOS/swrng/bitcount-cl
+/linux-and-macOS/swrng/swdiag-cl
+/linux-and-macOS/swrng/swperf-cl-test
+/linux-and-macOS/swrng/swrng-cl
+/linux-and-macOS/swrng/eng_swiftrng.so
