@@ -99,3 +99,10 @@ if(NOT TARGET uninstall)
     COMMAND ${CMAKE_COMMAND} -DMANIFEST=${CMAKE_BINARY_DIR}/install_manifest.txt
             -P ${CMAKE_CURRENT_SOURCE_DIR}/cmake/uninstall.cmake)
 endif()
+
+# Unit tests, opt-in: cmake -S . -B build -DSWRNG_BUILD_TESTS=ON && cmake --build build && (cd build && ctest --output-on-failure)
+option(SWRNG_BUILD_TESTS "Build the unit tests" OFF)
+if(SWRNG_BUILD_TESTS)
+  enable_testing()
+  add_subdirectory(tests)
+endif()

@@ -84,6 +84,34 @@ sudo make -f Makefile.bsd install
 
 `make clean` removes the build output. The OpenSSL engine is built separately with `make eng_swiftrng`.
 
+## Running the tests
+
+The unit tests need no device and never open one, so they are safe to run with a SwiftRNG plugged in.
+They are built only when you ask for them:
+
+```sh
+cmake -S . -B build -DSWRNG_BUILD_TESTS=ON
+cmake --build build -j4
+cd build && ctest --output-on-failure
+```
+
+Each test file in `tests/` is its own program (for example `build/tests/test_sha`), which you can also run
+directly to see every test by name. They use a small framework in `tests/test_framework.h`, so there is nothing
+extra to install.
+
+| Suite | What it checks |
+| --- | --- |
+| `sha` | The SHA-256 and SHA-512 code used to post-process device data, against known answers |
+| `xorshift` | The xorshift64 post-processing, against an independent implementation |
+| `health` | The Repetition Count and Adaptive Proportion health tests, with good and with stuck data |
+| `usb_serial` | The serial port class, using a pseudo terminal in place of the device |
+| `api_no_device` | The C++ and C APIs refuse to run, and say why, when no device is open |
+| `cl_api` | The cluster API's context handling and error reporting |
+
+`SwiftRngApi` keeps its post-processing and health tests in private methods, so `tests/private_access.h` makes
+them reachable for the tests without changing the library. The parts that read from a real device
+(`SwiftRngApi::open()`, `RandomSeqGenerator` and opening a cluster) are not covered, because they need hardware.
+
 ## Linux USB access
 
 To use the device without root, install the udev rules and re-plug the device:
