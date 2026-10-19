@@ -19,7 +19,8 @@ set(CMAKE_CXX_STANDARD 11)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 
-option(SWRNG_BUILD_ENGINE "Also build the SwiftRNG OpenSSL engine (eng_swiftrng)" OFF)
+option(SWRNG_BUILD_ENGINE "Also build the SwiftRNG OpenSSL engine (eng_swiftrng), for OpenSSL 3.4 and earlier" OFF)
+option(SWRNG_BUILD_PROVIDER "Also build the SwiftRNG OpenSSL provider (swiftrng.so), for OpenSSL 4.0 and 3.5.x with provider random bytes support" OFF)
 
 # libusb: <libusb-1.0/libusb.h> on Linux and macOS, <libusb.h> on FreeBSD (part of the base system).
 # Homebrew's libusb is keg-only on macOS, so probe its usual locations.
@@ -88,6 +89,30 @@ if(SWRNG_BUILD_ENGINE)
   add_library(eng_swiftrng MODULE eng_swiftrng.cpp)
   set_target_properties(eng_swiftrng PROPERTIES PREFIX "" SUFFIX ".so")
   target_link_libraries(eng_swiftrng PRIVATE swiftrng OpenSSL::Crypto)
+endif()
+
+# Optional OpenSSL provider. OpenSSL 4.0 removed engines; this provider makes RAND_bytes() return bytes
+# from the SwiftRNG device when it is named as the random provider in the OpenSSL config file.
+if(SWRNG_BUILD_PROVIDER)
+  find_package(OpenSSL REQUIRED)
+  include(CheckSymbolExists)
+  set(CMAKE_REQUIRED_INCLUDES ${OPENSSL_INCLUDE_DIR})
+  check_symbol_exists(OSSL_FUNC_PROVIDER_RANDOM_BYTES openssl/core_dispatch.h SWRNG_OPENSSL_HAS_RANDOM_BYTES_HOOK)
+  unset(CMAKE_REQUIRED_INCLUDES)
+  if(NOT SWRNG_OPENSSL_HAS_RANDOM_BYTES_HOOK)
+    message(FATAL_ERROR "The OpenSSL found (${OPENSSL_VERSION}) has no provider random bytes support. "
+            "The provider needs OpenSSL 4.0 or a 3.5.x release that has OSSL_FUNC_PROVIDER_RANDOM_BYTES. "
+            "Use -DOPENSSL_ROOT_DIR=<path> to choose another OpenSSL, or the eng_swiftrng engine with older OpenSSL.")
+  endif()
+  # OpenSSL looks for provider modules with the platform suffix when they are loaded by name
+  if(APPLE)
+    set(SWRNG_PROVIDER_SUFFIX ".dylib")
+  else()
+    set(SWRNG_PROVIDER_SUFFIX ".so")
+  endif()
+  add_library(swiftrng_provider MODULE provider/swiftrng_provider.cpp provider/rng_backend_device.cpp)
+  set_target_properties(swiftrng_provider PROPERTIES PREFIX "" OUTPUT_NAME swiftrng SUFFIX "${SWRNG_PROVIDER_SUFFIX}")
+  target_link_libraries(swiftrng_provider PRIVATE swiftrng OpenSSL::Crypto)
 endif()
 
 # Install / uninstall (same set as the Makefile)
