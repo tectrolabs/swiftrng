@@ -202,6 +202,61 @@ swrng -dd -fn rnd.bin -nb 12000000 -ppn 0
 On Linux and macOS, running `swrng` may need administrator permissions. `swrng-cl` takes similar options
 for a cluster of devices; run it without arguments to see them.
 
+## OpenSSL provider (OpenSSL 4.0 and later)
+
+OpenSSL 4.0 removed engines, so `eng_swiftrng.so` does not work with it. The SwiftRNG provider takes its place: when
+OpenSSL is told to use it as the random provider, `RAND_bytes()` and `RAND_priv_bytes()` return bytes from the SwiftRNG
+device. The provider is built only when you ask for it. It needs OpenSSL 4.0, or a 3.5.x release that has
+`OSSL_FUNC_PROVIDER_RANDOM_BYTES`, and configuring fails with a message if the OpenSSL found does not have it. For
+OpenSSL 3.4 and earlier, use the engine.
+
+```sh
+cmake -S . -B build -DSWRNG_BUILD_PROVIDER=ON -DOPENSSL_ROOT_DIR=<path to OpenSSL 4>
+cmake --build build
+```
+
+This creates `build/swiftrng.so` (`build/swiftrng.dylib` on macOS). Name it in the OpenSSL config file (`openssl.cnf`) and set `OPENSSL_CONF` to that file:
+
+```
+openssl_conf = openssl_init
+
+[openssl_init]
+random = random_sect
+providers = provider_sect
+
+[provider_sect]
+default = default_sect
+swiftrng = swiftrng_sect
+
+[default_sect]
+activate = 1
+
+[swiftrng_sect]
+module = /path/to/swiftrng.so
+activate = 1
+
+[random_sect]
+random_provider = swiftrng
+```
+
+To check it, run `openssl list -providers` (it should list `SwiftRNG`) and `openssl rand -hex 16`.
+
+Things to know:
+
+* **Keep `random` before `providers`** in `[openssl_init]`. With OpenSSL 4.0.3, listing `providers` first makes the provider
+  get unloaded again as soon as `random_provider` is read, and OpenSSL then uses its own random source.
+* **Load the config before the first random call.** OpenSSL answers the very first `RAND_bytes()` call of a process from
+  its own source if it has not read the config yet. Tools such as `openssl` read it first. In your own program, call
+  `OPENSSL_init_crypto(OPENSSL_INIT_LOAD_CONFIG, NULL)` before generating random numbers.
+* **A missing device is not an error for OpenSSL.** If the provider cannot start, for example because no SwiftRNG is found,
+  it is not loaded and OpenSSL silently keeps using its own source. Applications that must use the device should check
+  `OSSL_PROVIDER_available(NULL, "swiftrng")`. If the provider loads and the device then fails, `RAND_bytes()` returns 0.
+* The provider uses the first SwiftRNG device and holds it while the process runs, so one process at a time can use it.
+
+The provider tests (`-DSWRNG_BUILD_TESTS=ON` together with the provider option) use a stand-in provider with a known
+byte stream instead of a device, so they need no hardware. The provider was run end to end with OpenSSL 4.0.3 and a
+SwiftRNG Pro V2.3 on a Raspberry Pi 5.
+
 ## Named pipe server
 
 `run-swrng-pserver.sh` keeps `/tmp/swiftrng` filled with random bytes from a cluster of one or more devices
