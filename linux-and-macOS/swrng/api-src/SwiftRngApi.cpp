@@ -1,5 +1,5 @@
 /**
- Copyright (C) 2014-2023 TectroLabs L.L.C. https://tectrolabs.com
+ Copyright (C) 2014-2026 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -12,9 +12,9 @@
 
 /**
  *    @file SwiftRngApi.h
- *    @date 12/28/2023
+ *    @date 11/08/2026
  *    @Author: Andrian Belinski
- *    @version 1.2
+ *    @version 1.4
  *
  *    @brief Implements the API for interacting with the SwiftRNG device.
  */
@@ -1253,6 +1253,9 @@ int SwiftRngApi::get_entropy(unsigned char *buffer, long length) {
 		retval = -EPERM;
 	} else if (!m_device_open) {
 		retval = -ENODEV;
+	} else if (m_rct.statusByte != SWRNG_SUCCESS || m_apt.statusByte != SWRNG_SUCCESS) {
+		print_err_msg("Device failed the health tests, reopen the device to continue");
+		retval = -EPERM;
 	} else {
 		total = 0;
 		do {
