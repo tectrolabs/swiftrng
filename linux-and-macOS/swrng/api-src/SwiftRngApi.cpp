@@ -1249,15 +1249,13 @@ int SwiftRngApi::get_entropy(unsigned char *buffer, long length) {
 		return -1;
 	}
 
-	if (m_rct.statusByte != SWRNG_SUCCESS || m_apt.statusByte != SWRNG_SUCCESS) {
-		print_err_msg("Device failed the health tests, reopen the device to continue");
-		return -EPERM;
-	}
-
 	if (length > c_max_request_size_bytes || length < 0) {
 		retval = -EPERM;
 	} else if (!m_device_open) {
 		retval = -ENODEV;
+	} else if (m_rct.statusByte != SWRNG_SUCCESS || m_apt.statusByte != SWRNG_SUCCESS) {
+		print_err_msg("Device failed the health tests, reopen the device to continue");
+		retval = -EPERM;
 	} else {
 		total = 0;
 		do {
