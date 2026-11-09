@@ -12,9 +12,9 @@
 
 /**
  *    @file SwiftRngApi.h
- *    @date 03/24/2026
+ *    @date 11/08/2026
  *    @Author: Andrian Belinski
- *    @version 1.3
+ *    @version 1.4
  *
  *    @brief Implements the API for interacting with the SwiftRNG device.
  */
@@ -1237,6 +1237,11 @@ int SwiftRngApi::get_entropy(unsigned char *buffer, long length) {
 
 	if (is_context_initialized() == false) {
 		return -1;
+	}
+
+	if (m_rct.statusByte != SWRNG_SUCCESS || m_apt.statusByte != SWRNG_SUCCESS) {
+		swrng_printErrorMessage("Device failed the health tests, reopen the device to continue");
+		return -EPERM;
 	}
 
 	if (length > c_max_request_size_bytes || length < 0) {
