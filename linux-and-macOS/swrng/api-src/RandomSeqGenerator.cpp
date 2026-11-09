@@ -109,8 +109,14 @@ int RandomSeqGenerator::generateSequence(uint32_t *dest, uint32_t size) {
  * @param uint32_t size - how many numbers to generate within the range
  */
 void RandomSeqGenerator::iterate(uint32_t *dest, uint32_t size) {
+	uint32_t n = m_current_number_buffer_size;
+	uint32_t rejectBelow = (0u - n) % n;
 	for (uint32_t i = 0; i < size && m_dest_idx < size; i++) {
-		uint32_t idx = mn_random_buffer[i] % m_current_number_buffer_size;
+		uint32_t r = (uint32_t)mn_random_buffer[i];
+		if (r < rejectBelow) {
+			continue;
+		}
+		uint32_t idx = r % n;
 		if (m_current_number_buffer[idx] != -1) {
 			dest[m_dest_idx++] = m_current_number_buffer[idx];
 			m_current_number_buffer[idx] = -1;
