@@ -49,6 +49,27 @@ SWRNG_ENGINE = eng_swiftrng
 
 all: $(SAMPLE) $(SWDIAG) $(SWPERFTEST) $(BITCOUNT) $(SWRNG) $(SWRAWRANDOM) $(SWRNGSEQGEN) $(SAMPLE_CL) $(BITCOUNT_CL) $(SWDIAG_CL) $(SWPERFTEST_CL) $(SWRNG_CL) $(SAMPLECPP)
 
+# Unit tests (the same ones CMake builds with -DSWRNG_BUILD_TESTS=ON), run with: make test
+TEST_DIR = ./tests
+TEST_NAMES = sha xorshift health usb_serial api_no_device
+TEST_BINS = $(addprefix $(TEST_DIR)/test_,$(TEST_NAMES))
+TEST_CL_BIN = $(TEST_DIR)/test_cl_api
+
+$(TEST_DIR)/test_%: $(TEST_DIR)/test_%.cpp $(TEST_DIR)/test_framework.h $(OBJECTS)
+	$(GPP) $< $(OBJECTS) -o $@ $(CPPFLAGS) -I$(TEST_DIR) $(LDCPPFLAGS)
+
+$(TEST_CL_BIN): $(TEST_DIR)/test_cl_api.cpp $(TEST_DIR)/test_framework.h $(OBJECTS) $(CLOBJECTS)
+	$(GPP) $< $(OBJECTS) $(CLOBJECTS) -o $@ $(CPPFLAGS) -I$(TEST_DIR) $(LDCPPFLAGS) $(CFLAGS_THREAD)
+
+test: $(TEST_BINS) $(TEST_CL_BIN)
+	@failed=0; \
+	for t in $(TEST_BINS) $(TEST_CL_BIN); do \
+		echo; echo "== $$t"; \
+		$$t || failed=$$((failed + 1)); \
+	done; \
+	echo; \
+	if [ $$failed -eq 0 ]; then echo "All tests passed"; else echo "$$failed test program(s) failed"; exit 1; fi
+
 $(SAMPLE): $(SAMPLE).c $(OBJECTS)
 	@echo
 	@echo "Creating $(SAMPLE) ..."
@@ -150,7 +171,7 @@ swrng-cl-api.o:
 
 
 clean:
-	rm -f *.o ; rm -fr $(SAMPLE) $(SWDIAG) $(SWPERFTEST) $(BITCOUNT) $(SWRNG) $(SWRAWRANDOM) $(SWRNGSEQGEN) $(SAMPLE_CL) $(BITCOUNT_CL) $(SWDIAG_CL) $(SWPERFTEST_CL) $(SWRNG_CL) $(SAMPLECPP) $(SWRNG_ENGINE).so
+	rm -f *.o ; rm -fr $(SAMPLE) $(SWDIAG) $(SWPERFTEST) $(BITCOUNT) $(SWRNG) $(SWRAWRANDOM) $(SWRNGSEQGEN) $(SAMPLE_CL) $(BITCOUNT_CL) $(SWDIAG_CL) $(SWPERFTEST_CL) $(SWRNG_CL) $(SAMPLECPP) $(SWRNG_ENGINE).so $(TEST_BINS) $(TEST_CL_BIN)
 
 install:
 	install $(SWDIAG) $(BINDIR)/$(SWDIAG)

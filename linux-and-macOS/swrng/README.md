@@ -1,4 +1,4 @@
-# SwiftRNG utilities for Linux, FreeBSD and macOS
+# SwiftRNG utilities for Linux, FreeBSD, and macOS
 
 Source code for the command line utilities and the C/C++ API that access a
 [SwiftRNG](https://tectrolabs.com/swiftrng/) true random number generator over USB.
@@ -18,6 +18,8 @@ Source code for the command line utilities and the C/C++ API that access a
 | `eng_swiftrng` | OpenSSL engine that uses SwiftRNG as the random source (optional, see below) |
 | `run-swrng-pserver.sh` | Named pipe server script, see [below](#named-pipe-server) |
 | `80-swiftrng-usb-access.rules` | udev rules for non-root USB access on Linux |
+| `provider/` | OpenSSL 4 provider (`swiftrng.so`, `swiftrng.dylib` on macOS), built with CMake only, see [below](#openssl-provider-openssl-40-and-later) |
+| `tests/` | Unit tests, see [Running the tests](#running-the-tests) |
 
 The API is in `api-inc/` (headers) and `api-src/` (sources). `SwiftRngApi.h` is the C++ interface,
 `swrng.h` and `swrng-cl.h` are the C interfaces.
@@ -34,7 +36,7 @@ The API is in `api-inc/` (headers) and `api-src/` (sources). `SwiftRngApi.h` is 
   * macOS: `brew install libusb`
   * FreeBSD: libusb is part of the base system
 * CMake 3.10 or newer, if building with CMake (`sudo apt install cmake`, `brew install cmake`, `pkg install cmake`)
-* OpenSSL development files, only for the optional OpenSSL engine
+* OpenSSL development files, only for the optional OpenSSL engine or provider
 
 ## Building with CMake
 
@@ -82,7 +84,7 @@ make -f Makefile.bsd
 sudo make -f Makefile.bsd install
 ```
 
-`make clean` removes the build output. The OpenSSL engine is built separately with `make eng_swiftrng`.
+`make clean` removes the build output. The OpenSSL engine is built separately with `make eng_swiftrng`. After changing a source file, run `make clean` first, because `make` does not rebuild object files that already exist.
 
 ## Running the tests
 
@@ -94,6 +96,14 @@ cmake -S . -B build -DSWRNG_BUILD_TESTS=ON
 cmake --build build -j4
 cd build && ctest --output-on-failure
 ```
+
+The same six tests also build and run with make, without CMake:
+
+```sh
+make clean && make test
+```
+
+`make test` runs every test program and reports how many failed. The OpenSSL provider tests are built only with CMake.
 
 Each test file in `tests/` is its own program (for example `build/tests/test_sha`), which you can also run
 directly to see every test by name. They use a small framework in `tests/test_framework.h`, so there is nothing
@@ -192,6 +202,10 @@ and accepts these options (each has a long form shown by `swrng` without argumen
 | `-ppm METHOD` | Post-processing method: `SHA256`, `SHA512` or `xorshift64` |
 | `-dpp` | Disable post-processing, for devices with version 1.2 or newer |
 | `-dst` | Disable the Repetition Count and Adaptive Proportion statistical tests |
+
+Post-processing runs in this software, not in the device. It is on by default (SHA-256) for the SwiftRNG and SwiftRNG LE, and off by default for the SwiftRNG Pro and SwiftRNG Zn.
+
+If the Repetition Count or Adaptive Proportion test fails, the download stops with an error, and the API refuses further reads until the device is opened again.
 
 For example, to download 12 MB using the lowest power profile:
 
