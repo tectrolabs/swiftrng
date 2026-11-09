@@ -14,7 +14,7 @@
  *    @file SwiftRngApi.h
  *    @date 11/08/2026
  *    @Author: Andrian Belinski
- *    @version 1.4
+ *    @version 1.5
  *
  *    @brief Implements the API for interacting with the SwiftRNG device.
  */
@@ -192,7 +192,7 @@ int SwiftRngApi::open(int devNum) {
 	int ret;
 	int actualDeviceNum = devNum;
 
-	if (is_context_initialized() == false) {
+	if (is_context_initialized() == false || devNum < 0) {
 		return -1;
 	}
 
@@ -385,7 +385,7 @@ void SwiftRngApi::swrng_contextReset() {
 /**
 * Check if device is open
 *
-* @return int - 0 when device is open
+* @return int - 1 when device is open, 0 when not open, -1 if the context is not initialized
 */
 int SwiftRngApi::is_open() const {
 
