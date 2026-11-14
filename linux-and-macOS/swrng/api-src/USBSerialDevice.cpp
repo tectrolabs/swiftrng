@@ -88,6 +88,14 @@ bool USBSerialDevice::connect(const char *devicePath) {
 		return false;
 	}
 
+#ifndef __FreeBSD__
+	if (ioctl(m_fd, TIOCEXCL) != 0) {
+		m_error_log_oss << "Could not set exclusive access for device: " << devicePath << ". ";
+		close(m_fd);
+		return false;
+	}
+#endif
+
 	m_device_connected = true;
 	return true;
 }
