@@ -132,7 +132,7 @@ TEST(serial_connecting_to_something_that_is_not_a_terminal_fails) {
 	device.initialize();
 	CHECK(!device.connect(file.path.c_str()));
 	CHECK(!device.is_connected());
-	CHECK(device.get_error_log().find("Could not retrieve configuration") != std::string::npos);
+	CHECK(device.get_error_log().find("Not a serial terminal device") != std::string::npos);
 }
 
 TEST(serial_connects_to_a_terminal_and_disconnects) {

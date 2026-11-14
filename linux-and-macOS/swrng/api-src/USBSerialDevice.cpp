@@ -44,9 +44,16 @@ bool USBSerialDevice::connect(const char *devicePath) {
 
 	clear_error_log();
 
-	m_fd = open(devicePath, O_RDWR | O_NOCTTY);
+	m_fd = open(devicePath, O_RDWR | O_NOCTTY | O_CLOEXEC);
 	if (m_fd == -1) {
 		m_error_log_oss << "Could not open serial device: " << devicePath << ". ";
+		return false;
+	}
+
+	struct stat st;
+	if (fstat(m_fd, &st) != 0 || !S_ISCHR(st.st_mode) || !isatty(m_fd)) {
+		m_error_log_oss << "Not a serial terminal device: " << devicePath << ". ";
+		close(m_fd);
 		return false;
 	}
 
