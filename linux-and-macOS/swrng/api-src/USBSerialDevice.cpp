@@ -121,6 +121,9 @@ bool USBSerialDevice::disconnect() {
 	if (!is_connected()) {
 		return false;
 	}
+#ifndef __FreeBSD__
+	ioctl(m_fd, TIOCNXCL);
+#endif
 	flock(m_fd, LOCK_UN);
 	close(m_fd);
 	m_fd = -1;

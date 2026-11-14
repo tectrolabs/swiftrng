@@ -177,7 +177,8 @@ TEST(serial_port_in_use_by_another_object_is_refused) {
 	REQUIRE(first.connect(pty.slave.c_str()));
 	CHECK(!second.connect(pty.slave.c_str()));
 	CHECK(!second.is_connected());
-	CHECK(second.get_error_log().find("Could not lock device") != std::string::npos);
+	CHECK(second.get_error_log().find("Could not lock device") != std::string::npos ||
+		second.get_error_log().find("Could not open serial device") != std::string::npos);
 }
 
 TEST(serial_port_is_free_again_after_the_other_object_disconnects) {
