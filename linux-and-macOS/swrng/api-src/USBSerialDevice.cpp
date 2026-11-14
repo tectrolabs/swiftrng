@@ -54,6 +54,7 @@ bool USBSerialDevice::connect(const char *devicePath) {
 	if (fstat(m_fd, &st) != 0 || !S_ISCHR(st.st_mode) || !isatty(m_fd)) {
 		m_error_log_oss << "Not a serial terminal device: " << devicePath << ". ";
 		close(m_fd);
+		m_fd = -1;
 		return false;
 	}
 
@@ -62,6 +63,7 @@ bool USBSerialDevice::connect(const char *devicePath) {
 	if (m_lock != 0) {
 		m_error_log_oss << "Could not lock device: " << devicePath << ". ";
 		close(m_fd);
+		m_fd = -1;
 		return false;
 	}
 
@@ -72,6 +74,7 @@ bool USBSerialDevice::connect(const char *devicePath) {
 	if (retVal) {
 		m_error_log_oss << "Could not retrieve configuration from serial device: " << devicePath << ". ";
 		close(m_fd);
+		m_fd = -1;
 		return false;
 	}
 
@@ -92,6 +95,7 @@ bool USBSerialDevice::connect(const char *devicePath) {
 	if (retVal) {
 		m_error_log_oss << "Could not set configuration for serial device: " << devicePath << ". ";
 		close(m_fd);
+		m_fd = -1;
 		return false;
 	}
 
@@ -99,6 +103,7 @@ bool USBSerialDevice::connect(const char *devicePath) {
 	if (ioctl(m_fd, TIOCEXCL) != 0) {
 		m_error_log_oss << "Could not set exclusive access for device: " << devicePath << ". ";
 		close(m_fd);
+		m_fd = -1;
 		return false;
 	}
 #endif
@@ -117,6 +122,7 @@ bool USBSerialDevice::disconnect() {
 	}
 	flock(m_fd, LOCK_UN);
 	close(m_fd);
+	m_fd = -1;
 	m_device_connected = false;
 	clear_error_log();
 	return true;

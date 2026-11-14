@@ -40,6 +40,8 @@ class USBSerialDevice {
 public:
 	USBSerialDevice();
 	virtual ~USBSerialDevice();
+	USBSerialDevice(const USBSerialDevice&) = delete;
+	USBSerialDevice& operator=(const USBSerialDevice&) = delete;
 	void initialize();
 	bool is_connected() const;
 	bool connect(const char *devicePath);
@@ -60,8 +62,8 @@ private:
 	static const int c_max_devices = 25;
 	static const int c_max_size_device_name = 128;
 	int m_fd {-1};
-	int m_lock;
-	char c_device_names[c_max_devices][c_max_size_device_name];
+	int m_lock {-1};
+	char c_device_names[c_max_devices][c_max_size_device_name] {};
 	int m_active_device_count {0};
 	bool m_device_connected {false};
 	std::ostringstream m_error_log_oss;
