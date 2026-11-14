@@ -278,10 +278,14 @@ int USBSerialDevice::get_device_count() const {
 	return m_active_device_count;
 }
 
-bool USBSerialDevice::retrieve_device_path(char *devName, int devNum) const {
-	if (devNum >= m_active_device_count) {
+bool USBSerialDevice::retrieve_device_path(char *devName, size_t devNameSize, int devNum) const {
+	if (devName == nullptr || devNameSize == 0 || devNum < 0 || devNum >= m_active_device_count) {
 		return false;
 	}
-	strcpy(devName, c_device_names[devNum]);
+	size_t len = strlen(c_device_names[devNum]);
+	if (len >= devNameSize) {
+		return false;
+	}
+	memcpy(devName, c_device_names[devNum], len + 1);
 	return true;
 }

@@ -48,7 +48,7 @@ public:
 	int receive_data(unsigned char *rcv, int sizeRcv, int *bytesReceived);
 	int get_device_count() const;
 	void scan_available_devices();
-	bool retrieve_device_path(char *devName, int devNum) const;
+	bool retrieve_device_path(char *devName, size_t devNameSize, int devNum) const;
 
 private:
 	void set_error_message(const char *error_message);
