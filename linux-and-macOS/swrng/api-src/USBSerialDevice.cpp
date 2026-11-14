@@ -68,9 +68,10 @@ bool USBSerialDevice::connect(const char *devicePath) {
 		return false;
 	}
 
-	opts.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-	opts.c_iflag &= ~(INLCR | IGNCR | ICRNL | IXON | IXOFF);
-	opts.c_oflag &= ~(ONLCR | OCRNL);
+	cfmakeraw(&opts);
+	opts.c_cflag |= (CLOCAL | CREAD);
+	opts.c_cflag &= ~CRTSCTS;
+	opts.c_iflag &= ~(IXON | IXOFF | IXANY);
 
 	// Set time out or read serial device operations
 #ifdef __FreeBSD__
