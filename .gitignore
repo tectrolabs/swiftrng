@@ -56,3 +56,11 @@ build/
 /linux-and-macOS/swrng/swperf-cl-test
 /linux-and-macOS/swrng/swrng-cl
 /linux-and-macOS/swrng/eng_swiftrng.so
+
+# Test binaries built by make test in linux-and-macOS/swrng
+/linux-and-macOS/swrng/tests/test_api_no_device
+/linux-and-macOS/swrng/tests/test_cl_api
+/linux-and-macOS/swrng/tests/test_health
+/linux-and-macOS/swrng/tests/test_sha
+/linux-and-macOS/swrng/tests/test_usb_serial
+/linux-and-macOS/swrng/tests/test_xorshift

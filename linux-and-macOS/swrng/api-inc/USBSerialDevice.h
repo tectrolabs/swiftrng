@@ -1,11 +1,11 @@
 /*
  * USBSerialDevice.h
- * Ver 1.3
+ * Ver 1.4
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
- Copyright (C) 2014-2024 TectroLabs L.L.C. https://tectrolabs.com
+ Copyright (C) 2014-2026 TectroLabs L.L.C. https://tectrolabs.com
 
  THIS SOFTWARE IS PROVIDED "AS IS" WITHOUT WARRANTY OF ANY KIND, EITHER EXPRESSED OR IMPLIED,
  INCLUDING BUT NOT LIMITED TO THE IMPLIED WARRANTIES OF MERCHANTABILITY AND/OR FITNESS FOR A PARTICULAR PURPOSE.
@@ -26,7 +26,9 @@
 #include <termios.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <sys/file.h>
+#include <sys/ioctl.h>
 #include <ctype.h>
 #include <sstream>
 
@@ -38,6 +40,8 @@ class USBSerialDevice {
 public:
 	USBSerialDevice();
 	virtual ~USBSerialDevice();
+	USBSerialDevice(const USBSerialDevice&) = delete;
+	USBSerialDevice& operator=(const USBSerialDevice&) = delete;
 	void initialize();
 	bool is_connected() const;
 	bool connect(const char *devicePath);
@@ -48,7 +52,7 @@ public:
 	int receive_data(unsigned char *rcv, int sizeRcv, int *bytesReceived);
 	int get_device_count() const;
 	void scan_available_devices();
-	bool retrieve_device_path(char *devName, int devNum) const;
+	bool retrieve_device_path(char *devName, size_t devNameSize, int devNum) const;
 
 private:
 	void set_error_message(const char *error_message);
@@ -57,9 +61,10 @@ private:
 private:
 	static const int c_max_devices = 25;
 	static const int c_max_size_device_name = 128;
+	static const int c_max_eintr_retries = 100;
 	int m_fd {-1};
-	int m_lock;
-	char c_device_names[c_max_devices][c_max_size_device_name];
+	int m_lock {-1};
+	char c_device_names[c_max_devices][c_max_size_device_name] {};
 	int m_active_device_count {0};
 	bool m_device_connected {false};
 	std::ostringstream m_error_log_oss;

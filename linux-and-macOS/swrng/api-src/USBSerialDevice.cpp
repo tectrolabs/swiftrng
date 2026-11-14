@@ -1,6 +1,6 @@
 /*
  * USBSerialDevice.cpp
- * Ver 1.7
+ * Ver 1.8
  */
 
 /*+++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
@@ -18,6 +18,7 @@
 
 #include "USBSerialDevice.h"
 #include <cstdio>
+#include <cerrno>
 
 USBSerialDevice::USBSerialDevice() {
 	clear_error_log();
@@ -44,9 +45,17 @@ bool USBSerialDevice::connect(const char *devicePath) {
 
 	clear_error_log();
 
-	m_fd = open(devicePath, O_RDWR | O_NOCTTY);
+	m_fd = open(devicePath, O_RDWR | O_NOCTTY | O_CLOEXEC);
 	if (m_fd == -1) {
 		m_error_log_oss << "Could not open serial device: " << devicePath << ". ";
+		return false;
+	}
+
+	struct stat st;
+	if (fstat(m_fd, &st) != 0 || !S_ISCHR(st.st_mode) || !isatty(m_fd)) {
+		m_error_log_oss << "Not a serial terminal device: " << devicePath << ". ";
+		close(m_fd);
+		m_fd = -1;
 		return false;
 	}
 
@@ -55,6 +64,7 @@ bool USBSerialDevice::connect(const char *devicePath) {
 	if (m_lock != 0) {
 		m_error_log_oss << "Could not lock device: " << devicePath << ". ";
 		close(m_fd);
+		m_fd = -1;
 		return false;
 	}
 
@@ -65,12 +75,14 @@ bool USBSerialDevice::connect(const char *devicePath) {
 	if (retVal) {
 		m_error_log_oss << "Could not retrieve configuration from serial device: " << devicePath << ". ";
 		close(m_fd);
+		m_fd = -1;
 		return false;
 	}
 
-	opts.c_lflag &= ~(ECHO | ECHONL | ICANON | ISIG | IEXTEN);
-	opts.c_iflag &= ~(INLCR | IGNCR | ICRNL | IXON | IXOFF);
-	opts.c_oflag &= ~(ONLCR | OCRNL);
+	cfmakeraw(&opts);
+	opts.c_cflag |= (CLOCAL | CREAD);
+	opts.c_cflag &= ~CRTSCTS;
+	opts.c_iflag &= ~(IXON | IXOFF | IXANY);
 
 	// Set time out or read serial device operations
 #ifdef __FreeBSD__
@@ -84,8 +96,18 @@ bool USBSerialDevice::connect(const char *devicePath) {
 	if (retVal) {
 		m_error_log_oss << "Could not set configuration for serial device: " << devicePath << ". ";
 		close(m_fd);
+		m_fd = -1;
 		return false;
 	}
+
+#ifndef __FreeBSD__
+	if (ioctl(m_fd, TIOCEXCL) != 0) {
+		m_error_log_oss << "Could not set exclusive access for device: " << devicePath << ". ";
+		close(m_fd);
+		m_fd = -1;
+		return false;
+	}
+#endif
 
 	m_device_connected = true;
 	return true;
@@ -99,8 +121,12 @@ bool USBSerialDevice::disconnect() {
 	if (!is_connected()) {
 		return false;
 	}
+#ifndef __FreeBSD__
+	ioctl(m_fd, TIOCNXCL);
+#endif
 	flock(m_fd, LOCK_UN);
 	close(m_fd);
+	m_fd = -1;
 	m_device_connected = false;
 	clear_error_log();
 	return true;
@@ -110,7 +136,16 @@ int USBSerialDevice::send_command(const unsigned char *snd, int sizeSnd, int *by
 	if (!is_connected()) {
 		return -1;
 	}
-	ssize_t retVal = write(m_fd, snd, sizeSnd);
+	if (snd == nullptr || bytesSent == nullptr || sizeSnd <= 0) {
+		m_error_log_oss << "Invalid arguments for sending a command to serial device.";
+		return -1;
+	}
+	*bytesSent = 0;
+	ssize_t retVal;
+	int attempts = 0;
+	do {
+		retVal = write(m_fd, snd, sizeSnd);
+	} while (retVal < 0 && errno == EINTR && ++attempts < c_max_eintr_retries);
 	if (retVal != (ssize_t)sizeSnd) {
 		m_error_log_oss << "Could not send command to serial device.";
 		return -1;
@@ -134,11 +169,20 @@ int USBSerialDevice::receive_data(unsigned char *rcv, int sizeRcv, int *bytesRec
 	if (!is_connected()) {
 		return -1;
 	}
+	if (rcv == nullptr || bytesReceived == nullptr || sizeRcv <= 0) {
+		m_error_log_oss << "Invalid arguments for receiving data from serial device.";
+		return -1;
+	}
+	*bytesReceived = 0;
 
 	size_t actualReceivedBytes = 0;
 	bool inLoop = true;
 	while (actualReceivedBytes < (size_t)sizeRcv && inLoop) {
-		ssize_t receivedCount = read(m_fd, rcv + actualReceivedBytes, sizeRcv - actualReceivedBytes);
+		ssize_t receivedCount;
+		int attempts = 0;
+		do {
+			receivedCount = read(m_fd, rcv + actualReceivedBytes, sizeRcv - actualReceivedBytes);
+		} while (receivedCount < 0 && errno == EINTR && ++attempts < c_max_eintr_retries);
 		if (receivedCount < 0) {
 			m_error_log_oss << "Could not receive data from serial device.";
 			returnStatus = -1;
@@ -267,10 +311,14 @@ int USBSerialDevice::get_device_count() const {
 	return m_active_device_count;
 }
 
-bool USBSerialDevice::retrieve_device_path(char *devName, int devNum) const {
-	if (devNum >= m_active_device_count) {
+bool USBSerialDevice::retrieve_device_path(char *devName, size_t devNameSize, int devNum) const {
+	if (devName == nullptr || devNameSize == 0 || devNum < 0 || devNum >= m_active_device_count) {
 		return false;
 	}
-	strcpy(devName, c_device_names[devNum]);
+	size_t len = strlen(c_device_names[devNum]);
+	if (len >= devNameSize) {
+		return false;
+	}
+	memcpy(devName, c_device_names[devNum], len + 1);
 	return true;
 }

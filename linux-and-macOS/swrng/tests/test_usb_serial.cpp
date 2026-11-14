@@ -132,7 +132,7 @@ TEST(serial_connecting_to_something_that_is_not_a_terminal_fails) {
 	device.initialize();
 	CHECK(!device.connect(file.path.c_str()));
 	CHECK(!device.is_connected());
-	CHECK(device.get_error_log().find("Could not retrieve configuration") != std::string::npos);
+	CHECK(device.get_error_log().find("Not a serial terminal device") != std::string::npos);
 }
 
 TEST(serial_connects_to_a_terminal_and_disconnects) {
@@ -177,7 +177,8 @@ TEST(serial_port_in_use_by_another_object_is_refused) {
 	REQUIRE(first.connect(pty.slave.c_str()));
 	CHECK(!second.connect(pty.slave.c_str()));
 	CHECK(!second.is_connected());
-	CHECK(second.get_error_log().find("Could not lock device") != std::string::npos);
+	CHECK(second.get_error_log().find("Could not lock device") != std::string::npos ||
+		second.get_error_log().find("Could not open serial device") != std::string::npos);
 }
 
 TEST(serial_port_is_free_again_after_the_other_object_disconnects) {

@@ -12,9 +12,9 @@
 
 /**
  *    @file SwiftRngApi.h
- *    @date 11/08/2026
+ *    @date 11/13/2026
  *    @Author: Andrian Belinski
- *    @version 1.5
+ *    @version 1.6
  *
  *    @brief Implements the API for interacting with the SwiftRNG device.
  */
@@ -272,7 +272,10 @@ int SwiftRngApi::open(int device_number) {
 	int portsConnected = m_usb_serial_device->get_device_count();
 	if (portsConnected > device_number) {
 		char devicePath[128];
-		m_usb_serial_device->retrieve_device_path(devicePath, device_number);
+		if (!m_usb_serial_device->retrieve_device_path(devicePath, sizeof(devicePath), device_number)) {
+			print_err_msg("Could not retrieve the serial device path");
+			return -1;
+		}
 		bool comPortStatus = m_usb_serial_device->connect(devicePath);
 		if (!comPortStatus) {
 			print_err_msg(m_usb_serial_device->get_error_log().c_str());
