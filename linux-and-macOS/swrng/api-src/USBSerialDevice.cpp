@@ -18,6 +18,7 @@
 
 #include "USBSerialDevice.h"
 #include <cstdio>
+#include <cerrno>
 
 USBSerialDevice::USBSerialDevice() {
 	clear_error_log();
@@ -137,7 +138,11 @@ int USBSerialDevice::send_command(const unsigned char *snd, int sizeSnd, int *by
 		return -1;
 	}
 	*bytesSent = 0;
-	ssize_t retVal = write(m_fd, snd, sizeSnd);
+	ssize_t retVal;
+	int attempts = 0;
+	do {
+		retVal = write(m_fd, snd, sizeSnd);
+	} while (retVal < 0 && errno == EINTR && ++attempts < c_max_eintr_retries);
 	if (retVal != (ssize_t)sizeSnd) {
 		m_error_log_oss << "Could not send command to serial device.";
 		return -1;
@@ -170,7 +175,11 @@ int USBSerialDevice::receive_data(unsigned char *rcv, int sizeRcv, int *bytesRec
 	size_t actualReceivedBytes = 0;
 	bool inLoop = true;
 	while (actualReceivedBytes < (size_t)sizeRcv && inLoop) {
-		ssize_t receivedCount = read(m_fd, rcv + actualReceivedBytes, sizeRcv - actualReceivedBytes);
+		ssize_t receivedCount;
+		int attempts = 0;
+		do {
+			receivedCount = read(m_fd, rcv + actualReceivedBytes, sizeRcv - actualReceivedBytes);
+		} while (receivedCount < 0 && errno == EINTR && ++attempts < c_max_eintr_retries);
 		if (receivedCount < 0) {
 			m_error_log_oss << "Could not receive data from serial device.";
 			returnStatus = -1;

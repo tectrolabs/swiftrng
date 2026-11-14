@@ -61,6 +61,7 @@ private:
 private:
 	static const int c_max_devices = 25;
 	static const int c_max_size_device_name = 128;
+	static const int c_max_eintr_retries = 100;
 	int m_fd {-1};
 	int m_lock {-1};
 	char c_device_names[c_max_devices][c_max_size_device_name] {};
