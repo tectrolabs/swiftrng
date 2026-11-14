@@ -110,6 +110,11 @@ int USBSerialDevice::send_command(const unsigned char *snd, int sizeSnd, int *by
 	if (!is_connected()) {
 		return -1;
 	}
+	if (snd == nullptr || bytesSent == nullptr || sizeSnd <= 0) {
+		m_error_log_oss << "Invalid arguments for sending a command to serial device.";
+		return -1;
+	}
+	*bytesSent = 0;
 	ssize_t retVal = write(m_fd, snd, sizeSnd);
 	if (retVal != (ssize_t)sizeSnd) {
 		m_error_log_oss << "Could not send command to serial device.";
@@ -134,6 +139,11 @@ int USBSerialDevice::receive_data(unsigned char *rcv, int sizeRcv, int *bytesRec
 	if (!is_connected()) {
 		return -1;
 	}
+	if (rcv == nullptr || bytesReceived == nullptr || sizeRcv <= 0) {
+		m_error_log_oss << "Invalid arguments for receiving data from serial device.";
+		return -1;
+	}
+	*bytesReceived = 0;
 
 	size_t actualReceivedBytes = 0;
 	bool inLoop = true;
