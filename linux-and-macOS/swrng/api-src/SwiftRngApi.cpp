@@ -12,9 +12,9 @@
 
 /**
  *    @file SwiftRngApi.h
- *    @date 11/08/2026
+ *    @date 11/13/2026
  *    @Author: Andrian Belinski
- *    @version 1.5
+ *    @version 1.6
  *
  *    @brief Implements the API for interacting with the SwiftRNG device.
  */
